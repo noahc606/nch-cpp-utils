@@ -1,3 +1,0 @@
-/home/nch/Technical/Libraries/Noah's CPP Utils/build/CMakeFiles/nchutils-test-unix.dir
-/home/nch/Technical/Libraries/Noah's CPP Utils/build/CMakeFiles/edit_cache.dir
-/home/nch/Technical/Libraries/Noah's CPP Utils/build/CMakeFiles/rebuild_cache.dir
