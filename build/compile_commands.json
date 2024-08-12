@@ -1,0 +1,42 @@
+[
+{
+  "directory": "/home/nch/Technical/Libraries/Noah's CPP Utils/build",
+  "command": "/usr/bin/c++ -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/fs\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include\" -g -o CMakeFiles/nchutils-test-unix.dir/include/nch/cpp-utils/fs/FilePath.cpp.o -c \"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/fs/FilePath.cpp\"",
+  "file": "/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/fs/FilePath.cpp"
+},
+{
+  "directory": "/home/nch/Technical/Libraries/Noah's CPP Utils/build",
+  "command": "/usr/bin/c++ -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/fs\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include\" -g -o CMakeFiles/nchutils-test-unix.dir/include/nch/cpp-utils/fs/FsUtils.cpp.o -c \"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/fs/FsUtils.cpp\"",
+  "file": "/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/fs/FsUtils.cpp"
+},
+{
+  "directory": "/home/nch/Technical/Libraries/Noah's CPP Utils/build",
+  "command": "/usr/bin/c++ -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/fs\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include\" -g -o CMakeFiles/nchutils-test-unix.dir/include/nch/cpp-utils/gfx/Color.cpp.o -c \"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/gfx/Color.cpp\"",
+  "file": "/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/gfx/Color.cpp"
+},
+{
+  "directory": "/home/nch/Technical/Libraries/Noah's CPP Utils/build",
+  "command": "/usr/bin/c++ -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/fs\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include\" -g -o CMakeFiles/nchutils-test-unix.dir/include/nch/sdl-utils/Input.cpp.o -c \"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/Input.cpp\"",
+  "file": "/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/Input.cpp"
+},
+{
+  "directory": "/home/nch/Technical/Libraries/Noah's CPP Utils/build",
+  "command": "/usr/bin/c++ -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/fs\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include\" -g -o CMakeFiles/nchutils-test-unix.dir/include/nch/sdl-utils/MainLoopDriver.cpp.o -c \"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/MainLoopDriver.cpp\"",
+  "file": "/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/MainLoopDriver.cpp"
+},
+{
+  "directory": "/home/nch/Technical/Libraries/Noah's CPP Utils/build",
+  "command": "/usr/bin/c++ -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/fs\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include\" -g -o CMakeFiles/nchutils-test-unix.dir/include/nch/sdl-utils/Timer.cpp.o -c \"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/Timer.cpp\"",
+  "file": "/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/Timer.cpp"
+},
+{
+  "directory": "/home/nch/Technical/Libraries/Noah's CPP Utils/build",
+  "command": "/usr/bin/c++ -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/fs\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include\" -g -o CMakeFiles/nchutils-test-unix.dir/include/nch/sdl-utils/gfx/TexUtils.cpp.o -c \"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/gfx/TexUtils.cpp\"",
+  "file": "/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/gfx/TexUtils.cpp"
+},
+{
+  "directory": "/home/nch/Technical/Libraries/Noah's CPP Utils/build",
+  "command": "/usr/bin/c++ -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/fs\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/cpp-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include/nch/sdl-utils/gfx\" -I\"/home/nch/Technical/Libraries/Noah's CPP Utils/include\" -g -o CMakeFiles/nchutils-test-unix.dir/src/Main.cpp.o -c \"/home/nch/Technical/Libraries/Noah's CPP Utils/src/Main.cpp\"",
+  "file": "/home/nch/Technical/Libraries/Noah's CPP Utils/src/Main.cpp"
+}
+]
