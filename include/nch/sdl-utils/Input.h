@@ -3,7 +3,7 @@
 #include <SDL2/SDL_keycode.h>
 #include <map>
 
-class Input {
+class NCH_Input {
 public:
 	static void tick();
 	static void anyEvents(SDL_Event& e);

@@ -1,14 +1,14 @@
 #include "Input.h"
 #include <nch/sdl-utils/debug/SDLEventDebugger.h>
 
-SDL_Event Input::lastKnownEvent;
-std::map<int32_t, int> Input::keyStates;
-std::map<int32_t, int> Input::mouseStates;
-uint16_t Input::currentModKeys = 0;
+SDL_Event NCH_Input::lastKnownEvent;
+std::map<int32_t, int> NCH_Input::keyStates;
+std::map<int32_t, int> NCH_Input::mouseStates;
+uint16_t NCH_Input::currentModKeys = 0;
 
-int Input::holdingS = 0;
+int NCH_Input::holdingS = 0;
 
-void Input::tick()
+void NCH_Input::tick()
 {
 	if(isKeyDown(SDLK_s)) {
 		holdingS++;
@@ -29,16 +29,16 @@ void Input::tick()
 	}*/
 }
 
-void Input::anyEvents(SDL_Event& e)
+void NCH_Input::anyEvents(SDL_Event& e)
 {
-	SDLEventDebugger sed;
+	NCH_SDLEventDebugger sed;
 	std::string eventDesc = sed.toString(e);
 	if(eventDesc!="unknown") {
 		lastKnownEvent = e;
 	}
 }
 
-void Input::events(SDL_Event& e)
+void NCH_Input::events(SDL_Event& e)
 {
 	switch(e.type) {
 		case SDL_KEYDOWN: 			{ setKeyState(e.key.keysym.sym, -1); } break;
@@ -50,24 +50,24 @@ void Input::events(SDL_Event& e)
 	currentModKeys = e.key.keysym.mod;
 }
 
-SDL_Event Input::getLastKnownSDLEvent() { return lastKnownEvent; }
+SDL_Event NCH_Input::getLastKnownSDLEvent() { return lastKnownEvent; }
 
-int Input::getMouseX()
+int NCH_Input::getMouseX()
 {
 	int x, y;
 	SDL_GetMouseState(&x, &y);
 	return x;
 }
 
-int Input::getMouseY()
+int NCH_Input::getMouseY()
 {
 	int x, y;
 	SDL_GetMouseState(&x, &y);
 	return y;
 }
 
-bool Input::isKeyDown(SDL_Keycode kc) { return keyDownTime(kc)>0; }
-int Input::keyDownTime(SDL_Keycode kc)
+bool NCH_Input::isKeyDown(SDL_Keycode kc) { return keyDownTime(kc)>0; }
+int NCH_Input::keyDownTime(SDL_Keycode kc)
 {
 	auto ksItr = keyStates.find(kc);
 	if(ksItr==keyStates.end()) {
@@ -78,17 +78,17 @@ int Input::keyDownTime(SDL_Keycode kc)
 	
 	return 0;
 }
-int Input::keySDownTime()
+int NCH_Input::keySDownTime()
 {
 	return holdingS;
 }
 
-bool Input::isModKeyDown(SDL_Keymod km)
+bool NCH_Input::isModKeyDown(SDL_Keymod km)
 {
 	return (currentModKeys & km);
 }
 
-bool Input::isMouseDown(int mouseButton)
+bool NCH_Input::isMouseDown(int mouseButton)
 {
 	auto msItr = mouseStates.find(mouseButton);
 	if(msItr==mouseStates.end()) {
@@ -98,7 +98,7 @@ bool Input::isMouseDown(int mouseButton)
 	}
 	return false;
 }
-void Input::setKeyState(int32_t key, int state)
+void NCH_Input::setKeyState(int32_t key, int state)
 {
 	auto ksItr = keyStates.find(key);
 	if( ksItr!=keyStates.end() ) {
@@ -107,7 +107,7 @@ void Input::setKeyState(int32_t key, int state)
 	keyStates.insert( std::make_pair(key, state) );
 }
 
-void Input::setMouseState(int32_t mouseButton, int state)
+void NCH_Input::setMouseState(int32_t mouseButton, int state)
 {
 	auto msItr = mouseStates.find(mouseButton);
 	if( msItr!=mouseStates.end() ) {

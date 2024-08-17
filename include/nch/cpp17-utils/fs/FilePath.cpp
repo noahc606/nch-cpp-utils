@@ -3,11 +3,11 @@
 #include <vector>
 #include "FsUtils.h"
 
-const std::string FilePath::validChars = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789-+= _/\\";
+const std::string NCH_FilePath::validChars = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789-+= _/\\";
 
-FilePath::FilePath(std::string path)
+NCH_FilePath::NCH_FilePath(std::string path)
 {
-    if(FsUtils::regularFileExists(path)) {
+    if(NCH_FsUtils::regularFileExists(path)) {
         //Make sure path for a local file is valid
         std::string vc = validChars+".";
         int numPeriods = 0;
@@ -31,7 +31,7 @@ FilePath::FilePath(std::string path)
         }
     }
 
-    if(FsUtils::dirExists(path)) {
+    if(NCH_FsUtils::dirExists(path)) {
         //Make sure path for a local directory is valid
         std::string vc = validChars;
         for(int i = 0; i<path.size(); i++) {
@@ -53,18 +53,16 @@ FilePath::FilePath(std::string path)
     cleanpath = res.str();
 }
 
-FilePath::~FilePath(){}
-
-std::string FilePath::get() { return cleanpath; }
-std::string FilePath::getFilename(bool includeExtension)
+std::string NCH_FilePath::get() { return cleanpath; }
+std::string NCH_FilePath::getFilename(bool includeExtension)
 {
     std::string wp = get(); //Working Path
     if(!includeExtension) {
         wp = getWithoutExtension();
     }
 
-    if(FsUtils::dirExists(get()))           return "?directory?";
-    if(!FsUtils::regularFileExists(get()))  return "?null?";
+    if(NCH_FsUtils::dirExists(get()))           return "?directory?";
+    if(!NCH_FsUtils::regularFileExists(get()))  return "?null?";
     
     std::string filename = "";
     for(int i = wp.size()-1; i>=0; i--) {
@@ -77,8 +75,8 @@ std::string FilePath::getFilename(bool includeExtension)
     return filename;
 
 }
-std::string FilePath::getFilename() { return getFilename(true); }
-std::string FilePath::getGrandparentDir(int numUpDirs)
+std::string NCH_FilePath::getFilename() { return getFilename(true); }
+std::string NCH_FilePath::getGrandparentDir(int numUpDirs)
 {
     if(numUpDirs<1) return "?invalid-numUpDirs?";
 
@@ -106,9 +104,9 @@ std::string FilePath::getGrandparentDir(int numUpDirs)
     }
     return grandparentDir;
 }
-std::string FilePath::getParentDir() { return getGrandparentDir(1); }
+std::string NCH_FilePath::getParentDir() { return getGrandparentDir(1); }
 
-int FilePath::getNumDirsDown()
+int NCH_FilePath::getNumDirsDown()
 {
     int slashes = 0;
     for(int i = 0; i<cleanpath.size(); i++) {
@@ -117,10 +115,10 @@ int FilePath::getNumDirsDown()
     return slashes+1;
 }
 
-std::string FilePath::getExtension()
+std::string NCH_FilePath::getExtension()
 {
-    if(FsUtils::dirExists(get()))           return "?directory?";
-    if(!FsUtils::regularFileExists(get()))  return "?null?";
+    if(NCH_FsUtils::dirExists(get()))           return "?directory?";
+    if(!NCH_FsUtils::regularFileExists(get()))  return "?null?";
 
     std::string ext = "";
     for(int i = cleanpath.size()-1; i>=0; i--) {
@@ -136,10 +134,10 @@ std::string FilePath::getExtension()
     return res;
 }
 
-std::string FilePath::getWithoutExtension()
+std::string NCH_FilePath::getWithoutExtension()
 {
-    if(FsUtils::dirExists(get()))           return get();
-    if(!FsUtils::regularFileExists(get()))  return get();
+    if(NCH_FsUtils::dirExists(get()))           return get();
+    if(!NCH_FsUtils::regularFileExists(get()))  return get();
 
 
     std::string s = getExtension();

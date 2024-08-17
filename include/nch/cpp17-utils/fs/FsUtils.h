@@ -2,11 +2,8 @@
 #include <string>
 #include <vector>
 
-class FsUtils {
+class NCH_FsUtils {
 public:
-    FsUtils();
-    ~FsUtils();
-
     static bool dirExists(std::string dirPath);
     static bool regularFileExists(std::string rfPath);
     static std::vector<std::string> listDirContents(std::string dirPath, int listType, bool recursive);

@@ -4,22 +4,19 @@
 #include <set>
 #include <sstream>
 
-FsUtils::FsUtils(){}
-FsUtils::~FsUtils(){}
-
-bool FsUtils::dirExists(std::string dirPath)
+bool NCH_FsUtils::dirExists(std::string dirPath)
 {
     if(std::filesystem::is_directory(dirPath)) return true;
     return false;
 }
 
-bool FsUtils::regularFileExists(std::string rfPath)
+bool NCH_FsUtils::regularFileExists(std::string rfPath)
 {
     if(std::filesystem::is_regular_file(rfPath)) return true;
     return false;
 }
 
-std::vector<std::string> FsUtils::listDirContents(std::string dirPath, int listType, bool recursive)
+std::vector<std::string> NCH_FsUtils::listDirContents(std::string dirPath, int listType, bool recursive)
 {
     std::string mfp = dirPath;
 
@@ -49,7 +46,7 @@ std::vector<std::string> FsUtils::listDirContents(std::string dirPath, int listT
             }
 
             //Build filepath
-            FilePath fp(ss.str());
+            NCH_FilePath fp(ss.str());
 
             //Depending on listType, add files/directories/both to the list
             if(listType==ONLY_DIRS) {
@@ -76,7 +73,7 @@ std::vector<std::string> FsUtils::listDirContents(std::string dirPath, int listT
     return res;
 }
 
-std::vector<std::string> FsUtils::listDirContents(std::vector<std::string> dirPaths, int listType, bool recursive)
+std::vector<std::string> NCH_FsUtils::listDirContents(std::vector<std::string> dirPaths, int listType, bool recursive)
 {
     std::vector<std::string> res;
     
@@ -104,7 +101,7 @@ std::vector<std::string> FsUtils::listDirContents(std::vector<std::string> dirPa
     return res;
 }
 
-std::string FsUtils::getPathWithInferredExtension(std::string path) {
+std::string NCH_FsUtils::getPathWithInferredExtension(std::string path) {
     int i = -1;
     for(i = path.size()-1; i>=0; i--) {
         if(path[i]=='/' || path[i]=='\\') {
@@ -116,7 +113,7 @@ std::string FsUtils::getPathWithInferredExtension(std::string path) {
     int count = 0;
     std::vector<std::string> dirFileList = listDirContents(path.substr(0, i), ListTypes::ONLY_FILES, false);
     for(std::string f : dirFileList) {
-        FilePath fp(f);
+        NCH_FilePath fp(f);
         std::string ext = fp.getExtension();
 
         std::string potentialFile = path+"."+ext;

@@ -4,10 +4,10 @@
 #include <string>
 #include "Color.h"
 
-class Text {
+class NCH_Text {
 public:
 
-    ~Text();
+    ~NCH_Text();
     void init(SDL_Renderer* rend, TTF_Font* font, bool darkenBackground);
     void draw(int x, int y);
     

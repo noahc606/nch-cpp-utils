@@ -1,6 +1,6 @@
 #include "TexUtils.h"
 
-void TexUtils::clearTexture(SDL_Renderer* rend, SDL_Texture*& tex)
+void NCH_TexUtils::clearTexture(SDL_Renderer* rend, SDL_Texture*& tex)
 {
     //Save old render target, draw blend mode, and draw color
     SDL_Texture* oldRTarget = SDL_GetRenderTarget(rend);

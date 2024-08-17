@@ -14,8 +14,8 @@ int64_t drawTimer = -10;
 SDL_Texture* tex = nullptr;
 SDL_Window* win = nullptr;
 uint32_t winPixFormat = 0;
-Text dbgTxt0;
-Text dbgTxt1;
+NCH_Text dbgTxt0;
+NCH_Text dbgTxt1;
 TTF_Font* dbgFont = nullptr;
 
 int getWidth() {
@@ -38,7 +38,7 @@ void drawInfo(SDL_Renderer* rend)
         scale = getHeight()/480.;
     }
 
-    dbgTxt0.setText( SDLEventDebugger::toString(Input::getLastKnownSDLEvent()) );
+    dbgTxt0.setText( NCH_SDLEventDebugger::toString(NCH_Input::getLastKnownSDLEvent()) );
     std::stringstream ss; ss << "Window dimensions (W x H) = " << width << " x " << " " << height << "."; dbgTxt1.setText(ss.str());
     dbgTxt0.setScale(scale/3);
     dbgTxt1.setScale(scale/3);
@@ -52,7 +52,7 @@ void draw(SDL_Renderer* rend)
     //Only on first draw, create a clear texture that is 640x480.
     if(firstDraw) {
         tex = SDL_CreateTexture(rend, winPixFormat, SDL_TEXTUREACCESS_TARGET, 640, 480);
-        TexUtils::clearTexture(rend, tex);
+        NCH_TexUtils::clearTexture(rend, tex);
         firstDraw = false;
     }
 
@@ -127,5 +127,5 @@ int main()
     dbgTxt1.init(rend, dbgFont, true);
 
     /* Create main loop */
-    MainLoopDriver mainLoop(rend, &tick, 60, &draw, 1000);
+    NCH_MainLoopDriver mainLoop(rend, &tick, 60, &draw, 1000);
 }

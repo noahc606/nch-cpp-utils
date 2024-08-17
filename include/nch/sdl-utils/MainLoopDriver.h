@@ -2,9 +2,9 @@
 #include <SDL2/SDL.h>
 #include <vector>
 
-class MainLoopDriver {
+class NCH_MainLoopDriver {
 public:
-    MainLoopDriver(SDL_Renderer*, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS);
+    NCH_MainLoopDriver(SDL_Renderer*, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS);
 
 private:
     void events();

@@ -1,11 +1,10 @@
 #pragma once
 #include <string>
 
-class FilePath
+class NCH_FilePath
 {
 public:
-    FilePath(std::string path);
-    ~FilePath();
+    NCH_FilePath(std::string path);
 
     std::string get();
     std::string getFilename(bool includeExtension);
