@@ -36,7 +36,10 @@ void Text::draw(int x, int y)
     }
 
     SDL_SetRenderDrawColor(rend, textColor.r, textColor.g, textColor.b, 255);
-    SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeBest);
+
+    #if ( (SDL_MAJOR_VERSION>2) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION>0) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION==0 && SDL_PATCHLEVEL>=12))
+        SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeBest);
+    #endif
     SDL_RenderCopy(rend, txtTex, NULL, &dst );
 }
 

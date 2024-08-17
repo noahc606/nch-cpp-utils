@@ -37,7 +37,13 @@ uint64_t Timer::getCurrentTimeNS()
 	return SDL_GetPerformanceCounter()*(int64_t)10000/SDL_GetPerformanceFrequency()*100000;
 }
 
-uint64_t Timer::getTicks64() { return SDL_GetTicks64(); }
+uint64_t Timer::getTicks64()
+{
+    #if ( (SDL_MAJOR_VERSION>2) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION>0) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION==0 && SDL_PATCHLEVEL>=18))
+        return SDL_GetTicks64();
+    #endif
+    return SDL_GetTicks();
+}
 
 double Timer::getElapsedTimeMS()
 {

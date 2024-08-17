@@ -18,14 +18,30 @@ Text dbgTxt0;
 Text dbgTxt1;
 TTF_Font* dbgFont = nullptr;
 
+int getWidth() {
+    int width = 0;
+    SDL_GetWindowSize(win, &width, NULL);
+    return width;
+}
+int getHeight() {
+    int height = 0;
+    SDL_GetWindowSize(win, NULL, &height);
+    return height;
+}
+
 void drawInfo(SDL_Renderer* rend)
 {
-    int width = 0;
-    int height = 0;
-    SDL_GetWindowSize(win, &width, &height);
+    int width = getWidth();
+    int height = getHeight();
+    double scale = getWidth()/640.;
+    if(getHeight()/480.<scale) {
+        scale = getHeight()/480.;
+    }
 
     dbgTxt0.setText( SDLEventDebugger::toString(Input::getLastKnownSDLEvent()) );
     std::stringstream ss; ss << "Window dimensions (W x H) = " << width << " x " << " " << height << "."; dbgTxt1.setText(ss.str());
+    dbgTxt0.setScale(scale/3);
+    dbgTxt1.setScale(scale/3);
 
     dbgTxt0.draw(width/2-dbgTxt0.getWidth()/2, height/2-dbgTxt1.getHeight());
     dbgTxt1.draw(width/2-dbgTxt1.getWidth()/2, height/2-dbgTxt1.getHeight()*2);
@@ -95,6 +111,8 @@ int main()
     if(win==NULL) {
         printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
     }
+    SDL_RaiseWindow(win);
+
     winPixFormat = SDL_GetWindowPixelFormat(win);
     //Renderer
     SDL_Renderer* rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
@@ -104,7 +122,7 @@ int main()
 
     /* Init TTF */
     TTF_Init();
-    dbgFont = TTF_OpenFont("res/FreeMono.ttf", 24);
+    dbgFont = TTF_OpenFont("res/FreeMono.ttf", 72);
     dbgTxt0.init(rend, dbgFont, true);
     dbgTxt1.init(rend, dbgFont, true);
 
