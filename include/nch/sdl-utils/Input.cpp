@@ -35,7 +35,6 @@ void Input::anyEvents(SDL_Event& e)
 	std::string eventDesc = sed.toString(e);
 	if(eventDesc!="unknown") {
 		lastKnownEvent = e;
-		printf("%s\n", eventDesc.c_str());
 	}
 }
 
