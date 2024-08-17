@@ -20,6 +20,7 @@ void NCH_Text::init(SDL_Renderer* rend, TTF_Font* font, bool darkenBackground)
     NCH_Text::font = font;
     NCH_Text::darkenBackground = darkenBackground;
 }
+void NCH_Text::init(SDL_Renderer* rend, TTF_Font* font) { init(rend, font, false); }
 
 void NCH_Text::draw(int x, int y)
 {

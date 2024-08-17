@@ -9,6 +9,7 @@ public:
 
     ~NCH_Text();
     void init(SDL_Renderer* rend, TTF_Font* font, bool darkenBackground);
+    void init(SDL_Renderer* rend, TTF_Font* font);
     void draw(int x, int y);
     
     double getWidth(); double getHeight();
