@@ -26,9 +26,7 @@ uint32_t NCH_Color::getRGBA() { return getRGBA(r, g, b, a); }
 uint32_t NCH_Color::getRGB(uint8_t p_r, uint8_t p_g, uint8_t p_b) { return 65536*p_r+256*p_g+p_b; }
 uint32_t NCH_Color::getRGB(uint32_t p_rgba) { return p_rgba>>8; }
 uint32_t NCH_Color::getRGB() { return getRGB(r, g, b); }
-uint32_t NCH_Color::getA(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a) { return p_a; }
 uint32_t NCH_Color::getA(uint32_t p_rgba) { return p_rgba&0xFF; }
-uint32_t NCH_Color::getA() { return a; }
 
 /**
  * H = [0-360)

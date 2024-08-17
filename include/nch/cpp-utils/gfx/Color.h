@@ -17,11 +17,9 @@ public:
     static uint32_t getRGBA(uint8_t r, uint8_t g, uint8_t b);
     static uint32_t getRGB(uint8_t r, uint8_t g, uint8_t b);
     static uint32_t getRGB(uint32_t rgba);
-    static uint32_t getA(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
     static uint32_t getA(uint32_t rgba);
     uint32_t getRGBA();
     uint32_t getRGB();
-    uint32_t getA();
     std::vector<double> getHSV();
     double getHSV2();
 	NCH_Color getInterpolColor(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a, double weight);
@@ -32,7 +30,7 @@ public:
 
 	/* Color setting & combining */
 	//Linear interpolation between two colors
-	//Additional blending: formulas found at https://wiki.libsdl.org/SDL2/SDL_BlendMode
+	//Additional blending: formulas based off of those at https://wiki.libsdl.org/SDL2/SDL_BlendMode
 	void add(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a);
     void add(NCH_Color& c);
     void blend(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a);
