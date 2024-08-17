@@ -3,7 +3,7 @@
 #include <memory>
 #include <sstream>
 
-class Log
+class NCH_Log
 {
 public:
     enum LogModes {
@@ -11,8 +11,8 @@ public:
     };
 
     /**/
-    Log();
-    virtual ~Log();
+    NCH_Log();
+    virtual ~NCH_Log();
     /**/	
     template<typename ... T> static std::string getFormattedString(const std::string& format, T ... args) {
         int size_s = std::snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'

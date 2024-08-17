@@ -1,31 +1,31 @@
 #include "Log.h"
 #include <SDL2/SDL.h>
 
-int Log::logMode = LogModes::DEFAULT;
-bool Log::logToFile = false;
-bool Log::logDestroyed = false;
+int NCH_Log::logMode = LogModes::DEFAULT;
+bool NCH_Log::logToFile = false;
+bool NCH_Log::logDestroyed = false;
 
 
-Log::Log(){}
-Log::~Log(){}
+NCH_Log::NCH_Log(){}
+NCH_Log::~NCH_Log(){}
 
-void Log::throwException(std::string funcname, std::string format)
+void NCH_Log::throwException(std::string funcname, std::string format)
 {
 	error(funcname, format);
 	throwException();
 }
 
-void Log::throwException()
+void NCH_Log::throwException()
 {
     throw std::exception();
 }
 
-void Log::logString(std::string s)
+void NCH_Log::logString(std::string s)
 {
 	std::cout << s;
 }
 
-void Log::logSStream(std::stringstream& ss)
+void NCH_Log::logSStream(std::stringstream& ss)
 {
 	logString(ss.str());
 }

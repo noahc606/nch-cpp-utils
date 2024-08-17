@@ -1,12 +1,12 @@
 #include "SimpleEncryption.h"
 #include "../fs/FileUtils.h"
 
-void SimpleEncryption::encryptFile(std::string file, std::string key)
+void NCH_SimpleEncryption::encryptFile(std::string file, std::string key)
 {
     encryptFile(file, getShiftSetFromStr(key));
 }
 
-void SimpleEncryption::decryptFile(std::string file, std::string key)
+void NCH_SimpleEncryption::decryptFile(std::string file, std::string key)
 {
     encryptFile(file, getShiftSetComplement( getShiftSetFromStr(key) ));
 }
@@ -14,7 +14,7 @@ void SimpleEncryption::decryptFile(std::string file, std::string key)
 
 
 
-std::vector<unsigned char> SimpleEncryption::getShiftSetComplement(std::vector<unsigned char> shiftset)
+std::vector<unsigned char> NCH_SimpleEncryption::getShiftSetComplement(std::vector<unsigned char> shiftset)
 {
     std::vector<unsigned char> res;
     for(int i = 0; i<shiftset.size();i++) {
@@ -24,7 +24,7 @@ std::vector<unsigned char> SimpleEncryption::getShiftSetComplement(std::vector<u
     return res;
 }
 
-std::vector<unsigned char> SimpleEncryption::getShiftSetFromStr(std::string str)
+std::vector<unsigned char> NCH_SimpleEncryption::getShiftSetFromStr(std::string str)
 {
     std::vector<unsigned char> res;
     for(int i = 0; i<str.size(); i++) {
@@ -38,7 +38,7 @@ std::vector<unsigned char> SimpleEncryption::getShiftSetFromStr(std::string str)
     return res;
 }
 
-void SimpleEncryption::encryptFile(std::string file, std::vector<unsigned char> shiftset)
+void NCH_SimpleEncryption::encryptFile(std::string file, std::vector<unsigned char> shiftset)
 {
     //Open file to be encrypted (read+binary)
     FILE* pFile = fopen(file.c_str(), "rb");
@@ -62,7 +62,7 @@ void SimpleEncryption::encryptFile(std::string file, std::vector<unsigned char> 
     //Rewrite file where every character is shifted by a certain amount depending on the 'shiftset'.
     for(int i = 0; i<fileSize; i++) {
         unsigned char c = buffer[i]+(unsigned char)shiftset[(i%shiftset.size())];
-        FileUtils::writeToFile(pFile, c);
+        NCH_FileUtils::writeToFile(pFile, c);
     }
     fclose(pFile);
 

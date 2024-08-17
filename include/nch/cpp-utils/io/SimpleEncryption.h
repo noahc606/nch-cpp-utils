@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-class SimpleEncryption {
+class NCH_SimpleEncryption {
 public:
     void encryptFile(std::string file, std::string key);
     void decryptFile(std::string file, std::string key);

@@ -4,10 +4,10 @@
 #include <math.h>
 #include <sstream>
 
-Color::Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a) { set(r, g, b, a); }
-Color::Color(uint8_t r, uint8_t g, uint8_t b) { set(r, g, b); }
-Color::Color(uint32_t rgba) { set(rgba); }
-Color::Color(std::string p_value)
+NCH_Color::NCH_Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a) { set(r, g, b, a); }
+NCH_Color::NCH_Color(uint8_t r, uint8_t g, uint8_t b) { set(r, g, b); }
+NCH_Color::NCH_Color(uint32_t rgba) { set(rgba); }
+NCH_Color::NCH_Color(std::string p_value)
 {
 	try {
 		uint32_t num = std::stoul(p_value);
@@ -17,25 +17,25 @@ Color::Color(std::string p_value)
 		set(0);
 	}
 }
-Color::Color(): Color(0, 0, 0){}
-Color::~Color(){}
+NCH_Color::NCH_Color(): NCH_Color(0, 0, 0){}
+NCH_Color::~NCH_Color(){}
 
-uint32_t Color::getRGBA(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a) { return 16777216*p_r+65536*p_g+256*p_b+p_a; }
-uint32_t Color::getRGBA(uint8_t p_r, uint8_t p_g, uint8_t p_b) { return getRGBA(p_r, p_g, p_b, 255); }
-uint32_t Color::getRGBA() { return getRGBA(r, g, b, a); }
-uint32_t Color::getRGB(uint8_t p_r, uint8_t p_g, uint8_t p_b) { return 65536*p_r+256*p_g+p_b; }
-uint32_t Color::getRGB(uint32_t p_rgba) { return p_rgba>>8; }
-uint32_t Color::getRGB() { return getRGB(r, g, b); }
-uint32_t Color::getA(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a) { return p_a; }
-uint32_t Color::getA(uint32_t p_rgba) { return p_rgba&0xFF; }
-uint32_t Color::getA() { return a; }
+uint32_t NCH_Color::getRGBA(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a) { return 16777216*p_r+65536*p_g+256*p_b+p_a; }
+uint32_t NCH_Color::getRGBA(uint8_t p_r, uint8_t p_g, uint8_t p_b) { return getRGBA(p_r, p_g, p_b, 255); }
+uint32_t NCH_Color::getRGBA() { return getRGBA(r, g, b, a); }
+uint32_t NCH_Color::getRGB(uint8_t p_r, uint8_t p_g, uint8_t p_b) { return 65536*p_r+256*p_g+p_b; }
+uint32_t NCH_Color::getRGB(uint32_t p_rgba) { return p_rgba>>8; }
+uint32_t NCH_Color::getRGB() { return getRGB(r, g, b); }
+uint32_t NCH_Color::getA(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a) { return p_a; }
+uint32_t NCH_Color::getA(uint32_t p_rgba) { return p_rgba&0xFF; }
+uint32_t NCH_Color::getA() { return a; }
 
 /**
  * H = [0-360)
  * S = [0-100]
  * V = [0-100]
  */
-std::vector<double> Color::getHSV()
+std::vector<double> NCH_Color::getHSV()
 {
 	double rp = ((double)r)/255.0;
 	double gp = ((double)g)/255.0;
@@ -77,7 +77,7 @@ std::vector<double> Color::getHSV()
 /**
  * Get the V in the HSV value
 */
-double Color::getHSV2()
+double NCH_Color::getHSV2()
 {
 	double rp = ((double)r)/255.0;
 	double gp = ((double)g)/255.0;
@@ -92,13 +92,13 @@ double Color::getHSV2()
 /**
  * Return the 32bit RGBA value, interpreted as a base 10 number, as a string.
  */
-std::string Color::toStringB10()
+std::string NCH_Color::toStringB10()
 {
 	std::stringstream ss; ss << getRGBA();
 	return ss.str();
 }
 
-std::string Color::toStringB16(bool transparency)
+std::string NCH_Color::toStringB16(bool transparency)
 {
 	std::stringstream ss;
 	ss << "#";
@@ -123,7 +123,7 @@ std::string Color::toStringB16(bool transparency)
  * A weight close to 0.0 would return a color "closer to" this object.
  * A weight close to 1.0 would return a color "closer to" the specified color (within the parameters).
  */ 
-Color Color::getInterpolColor(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a, double weight)
+NCH_Color NCH_Color::getInterpolColor(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a, double weight)
 {
 	uint8_t r1 = r; 	uint8_t g1 = g; 	uint8_t b1 = b;		uint8_t a1 = a;
 	uint8_t r2 = p_r; 	uint8_t g2 = p_g; 	uint8_t b2 = p_b;	uint8_t a2 = p_a;
@@ -133,11 +133,11 @@ Color Color::getInterpolColor(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a
 	double dB = ((double)(b1-b2))*weight;
 	double dA = ((double)(a1-a2))*weight;
 	
-	Color res;
+	NCH_Color res;
 	
-	return Color(r1-dR, g1-dG, b1-dB, a1-dA);
+	return NCH_Color(r1-dR, g1-dG, b1-dB, a1-dA);
 }
-Color Color::getInterpolColor(Color& c, double weight)
+NCH_Color NCH_Color::getInterpolColor(NCH_Color& c, double weight)
 {
 	return getInterpolColor(c.r, c.g, c.b, c.a, weight);
 }
@@ -146,38 +146,38 @@ Color Color::getInterpolColor(Color& c, double weight)
     Additive color blending.
     Destination color (current) is mixed with source color (parameters).
 */
-void Color::add(uint8_t sr, uint8_t sg, uint8_t sb, uint8_t sa)
+void NCH_Color::add(uint8_t sr, uint8_t sg, uint8_t sb, uint8_t sa)
 {
 	r = sr*sa+r;
 	g = sg*sa+g;
 	b = sb*sa+b;
 }
-void Color::add(Color& c) { add(c.r, c.g, c.b, c.a); }
+void NCH_Color::add(NCH_Color& c) { add(c.r, c.g, c.b, c.a); }
 
-void Color::blend(uint8_t sr, uint8_t sg, uint8_t sb, uint8_t sa)
+void NCH_Color::blend(uint8_t sr, uint8_t sg, uint8_t sb, uint8_t sa)
 {
     r = sr*sa/255+r*(255-a)/255;
     g = sg*sa/255+g*(255-a)/255;
     b = sb*sa/255+b*(255-a)/255;
     a = sa+       a*(255-a)/255;
 }
-void Color::blend(Color& c) { blend(c.r, c.g, c.b, c.a); }
+void NCH_Color::blend(NCH_Color& c) { blend(c.r, c.g, c.b, c.a); }
 
-void Color::mod(uint8_t sr, uint8_t sg, uint8_t sb, uint8_t sa)
+void NCH_Color::mod(uint8_t sr, uint8_t sg, uint8_t sb, uint8_t sa)
 {
     r = sr*r/255;
     g = sg*g/255;
     b = sb*b/255;
     a = sa*a/255;
 }
-void Color::mod(Color& c) { mod(c.r, c.g, c.b, c.a); }
+void NCH_Color::mod(NCH_Color& c) { mod(c.r, c.g, c.b, c.a); }
 
 /*
     Brighten the current color by 'val' (added to 'value' in HSV).
 	When HSV's value exceeds 100, HSV's saturation is decreased by the remaining amount to increase brightness even more.
     Use negative 'val' for darkening.
 */
-void Color::brighten(int val)
+void NCH_Color::brighten(int val)
 {
     auto hsv = getHSV();
     
@@ -196,7 +196,7 @@ void Color::brighten(int val)
 	setFromHSV(hsv[0], hsv[1], hsv[2]);
 }
 
-void Color::transpare(int dA)
+void NCH_Color::transpare(int dA)
 {
 	int ra = a;
 	ra += (-dA);
@@ -204,12 +204,12 @@ void Color::transpare(int dA)
 	a = ra;
 }
 
-void Color::set(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+void NCH_Color::set(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
-    Color::r = r; Color::g = g; Color::b = b; Color::a = a;
+    NCH_Color::r = r; NCH_Color::g = g; NCH_Color::b = b; NCH_Color::a = a;
 }
-void Color::set(uint8_t r, uint8_t g, uint8_t b) { set(r, g, b, 255); }
-void Color::set(uint32_t rgba)
+void NCH_Color::set(uint8_t r, uint8_t g, uint8_t b) { set(r, g, b, 255); }
+void NCH_Color::set(uint32_t rgba)
 {
     r = (rgba>>24)&0xFF;
     g = (rgba>>16)&0xFF;
@@ -220,13 +220,13 @@ void Color::set(uint32_t rgba)
 /**
 	Take in a uint32_t number represented as a string, and set the rgba to that number.
 */
-void Color::setFromB10Str(std::string decimal)
+void NCH_Color::setFromB10Str(std::string decimal)
 {
 	uint32_t rgba = std::stoul(decimal);
 	set(rgba);
 }
 
-void Color::setFromB16Str(std::string hexadecimal)
+void NCH_Color::setFromB16Str(std::string hexadecimal)
 {
 	//Sanitize input
 	std::string allowedChars = "0123456789ABCDEF";
@@ -251,7 +251,7 @@ void Color::setFromB16Str(std::string hexadecimal)
    Given 3 values H:[0,360); S:[0,100]; V:[0:100]: Set this color from that HSV triple.
    Transparency is preserved.
 */
-void Color::setFromHSV(double h, double s, double v)
+void NCH_Color::setFromHSV(double h, double s, double v)
 {
 	
     if(h>360.001 || h<0) { std::printf("Hue should be within [0, 360] (currently %f)\n", h); }
@@ -282,7 +282,7 @@ void Color::setFromHSV(double h, double s, double v)
     set(r, g, b, a);
 }
 
-void Color::setBrightness(int val)
+void NCH_Color::setBrightness(int val)
 {
 	double curr = getHSV()[2];
 
@@ -291,7 +291,7 @@ void Color::setBrightness(int val)
 	brighten(val-curr);
 }
 
-Color& Color::operator=(const Color& other)
+NCH_Color& NCH_Color::operator=(const NCH_Color& other)
 {
     set(other.r, other.g, other.b, other.a);
     return *this;

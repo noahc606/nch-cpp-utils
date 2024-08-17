@@ -28,7 +28,7 @@ private:
     double height = 0;
     std::u16string text = u"Unset";
     TTF_Font* font = nullptr;
-    Color textColor = Color(255, 255, 255);
+    NCH_Color textColor = NCH_Color(255, 255, 255);
     int wrapLength = 9999;
 
     void updateTextTexture();

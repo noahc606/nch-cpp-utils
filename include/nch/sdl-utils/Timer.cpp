@@ -59,7 +59,7 @@ void NCH_Timer::debugElapsedTimeMS()
 {
     std::stringstream ss;
     ss << getElapsedTimeMS();
-    Log::log("Finished "+desc+" in "+ss.str()+"ms.");
+    NCH_Log::log("Finished "+desc+" in "+ss.str()+"ms.");
 }
 
 uint64_t NCH_Timer::getCurrentTime() { return SDL_GetPerformanceCounter(); }

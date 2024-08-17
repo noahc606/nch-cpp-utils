@@ -64,7 +64,7 @@ void draw(SDL_Renderer* rend)
     //Update parts of texture depending on timer
     SDL_SetRenderTarget(rend, tex);
     if(drawTimer>=0 && drawTimer<=480) {
-        Color c(255, 255, 255);
+        NCH_Color c(255, 255, 255);
         int iy = drawTimer;
         for(int ix = 0; ix<640; ix++) {
             int i = iy*640+ix;
@@ -76,7 +76,7 @@ void draw(SDL_Renderer* rend)
     SDL_SetRenderTarget(rend, NULL);
 
     //Draw texture and give it a color depending on the current tick timer
-    Color c2(255, 255, 255);
+    NCH_Color c2(255, 255, 255);
     c2.setFromHSV( tickTimer%360, (tickTimer/3)%100, 100 );
     SDL_SetTextureColorMod(tex, c2.r, c2.g, c2.b);
     SDL_RenderCopy(rend, tex, NULL, NULL);
