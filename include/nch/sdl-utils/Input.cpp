@@ -1,5 +1,7 @@
 #include "Input.h"
+#include <nch/sdl-utils/debug/SDLEventDebugger.h>
 
+SDL_Event Input::lastKnownEvent;
 std::map<int32_t, int> Input::keyStates;
 std::map<int32_t, int> Input::mouseStates;
 uint16_t Input::currentModKeys = 0;
@@ -27,6 +29,16 @@ void Input::tick()
 	}*/
 }
 
+void Input::anyEvents(SDL_Event& e)
+{
+	SDLEventDebugger sed;
+	std::string eventDesc = sed.toString(e);
+	if(eventDesc!="unknown") {
+		lastKnownEvent = e;
+		printf("%s\n", eventDesc.c_str());
+	}
+}
+
 void Input::events(SDL_Event& e)
 {
 	switch(e.type) {
@@ -38,6 +50,8 @@ void Input::events(SDL_Event& e)
 
 	currentModKeys = e.key.keysym.mod;
 }
+
+SDL_Event Input::getLastKnownSDLEvent() { return lastKnownEvent; }
 
 int Input::getMouseX()
 {

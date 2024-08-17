@@ -2,6 +2,7 @@
 #include "FilePath.h"
 #include <filesystem>
 #include <set>
+#include <sstream>
 
 FsUtils::FsUtils(){}
 FsUtils::~FsUtils(){}

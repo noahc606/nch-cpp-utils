@@ -67,8 +67,8 @@ MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t 
 		}
 
 		//Run this block every second.
-		if( SDL_GetTicks64()>=secLast ) {
-			secLast = SDL_GetTicks64()+1000;
+		if( Timer::getTicks64()>=secLast ) {
+			secLast = Timer::getTicks64()+1000;
 			currentTPS = tps;
 			currentFPS = fps;
 
@@ -84,14 +84,6 @@ MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t 
 	}
 }
 
-uint64_t MainLoopDriver::getAvgNSPF()
-{
-	uint64_t res = 0;
-	for(int i = 0; i<frameTimesNS.size(); i++) {
-		res += frameTimesNS[i];
-	}
-	return res/frameTimesNS.size();
-}
 uint64_t MainLoopDriver::getAvgNSPT()
 {
 	uint64_t res = 0;
@@ -100,10 +92,20 @@ uint64_t MainLoopDriver::getAvgNSPT()
 	}
 	return res/tickTimesNS.size();
 }
+uint64_t MainLoopDriver::getAvgNSPF()
+{
+	uint64_t res = 0;
+	for(int i = 0; i<frameTimesNS.size(); i++) {
+		res += frameTimesNS[i];
+	}
+	return res/frameTimesNS.size();
+}
 
 void MainLoopDriver::events() {
 	SDL_Event e;
 	while( SDL_PollEvent(&e)!=0 ) {
+		Input::anyEvents(e);
+
 		switch(e.type) {
 			case SDL_QUIT: {
 				running = false;
@@ -117,5 +119,5 @@ void MainLoopDriver::events() {
 				Input::events(e);
 			} break;
 		}
-	}
+	}	
 }

@@ -6,9 +6,11 @@
 class Input {
 public:
 	static void tick();
+	static void anyEvents(SDL_Event& e);
 	static void events(SDL_Event& e);
 	static void mouse(SDL_Event& e);
 	
+    static SDL_Event getLastKnownSDLEvent();
 	static int getMouseX();
 	static int getMouseY();
 	static int keyDownTime(SDL_Keycode kc);
@@ -21,6 +23,7 @@ private:
 	static void setKeyState(int32_t, int);
 	static void setMouseState(int32_t, int);
 
+    static SDL_Event lastKnownEvent;
 	static std::map<int32_t, int> keyStates;
 	static std::map<int32_t, int> modKeyStates;
 	static std::map<int32_t, int> mouseStates;
