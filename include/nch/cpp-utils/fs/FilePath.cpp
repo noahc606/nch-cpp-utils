@@ -7,7 +7,7 @@ const std::string NCH_FilePath::validChars = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQq
 
 NCH_FilePath::NCH_FilePath(std::string path)
 {
-    if(NCH_FsUtils::regularFileExists(path)) {
+    if(NCH_FsUtils::fileExists(path)) {
         //Make sure path for a local file is valid
         std::string vc = validChars+".";
         int numPeriods = 0;
@@ -61,8 +61,8 @@ std::string NCH_FilePath::getFilename(bool includeExtension)
         wp = getWithoutExtension();
     }
 
-    if(NCH_FsUtils::dirExists(get()))           return "?directory?";
-    if(!NCH_FsUtils::regularFileExists(get()))  return "?null?";
+    if(NCH_FsUtils::dirExists(get()))   return "?directory?";
+    if(!NCH_FsUtils::fileExists(get())) return "?null?";
     
     std::string filename = "";
     for(int i = wp.size()-1; i>=0; i--) {
@@ -117,8 +117,8 @@ int NCH_FilePath::getNumDirsDown()
 
 std::string NCH_FilePath::getExtension()
 {
-    if(NCH_FsUtils::dirExists(get()))           return "?directory?";
-    if(!NCH_FsUtils::regularFileExists(get()))  return "?null?";
+    if(NCH_FsUtils::dirExists(get()))   return "?directory?";
+    if(!NCH_FsUtils::fileExists(get())) return "?null?";
 
     std::string ext = "";
     for(int i = cleanpath.size()-1; i>=0; i--) {
@@ -136,8 +136,8 @@ std::string NCH_FilePath::getExtension()
 
 std::string NCH_FilePath::getWithoutExtension()
 {
-    if(NCH_FsUtils::dirExists(get()))           return get();
-    if(!NCH_FsUtils::regularFileExists(get()))  return get();
+    if(NCH_FsUtils::dirExists(get()))   return get();
+    if(!NCH_FsUtils::fileExists(get())) return get();
 
 
     std::string s = getExtension();

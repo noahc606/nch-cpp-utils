@@ -1,5 +1,7 @@
 #include <iostream>
+#include <nch/cpp-utils/fs/FsUtils.h>
 #include <nch/cpp-utils/gfx/Color.h>
+#include <nch/cpp-utils/io/Log.h>
 #include <nch/sdl-utils/debug/SDLEventDebugger.h>
 #include <nch/sdl-utils/gfx/Text.h>
 #include <nch/sdl-utils/gfx/TexUtils.h>
@@ -7,6 +9,7 @@
 #include <nch/sdl-utils/MainLoopDriver.h>
 #include <SDL2/SDL.h>
 #include <sstream>
+#include "Tests.h"
 
 bool firstDraw = true;
 int64_t tickTimer = -10;
@@ -68,7 +71,7 @@ void draw(SDL_Renderer* rend)
         int iy = drawTimer;
         for(int ix = 0; ix<640; ix++) {
             int i = iy*640+ix;
-            c.setFromHSV((ix+i/1000)%360, 100*iy/480, 100-(100*iy/480));
+            //c.setFromHSV(std::abs(ix+i/1000)%360, 100*iy/480, 100-(100*iy/480));
             SDL_SetRenderDrawColor(rend, c.r, c.g, c.b, 255);
             SDL_RenderDrawPoint(rend, ix, iy);
         }
@@ -77,7 +80,7 @@ void draw(SDL_Renderer* rend)
 
     //Draw texture and give it a color depending on the current tick timer
     NCH_Color c2(255, 255, 255);
-    c2.setFromHSV( tickTimer%360, (tickTimer/3)%100, 100 );
+    //c2.setFromHSV( tickTimer%360, (tickTimer/3)%100, 100 );
     SDL_SetTextureColorMod(tex, c2.r, c2.g, c2.b);
     SDL_RenderCopy(rend, tex, NULL, NULL);
 
@@ -96,7 +99,7 @@ void tick()
     tickTimer++;
 }
 
-int main()
+int main(int argc, char **argv)
 {
     /* Say hello */
     printf("Hello world\n");
@@ -126,6 +129,18 @@ int main()
     dbgTxt0.init(rend, dbgFont, true);
     dbgTxt1.init(rend, dbgFont, true);
 
-    /* Create main loop */
+    /* Tests */
+    Tests t;
+
+    /* Perform main loop and exit when ready */
     NCH_MainLoopDriver mainLoop(rend, &tick, 60, &draw, 1000);
+    return 0;
 }
+
+#if ( defined(_WIN32) || defined(WIN32) )
+int WINAPI WinMain()
+{
+    char** x = new char*[1];
+    return main(0, x);
+}
+#endif
