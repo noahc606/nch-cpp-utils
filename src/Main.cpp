@@ -46,7 +46,7 @@ void drawInfo(SDL_Renderer* rend)
     dbgTxt0.setScale(scale);
     dbgTxt1.setScale(scale);
     dbgTxt2.setScale(scale);
-
+    
     dbgTxt0.draw(width/2-dbgTxt0.getWidth()/2, height/2-dbgTxt1.getHeight());
     dbgTxt1.draw(width/2-dbgTxt1.getWidth()/2, height/2-dbgTxt1.getHeight()*2);
     dbgTxt2.draw(width/2-dbgTxt2.getWidth()/2, height/2-dbgTxt1.getHeight()*3);
