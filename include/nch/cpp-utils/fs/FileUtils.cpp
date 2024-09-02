@@ -1,6 +1,8 @@
 #include "FileUtils.h"
 
-void NCH_FileUtils::writeToFile(FILE* pFile, std::string str)
+using namespace nch;
+
+void FileUtils::writeToFile(FILE* pFile, std::string str)
 {
     size_t size = sizeof(unsigned char)*str.size();         //Get size (in bytes) of the whole string
     unsigned char* buffer = (unsigned char*)malloc(size);   //Get an (unsigned char*) buffer
@@ -15,7 +17,7 @@ void NCH_FileUtils::writeToFile(FILE* pFile, std::string str)
     delete[] buffer;
 }
 
-void NCH_FileUtils::writeToFile(FILE* pFile, unsigned char c)
+void FileUtils::writeToFile(FILE* pFile, unsigned char c)
 {
     unsigned char* buffer = (unsigned char*)malloc(sizeof(unsigned char*));
     buffer[0] = c;

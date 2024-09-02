@@ -2,27 +2,29 @@
 #include <codecvt>
 #include <iostream>
 #include <locale>
+using namespace nch;
 
-NCH_Text::~NCH_Text()
+Text::Text(){}
+Text::~Text()
 {
     if(txtTex!=nullptr) {
         SDL_DestroyTexture(txtTex);
     }
 }
 
-void NCH_Text::init(SDL_Renderer* rend, TTF_Font* font, bool darkenBackground)
+void Text::init(SDL_Renderer* rend, TTF_Font* font, bool darkenBackground)
 {
     if(initted) return;
     initted = true;
     
     //Set renderer and font
-    NCH_Text::rend = rend;
-    NCH_Text::font = font;
-    NCH_Text::darkenBackground = darkenBackground;
+    Text::rend = rend;
+    Text::font = font;
+    Text::darkenBackground = darkenBackground;
 }
-void NCH_Text::init(SDL_Renderer* rend, TTF_Font* font) { init(rend, font, false); }
+void Text::init(SDL_Renderer* rend, TTF_Font* font) { init(rend, font, false); }
 
-void NCH_Text::draw(int x, int y)
+void Text::draw(int x, int y)
 {
     if(txtTex==nullptr) return;
 
@@ -36,33 +38,44 @@ void NCH_Text::draw(int x, int y)
         SDL_RenderFillRect(rend, &dst);
     }
 
-    SDL_SetRenderDrawColor(rend, textColor.r, textColor.g, textColor.b, 255);
+    SDL_SetTextureAlphaMod(txtTex, textColor.a);
+    SDL_SetTextureBlendMode(txtTex, SDL_BLENDMODE_BLEND);
 
     #if ( (SDL_MAJOR_VERSION>2) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION>0) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION==0 && SDL_PATCHLEVEL>=12))
         SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeBest);
     #endif
+
+    if(shadow) {
+        dst.x += (4*scale); dst.y += (4*scale);
+        SDL_SetTextureColorMod(txtTex, 255-textColor.r, 255-textColor.g, 255-textColor.b);
+        SDL_RenderCopy(rend, txtTex, NULL, &dst );
+
+        dst.x -= (4*scale); dst.y -= (4*scale);
+    }
+    
+    SDL_SetTextureColorMod(txtTex, textColor.r, textColor.g, textColor.b);
     SDL_RenderCopy(rend, txtTex, NULL, &dst );
 }
 
-double NCH_Text::getWidth() { return width*scale; }
-double NCH_Text::getHeight() { return height*scale; }
+double Text::getWidth() { return width*scale; }
+double Text::getHeight() { return height*scale; }
 
-void NCH_Text::setScale(double scale)
+void Text::setScale(double scale)
 {
-    if(scale==NCH_Text::scale) return;
+    if(scale==Text::scale) return;
 
-    NCH_Text::scale = scale;
+    Text::scale = scale;
     updateTextTexture();
 }
-void NCH_Text::setText(std::u16string text)
+void Text::setText(std::u16string text)
 {
-    if(text==NCH_Text::text) return;
+    if(text==Text::text) return;
 
     //Update string and update unscaled width/height
-    NCH_Text::text = text;
+    Text::text = text;
     updateTextTexture();
 }
-void NCH_Text::setText(std::string text)
+void Text::setText(std::string text)
 {
     //Convert string to unicode and set text
     std::string utf8_string = text;
@@ -73,17 +86,18 @@ void NCH_Text::setText(std::string text)
     setText(unicodeText);
 }
 
-void NCH_Text::setWrapLength(int wl)
+void Text::setWrapLength(int wl)
 {
-    if(wl==NCH_Text::wrapLength) return;
+    if(wl==Text::wrapLength) return;
 
     wrapLength = wl;
     updateTextTexture();
 }
 
-void NCH_Text::setDarkBackground(bool db) { darkenBackground = db; }
+void Text::setDarkBackground(bool db) { darkenBackground = db; }
+void Text::setTextColor(Color tc) { textColor = tc; }
 
-void NCH_Text::updateTextTexture()
+void Text::updateTextTexture()
 {
     //Create surface representing the current text
     SDL_Surface* txtSurf = TTF_RenderUNICODE_Blended_Wrapped(font, (const Uint16*)text.c_str(), SDL_Color{255, 255, 255, 255}, wrapLength);

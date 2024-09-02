@@ -1,10 +1,9 @@
 #pragma once
 #include <string>
 
-class NCH_FilePath
-{
+namespace nch { class FilePath {
 public:
-    NCH_FilePath(std::string path);
+    FilePath(std::string path);
 
     std::string get();
     std::string getFilename(bool includeExtension);
@@ -19,4 +18,4 @@ public:
 private:
     std::string cleanpath = "";
     /* data */
-};
+};}

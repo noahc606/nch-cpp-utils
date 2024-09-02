@@ -15,12 +15,14 @@
     #include <sys/stat.h>
 #endif
 
-int NCH_FsUtils::createDir(std::string path)
+using namespace nch;
+
+int FsUtils::createDir(std::string path)
 {
     return -100;
 }
 
-bool NCH_FsUtils::pathExists(std::string path)
+bool FsUtils::pathExists(std::string path)
 {
 
     //Check if the path at 'path' exists...
@@ -39,24 +41,24 @@ bool NCH_FsUtils::pathExists(std::string path)
             struct stat sb;
             if(stat(path.c_str(), &sb)==0) {
                 if( !(sb.st_mode&S_IFDIR) && !(sb.st_mode&S_IFREG) ) {
-	                NCH_Log::error(__PRETTY_FUNCTION__, "Object @ \"%s\" doesn't seem to be a dir or a normal file, returning false", path.c_str());
+	                Log::error(__PRETTY_FUNCTION__, "Object @ \"%s\" doesn't seem to be a dir or a normal file, returning false", path.c_str());
                     return false;
                 }
                 return true;
             }
 		#else
             // ...Unix but POSIX unsupported
-		    NCH_Log::error(__PRETTY_FUNCTION__, "POSIX seemingly unsupported for this Unix OS, returning false");
+		    nch::Log::error(__PRETTY_FUNCTION__, "POSIX seemingly unsupported for this Unix OS, returning false");
 		#endif
     #else
         // ...Not on Windows/Unix -> Error
-		NCH_Log::error(__PRETTY_FUNCTION__, "Unknown operating system, returning false. Are you on Windows/Unix?");
+		nch::Log::error(__PRETTY_FUNCTION__, "Unknown operating system, returning false. Are you on Windows/Unix?");
     #endif
         
     return false;
 }
 
-bool NCH_FsUtils::fileExists(std::string path)
+bool FsUtils::fileExists(std::string path)
 {
     if(!pathExists(path)) return false;
 
@@ -75,7 +77,7 @@ bool NCH_FsUtils::fileExists(std::string path)
     return false;
 }
 
-bool NCH_FsUtils::dirExists(std::string path)
+bool FsUtils::dirExists(std::string path)
 {
     if(!pathExists(path)) return false;
 
@@ -92,7 +94,7 @@ bool NCH_FsUtils::dirExists(std::string path)
     return false;
 }
 
-std::vector<std::string> NCH_FsUtils::ls(std::string dirPath, int maxItemsToList)
+std::vector<std::string> FsUtils::ls(std::string dirPath, int maxItemsToList)
 {
     //Result to be returned
     std::vector<std::string> res;
@@ -127,19 +129,19 @@ std::vector<std::string> NCH_FsUtils::ls(std::string dirPath, int maxItemsToList
             }
             
             if(closedir(dir)==-1) {
-                NCH_Log::warn(__PRETTY_FUNCTION__, "Failed to close directory \"%s\" after operation", dirPath.c_str());
+                Log::warn(__PRETTY_FUNCTION__, "Failed to close directory \"%s\" after operation", dirPath.c_str());
             }
         } else {
-            NCH_Log::error(__PRETTY_FUNCTION__, "Could not open directory \"%s\", returning empty vector.", dirPath.c_str());
+            Log::error(__PRETTY_FUNCTION__, "Could not open directory \"%s\", returning empty vector.", dirPath.c_str());
         }
     #endif
 
     return res;
 }
 
-std::vector<std::string> NCH_FsUtils::ls(std::string dirPath) { return ls(dirPath, 1024); }
+std::vector<std::string> FsUtils::ls(std::string dirPath) { return ls(dirPath, 1024); }
 
-std::vector<std::string> NCH_FsUtils::getDirContents(std::string dirPath, int listType, bool recursive, int maxItemsToList)
+std::vector<std::string> FsUtils::getDirContents(std::string dirPath, int listType, bool recursive, int maxItemsToList)
 {
     //Result to be returned
     std::vector<std::string> res;
@@ -158,10 +160,10 @@ std::vector<std::string> NCH_FsUtils::getDirContents(std::string dirPath, int li
         //Add this entry as well as everything in subDirContents.
         if(res.size()<maxItemsToList) {
             switch(listType) {
-                case NCH_FsUtils::ONLY_DIRS: {
+                case FsUtils::ONLY_DIRS: {
                     if(dirExists(entpath)) res.push_back(entpath);
                 } break;
-                case NCH_FsUtils::ONLY_FILES: {
+                case FsUtils::ONLY_FILES: {
                     if(fileExists(entpath)) res.push_back(entpath);
                 } break;
                 default: {
@@ -177,11 +179,11 @@ std::vector<std::string> NCH_FsUtils::getDirContents(std::string dirPath, int li
     return res;
 }
 
-std::vector<std::string> NCH_FsUtils::getDirContents(std::string dirPath, int listType, bool recursive) { return getDirContents(dirPath, listType, recursive, 1024); }
-std::vector<std::string> NCH_FsUtils::getDirContents(std::string dirPath, int listType) { return getDirContents(dirPath, listType, false); }
-std::vector<std::string> NCH_FsUtils::getDirContents(std::string dirPath) { return getDirContents(dirPath, NCH_FsUtils::ALL); }
+std::vector<std::string> FsUtils::getDirContents(std::string dirPath, int listType, bool recursive) { return getDirContents(dirPath, listType, recursive, 1024); }
+std::vector<std::string> FsUtils::getDirContents(std::string dirPath, int listType) { return getDirContents(dirPath, listType, false); }
+std::vector<std::string> FsUtils::getDirContents(std::string dirPath) { return getDirContents(dirPath, FsUtils::ALL); }
 
-std::vector<std::string> NCH_FsUtils::getDirContents(std::vector<std::string> dirPaths, int listType, bool recursive)
+std::vector<std::string> FsUtils::getDirContents(std::vector<std::string> dirPaths, int listType, bool recursive)
 {
     std::vector<std::string> res;
     
@@ -209,7 +211,7 @@ std::vector<std::string> NCH_FsUtils::getDirContents(std::vector<std::string> di
     return res;
 }
 
-std::string NCH_FsUtils::getPathWithInferredExtension(std::string path) {
+std::string FsUtils::getPathWithInferredExtension(std::string path) {
     int i = -1;
     for(i = path.size()-1; i>=0; i--) {
         if(path[i]=='/' || path[i]=='\\') {
@@ -221,7 +223,7 @@ std::string NCH_FsUtils::getPathWithInferredExtension(std::string path) {
     int count = 0;
     std::vector<std::string> dirFileList = getDirContents(path.substr(0, i), ListTypes::ONLY_FILES, false);
     for(std::string f : dirFileList) {
-        NCH_FilePath fp(f);
+        FilePath fp(f);
         std::string ext = fp.getExtension();
 
         std::string potentialFile = path+"."+ext;
@@ -237,6 +239,6 @@ std::string NCH_FsUtils::getPathWithInferredExtension(std::string path) {
         return res;
     }
 
-    NCH_Log::warnv(__PRETTY_FUNCTION__, "returning "+res, "Found %d possible matches for \"%s\"", count, path.c_str());
+    Log::warnv(__PRETTY_FUNCTION__, "returning "+res, "Found %d possible matches for \"%s\"", count, path.c_str());
     return res;
 }

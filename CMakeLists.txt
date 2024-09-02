@@ -6,7 +6,7 @@ endif (WIN32)
 if (UNIX)
     cmake_minimum_required(VERSION 3.5)
 endif (UNIX)
-cmake_policy(SET CMP0087 NEW)
+
 # Set executable target depending on OS...
 if (WIN32)
     set(PROJ_OUT "nchutils-test-windows")
@@ -47,18 +47,11 @@ set_target_properties(${PROJ_OUT} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
 )
 # Add libraries + link them into target
-add_library(PROJ_LIBS INTERFACE)
 target_link_libraries(${PROJ_OUT} PUBLIC "-lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lavutil -lavformat -lavcodec -lswscale -lz -lm -lswresample")
 get_target_property(TARGET_LIBS ${PROJ_OUT} LINK_LIBRARIES)
 message("[NCH] Linked libraries: ${TARGET_LIBS}")
 # Add include directories (everywhere there is a header file: libraries and PROJ src dirs)
 target_include_directories(${PROJ_OUT} PRIVATE ${PROJ_SRC_DIRS})
 target_include_directories(${PROJ_OUT} PRIVATE "include")
-
-#add_custom_command(TARGET ${PROJ_OUT} POST_BUILD
-#    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:${PROJ_OUT}> "${CMAKE_SOURCE_DIR}/bin"
-#    COMMAND_EXPAND_LISTS
-#)
-#file(GENERATE OUTPUT filename CONTENT "content: $<TARGET_RUNTIME_DLLS:${PROJ_OUT}>")
 
 message("[NCH] Finished config for ${PROJ_OUT}")

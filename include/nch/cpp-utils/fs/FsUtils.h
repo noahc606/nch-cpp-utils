@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-class NCH_FsUtils {
+namespace nch { class FsUtils {
 public:
     static int createDir(std::string path);
     static bool pathExists(std::string path);
@@ -22,4 +22,4 @@ public:
         ALL
     };
 private:
-};
+};}

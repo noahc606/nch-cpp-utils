@@ -2,10 +2,12 @@
 #include <string>
 #include <SDL2/SDL.h>
 
-class NCH_SDLEventDebugger {
+namespace nch { class SDLEventDebugger
+{
 public:
     static std::string toString(SDL_Event e);
 
 private:
 
 };
+}

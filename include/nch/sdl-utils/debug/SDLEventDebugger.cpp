@@ -1,6 +1,8 @@
 #include "SDLEventDebugger.h"
 
-std::string NCH_SDLEventDebugger::toString(SDL_Event e)
+using namespace nch;
+
+std::string SDLEventDebugger::toString(SDL_Event e)
 {
     //Descriptions taken from SDL2/SDL_events.h
     std::string type = "unknown";

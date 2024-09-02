@@ -1,12 +1,17 @@
 #include "MainLoopDriver.h"
+#include <nch/cpp-utils/io/Log.h>
 #include <nch/sdl-utils/Input.h>
 #include <nch/sdl-utils/Timer.h>
 #include <SDL2/SDL_timer.h>
 
-NCH_MainLoopDriver::NCH_MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS)
+using namespace nch;
+
+std::string MainLoopDriver::performanceInfo = "???null???";
+
+MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS)
 {
-	NCH_MainLoopDriver::tickFunc = tickFunc;
-	NCH_MainLoopDriver::drawFunc = drawFunc;
+	MainLoopDriver::tickFunc = tickFunc;
+	MainLoopDriver::drawFunc = drawFunc;
 	
 	int tps = 0;
 	int fps = 0;
@@ -19,16 +24,16 @@ NCH_MainLoopDriver::NCH_MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), u
 		uint64_t nsPerFrame = 1000000000/targetFPS;
 
 		//If the game is ready to tick
-		if(NCH_Timer::getCurrentTimeNS()>=tickNextNS) {
+		if(Timer::getCurrentTimeNS()>=tickNextNS) {
 			//Update when the next tick should happen
-			tickNextNS = NCH_Timer::getCurrentTimeNS()+nsPerTick;
+			tickNextNS = Timer::getCurrentTimeNS()+nsPerTick;
 
 			//Perform the tick, calculating how much time it takes.
-			uint64_t tickT0 = NCH_Timer::getCurrentTimeNS();
+			uint64_t tickT0 = Timer::getCurrentTimeNS();
+			Input::tick();
 			tickFunc();
-			NCH_Input::tick();
 			tps++;
-			uint64_t tickT1 = NCH_Timer::getCurrentTimeNS();
+			uint64_t tickT1 = Timer::getCurrentTimeNS();
 			uint64_t tickDeltaNS = tickT1-tickT0;
 
 			/* Store how long the last 'targetTPS' ticks have taken within 'tickTimesNS' */
@@ -41,14 +46,14 @@ NCH_MainLoopDriver::NCH_MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), u
 		}
 
 		//If the game is ready to draw (new frame)
-		if(NCH_Timer::getCurrentTimeNS()>=frameNextNS) {
+		if(Timer::getCurrentTimeNS()>=frameNextNS) {
 			//Update when the next frame should be drawn
-			frameNextNS = NCH_Timer::getCurrentTimeNS()+nsPerFrame;
+			frameNextNS = Timer::getCurrentTimeNS()+nsPerFrame;
 
 			//Perform the draw, calculating how much time it takes.
-			uint64_t frameT0 = NCH_Timer::getCurrentTimeNS();
+			uint64_t frameT0 = Timer::getCurrentTimeNS();
 			drawFunc(rend); fps++;
-			uint64_t frameT1 = NCH_Timer::getCurrentTimeNS();
+			uint64_t frameT1 = Timer::getCurrentTimeNS();
 			uint64_t frameDeltaNS = frameT1-frameT0;
 
 			/* Store how long the last 'targetFPS' frames have taken within 'frameTimesNS */
@@ -67,13 +72,14 @@ NCH_MainLoopDriver::NCH_MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), u
 		}
 
 		//Run this block every second.
-		if( NCH_Timer::getTicks64()>=secLast ) {
-			secLast = NCH_Timer::getTicks64()+1000;
+		if( Timer::getTicks64()>=secLast ) {
+			secLast = Timer::getTicks64()+1000;
 			currentTPS = tps;
 			currentFPS = fps;
 
+			MainLoopDriver::performanceInfo = Log::getFormattedString("(FPS, TPS)=(%d/%d, %d/%d). NSPF=%d", currentFPS, targetFPS, currentTPS, targetTPS, getAvgNSPF());
             if(loggingPerformance) {
-                printf("(FPS/target, TPS/target)=(%d/%d, %d/%d). NSPF=%d\n", currentFPS, targetFPS, currentTPS, targetTPS, getAvgNSPF());
+                Log::log("%s\n", performanceInfo.c_str());
             }
 
 			tps = 0;
@@ -84,7 +90,9 @@ NCH_MainLoopDriver::NCH_MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), u
 	}
 }
 
-uint64_t NCH_MainLoopDriver::getAvgNSPT()
+std::string MainLoopDriver::getPerformanceInfo() { return performanceInfo; }
+
+uint64_t MainLoopDriver::getAvgNSPT()
 {
 	uint64_t res = 0;
 	for(int i = 0; i<tickTimesNS.size(); i++) {
@@ -92,7 +100,7 @@ uint64_t NCH_MainLoopDriver::getAvgNSPT()
 	}
 	return res/tickTimesNS.size();
 }
-uint64_t NCH_MainLoopDriver::getAvgNSPF()
+uint64_t MainLoopDriver::getAvgNSPF()
 {
 	uint64_t res = 0;
 	for(int i = 0; i<frameTimesNS.size(); i++) {
@@ -101,10 +109,10 @@ uint64_t NCH_MainLoopDriver::getAvgNSPF()
 	return res/frameTimesNS.size();
 }
 
-void NCH_MainLoopDriver::events() {
+void MainLoopDriver::events() {
 	SDL_Event e;
 	while( SDL_PollEvent(&e)!=0 ) {
-		NCH_Input::anyEvents(e);
+		Input::allEvents(e);
 
 		switch(e.type) {
 			case SDL_QUIT: {
@@ -112,11 +120,12 @@ void NCH_MainLoopDriver::events() {
 				SDL_Quit();
 			} break;
 			
-			case SDL_KEYDOWN:
-			case SDL_KEYUP:
-			case SDL_MOUSEBUTTONDOWN:
-			case SDL_MOUSEBUTTONUP: {
-				NCH_Input::events(e);
+			case SDL_KEYDOWN:				case SDL_KEYUP:
+			case SDL_MOUSEBUTTONDOWN:		case SDL_MOUSEBUTTONUP:
+			case SDL_JOYBUTTONDOWN:			case SDL_JOYBUTTONUP:
+			case SDL_CONTROLLERBUTTONDOWN:	case SDL_CONTROLLERBUTTONUP:
+			{
+				Input::inputEvents(e);
 			} break;
 		}
 	}	

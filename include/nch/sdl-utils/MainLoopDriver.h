@@ -1,11 +1,13 @@
 #pragma once
 #include <SDL2/SDL.h>
+#include <string>
 #include <vector>
 
-class NCH_MainLoopDriver {
+namespace nch { class MainLoopDriver {
 public:
-    NCH_MainLoopDriver(SDL_Renderer*, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS);
+    MainLoopDriver(SDL_Renderer*, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS);
 
+    static std::string getPerformanceInfo();
 private:
     void events();
     uint64_t getAvgNSPT();
@@ -14,10 +16,11 @@ private:
     bool running = true;
     uint64_t secLast = 0;
 
-    bool loggingPerformance = true;
+    bool loggingPerformance = false;
+    static std::string performanceInfo;
     
     void (*tickFunc)(); void (*drawFunc)(SDL_Renderer*);
     int currentTPS = -1; int currentFPS = -1;
     int hardMaxFPS = 300;
     std::vector<uint64_t> tickTimesNS; std::vector<uint64_t> frameTimesNS;    
-};
+};}

@@ -2,13 +2,13 @@
 #include <cstdint>
 #include <string>
 
-class NCH_Timer {
+namespace nch { class Timer {
 public:
     
-    NCH_Timer(std::string desc, bool logging);
-    NCH_Timer(std::string desc);
-    NCH_Timer();
-    virtual ~NCH_Timer();
+    Timer(std::string desc, bool logging);
+    Timer(std::string desc);
+    Timer();
+    virtual ~Timer();
     
     static uint64_t getCurrentTimeNS();
     static uint64_t getTicks64();
@@ -30,4 +30,4 @@ private:
     bool logging = true;
     std::string desc = "Description unuset";
     /**/
-};
+};}

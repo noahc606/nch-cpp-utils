@@ -1,117 +1,124 @@
 #include "Input.h"
-#include <nch/sdl-utils/debug/SDLEventDebugger.h>
+#include "nch/cpp-utils/io/Log.h"
+#include "nch/sdl-utils/debug/SDLEventDebugger.h"
 
-SDL_Event NCH_Input::lastKnownEvent;
-std::map<int32_t, int> NCH_Input::keyStates;
-std::map<int32_t, int> NCH_Input::mouseStates;
-uint16_t NCH_Input::currentModKeys = 0;
 
-int NCH_Input::holdingS = 0;
+using namespace nch;
 
-void NCH_Input::tick()
+SDL_Event Input::lastKnownEvent;
+std::vector<std::map<int32_t, int>> Input::inputStates;
+uint16_t Input::currentModKeys = 0;
+SDL_Joystick* Input::mainJoystick = nullptr;
+
+bool Input::initialized = false;
+
+void Input::tick()
 {
-	if(isKeyDown(SDLK_s)) {
-		holdingS++;
-	} else {
-		holdingS = 0;
-	}
-	/*
-	for(std::map<int32_t, int>::iterator itr = keyStates.begin(); itr!=keyStates.end(); itr++) {
-		if(isKeyDown(itr->first)) {
-			itr->second--;
-		}
+	if(initialized==false) {
+		init();
+		initialized = true;
 	}
 
-	for(std::map<int32_t, int>::iterator itr = mouseStates.begin(); itr!=mouseStates.end(); itr++) {
-		if(isMouseDown(itr->first)) {
-			itr->second--;
+	//Update input hold times
+	for(int i = 0; i<InputTypeID::INVALID_1; i++) {
+		//Get ptr to inputStates[i], call it 'inmap'
+		std::map<int32_t, int>* inmap = &inputStates[i];
+		//Go thru 'inmap' and manage their itr->second value (represents # of ticks held down)
+		for(auto itr = inmap->begin(); itr!=inmap->end(); itr++) {
+			//printf("Found (%d, %d)\n", itr->first, itr->second);
+			if(itr->second<0) {
+				itr->second = 1;
+			} else if(itr->second>0) {
+				itr->second++;
+			}
 		}
-	}*/
+	}
+	
 }
-
-void NCH_Input::anyEvents(SDL_Event& e)
+void Input::allEvents(SDL_Event& e)
 {
-	NCH_SDLEventDebugger sed;
+	SDLEventDebugger sed;
 	std::string eventDesc = sed.toString(e);
 	if(eventDesc!="unknown") {
 		lastKnownEvent = e;
 	}
 }
-
-void NCH_Input::events(SDL_Event& e)
+void Input::inputEvents(SDL_Event& e)
 {
 	switch(e.type) {
-		case SDL_KEYDOWN: 			{ setKeyState(e.key.keysym.sym, -1); } break;
-		case SDL_KEYUP: 			{ setKeyState(e.key.keysym.sym, 0); } break;
-		case SDL_MOUSEBUTTONDOWN: 	{ setMouseState(e.button.button, -1); } break;
-		case SDL_MOUSEBUTTONUP:		{ setMouseState(e.button.button, 0); } break;
+		case SDL_KEYDOWN: 			{ updInputState(InputTypeID::KEY, e.key.keysym.sym, true); } break;
+		case SDL_KEYUP: 			{ updInputState(InputTypeID::KEY, e.key.keysym.sym, false); } break;
+		case SDL_MOUSEBUTTONDOWN: 	{ updInputState(InputTypeID::MOUSE, e.button.button, true); } break;
+		case SDL_MOUSEBUTTONUP:		{ updInputState(InputTypeID::MOUSE, e.button.button, false); } break;
+		case SDL_JOYBUTTONDOWN:		{ updInputState(InputTypeID::JOYBUTTON, e.jbutton.button, true); } break;
+		case SDL_JOYBUTTONUP:		{ updInputState(InputTypeID::JOYBUTTON, e.jbutton.button, false); } break;
 	}
 
 	currentModKeys = e.key.keysym.mod;
 }
 
-SDL_Event NCH_Input::getLastKnownSDLEvent() { return lastKnownEvent; }
+SDL_Event Input::getLastKnownSDLEvent() { return lastKnownEvent; }
+int Input::getMouseX() { int x; SDL_GetMouseState(&x, NULL); return x; }
+int Input::getMouseY() { int y; SDL_GetMouseState(NULL, &y); return y; }
+int Input::keyDownTime(SDL_Keycode kc) { return inputDownTime(InputTypeID::KEY, kc); }
+int Input::mouseDownTime(int mouseButton) { return inputDownTime(InputTypeID::MOUSE, mouseButton); }
+bool Input::isKeyDown(SDL_Keycode kc) { return keyDownTime(kc)>0; }
+bool Input::isModKeyDown(SDL_Keymod km) { return (currentModKeys & km); }
+bool Input::isMouseDown(int mouseButton) { return mouseDownTime(mouseButton)>0; }
 
-int NCH_Input::getMouseX()
+void Input::init()
 {
-	int x, y;
-	SDL_GetMouseState(&x, &y);
-	return x;
+	if(initialized) return;
+	
+	//Setup inputStates
+	for(int i = 0; i<INVALID_1; i++) {
+		inputStates.push_back(std::map<int32_t, int>());
+	}
+
+	//Open joystick(s)
+	if(SDL_NumJoysticks()>0) {
+		mainJoystick = SDL_JoystickOpen(0);
+		nch::Log::log("Got joystick %s...\n", SDL_JoystickName(mainJoystick));
+
+
+	}
 }
 
-int NCH_Input::getMouseY()
+void Input::updInputState(InputTypeID inputType, int32_t sdlInputID, bool holdingDown)
 {
-	int x, y;
-	SDL_GetMouseState(&x, &y);
-	return y;
+	//Try to get current key ID
+	int iid = inputType;
+	int32_t sid = sdlInputID;
+	auto ksItr = inputStates[iid].find(sid);
+
+	//If we are not holding down, try to get rid of the ID, and return.
+	if(!holdingDown) {
+		if(ksItr!=inputStates[iid].end())
+			inputStates[iid].erase(ksItr);
+		return;
+	}
+
+	//If we are holding down, continue...
+
+	//If the ID doesn't doesn't exist, add new state value (-1)
+	if( ksItr==inputStates[iid].end() ) {
+		inputStates[iid].insert( std::make_pair(sid, -1) );
+	}
 }
 
-bool NCH_Input::isKeyDown(SDL_Keycode kc) { return keyDownTime(kc)>0; }
-int NCH_Input::keyDownTime(SDL_Keycode kc)
+int Input::inputDownTime(InputTypeID inputType, int32_t sdlInputID)
 {
-	auto ksItr = keyStates.find(kc);
-	if(ksItr==keyStates.end()) {
+	if(!initialized) {
+		nch::Log::warnv(__PRETTY_FUNCTION__, "returning 0", "Input not initialized (it seems a MainLoopDriver() was not created)");
 		return 0;
-	} else if (ksItr->second<0) {
-		return -ksItr->second;
+	}
+
+	auto ksItr = inputStates[inputType].find(sdlInputID);
+	if(ksItr==inputStates[inputType].end()) {
+		return 0;
+	} else if (ksItr->second>0) {
+		return ksItr->second;
 	}
 	
 	return 0;
-}
-int NCH_Input::keySDownTime()
-{
-	return holdingS;
-}
-
-bool NCH_Input::isModKeyDown(SDL_Keymod km)
-{
-	return (currentModKeys & km);
-}
-
-bool NCH_Input::isMouseDown(int mouseButton)
-{
-	auto msItr = mouseStates.find(mouseButton);
-	if(msItr==mouseStates.end()) {
-		return false;
-	} else if (msItr->second<0) {
-		return true;
-	}
-	return false;
-}
-void NCH_Input::setKeyState(int32_t key, int state)
-{
-	auto ksItr = keyStates.find(key);
-	if( ksItr!=keyStates.end() ) {
-		keyStates.erase(ksItr);
-	}
-	keyStates.insert( std::make_pair(key, state) );
-}
-
-void NCH_Input::setMouseState(int32_t mouseButton, int state)
-{
-	auto msItr = mouseStates.find(mouseButton);
-	if( msItr!=mouseStates.end() ) {
-		mouseStates.erase(msItr);
-	}
-	mouseStates.insert( std::make_pair(mouseButton, state) );
 }
