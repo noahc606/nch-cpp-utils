@@ -62,7 +62,7 @@ void drawInfo(SDL_Renderer* rend)
     std::stringstream s4; s4 << "Battery: " << pct << "% (~" << secs << "s left). Power State: " << powerState;
     dbgScreen[4].setText(s4.str());
 
-    double scale = 0.25;
+    double scale = 0.125;
     for(int i = 0; i<dbgScreen.size(); i++) {
         dbgScreen.at(i).setScale(scale);
     }
@@ -103,7 +103,7 @@ void draw(SDL_Renderer* rend)
 
     //Draw texture and give it a color depending on the current tick timer
     nch::Color c2(255, 255, 255);
-    c2.setFromHSV( tickTimer%360, (tickTimer/3)%100, 100 );
+    c2.setFromHSV( std::abs(tickTimer%360), std::abs(tickTimer/3)%100, 100 );
     SDL_SetTextureColorMod(tex, c2.r, c2.g, c2.b);
     SDL_RenderCopy(rend, tex, NULL, NULL);
 
@@ -138,17 +138,17 @@ int main(int argc, char **argv)
         printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
     }
     SDL_RaiseWindow(win);
-
     winPixFormat = SDL_GetWindowPixelFormat(win);
+    
     //Renderer
     SDL_Renderer* rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
     if(rend==NULL) {
         printf("SDL_CreateRenderer Error: %s\n", SDL_GetError());
     }
 
-    /* Init TTF */
+    /* Init TTF and any fonts */
     TTF_Init();
-    dbgFont = TTF_OpenFont("res/BackToEarth.ttf", 64);
+    dbgFont = TTF_OpenFont("res/BackToEarth.ttf", 100);
     for(int i = 0; i<5; i++) {
         nch::Text* t = new nch::Text();
         t->init(rend, dbgFont, true);

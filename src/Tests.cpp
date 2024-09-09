@@ -35,7 +35,7 @@ Tests::Tests()
 
    al.eraseMultiple({1, 2, 3});
 
-   printf("obj: %d\n", al.at(1));
+   //printf("obj: %d\n", al.at(1));
 
 }
 
