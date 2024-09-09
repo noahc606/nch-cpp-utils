@@ -62,7 +62,7 @@ void drawInfo(SDL_Renderer* rend)
     std::stringstream s4; s4 << "Battery: " << pct << "% (~" << secs << "s left). Power State: " << powerState;
     dbgScreen[4].setText(s4.str());
 
-    double scale = 0.125;
+    double scale = 0.125*1;
     for(int i = 0; i<dbgScreen.size(); i++) {
         dbgScreen.at(i).setScale(scale);
     }
@@ -118,6 +118,11 @@ void draw(SDL_Renderer* rend)
 
 void tick()
 {
+    using namespace nch;
+    if(Input::isJoystickButtonDown(6) && Input::isJoystickButtonDown(7)) {
+        MainLoopDriver::quit();
+    }
+
     //Increment tick timer
     tickTimer++;
 }
@@ -152,6 +157,7 @@ int main(int argc, char **argv)
     for(int i = 0; i<5; i++) {
         nch::Text* t = new nch::Text();
         t->init(rend, dbgFont, true);
+        t->forcedNearestScaling(true);
         dbgScreen.pushBack(t);
     }
 

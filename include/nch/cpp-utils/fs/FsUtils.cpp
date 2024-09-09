@@ -24,6 +24,7 @@ int FsUtils::createDir(std::string path)
 
 bool FsUtils::pathExists(std::string path)
 {
+    if(path.size()==0) return true;
 
     //Check if the path at 'path' exists...
     #if ( defined(_WIN32) || defined(WIN32) )
@@ -96,6 +97,8 @@ bool FsUtils::dirExists(std::string path)
 
 std::vector<std::string> FsUtils::ls(std::string dirPath, int maxItemsToList)
 {
+    if(dirPath=="") dirPath = ".";
+
     //Result to be returned
     std::vector<std::string> res;
     if(!dirExists(dirPath)) return res;
@@ -149,8 +152,13 @@ std::vector<std::string> FsUtils::getDirContents(std::string dirPath, int listTy
     //Go through all the entries of this directory...
     std::vector<std::string> lsRes = ls(dirPath, maxItemsToList);
     for(int i = 0; i<lsRes.size(); i++) {
-        std::string entpath = dirPath+"/"+lsRes[i];
-        
+        std::string entpath;
+        if(dirPath.size()>0) {
+            entpath = dirPath+"/"+lsRes[i];
+        } else {
+            entpath = lsRes[i];
+        }
+
         //If doing recursive listing, add everything within any dir we come across.
         std::vector<std::string> subDirContents;
         if(recursive && dirExists(entpath)) {
@@ -221,7 +229,12 @@ std::string FsUtils::getPathWithInferredExtension(std::string path) {
 
     std::string res = "?null?";
     int count = 0;
-    std::vector<std::string> dirFileList = getDirContents(path.substr(0, i), ListTypes::ONLY_FILES, false);
+    std::vector<std::string> dirFileList;
+    if(i==-1) {
+        dirFileList = getDirContents("", ListTypes::ONLY_FILES, false);
+    } else {
+        dirFileList = getDirContents(path.substr(0, i), ListTypes::ONLY_FILES, false);
+    }
     for(std::string f : dirFileList) {
         FilePath fp(f);
         std::string ext = fp.getExtension();

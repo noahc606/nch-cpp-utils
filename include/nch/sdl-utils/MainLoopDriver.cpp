@@ -7,6 +7,7 @@
 using namespace nch;
 
 std::string MainLoopDriver::performanceInfo = "???null???";
+bool MainLoopDriver::running = true;
 
 MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS)
 {
@@ -91,6 +92,10 @@ MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t 
 }
 
 std::string MainLoopDriver::getPerformanceInfo() { return performanceInfo; }
+void MainLoopDriver::quit()
+{
+	running = false;
+}
 
 uint64_t MainLoopDriver::getAvgNSPT()
 {

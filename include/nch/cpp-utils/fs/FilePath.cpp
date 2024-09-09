@@ -11,23 +11,12 @@ FilePath::FilePath(std::string path)
     if(FsUtils::fileExists(path)) {
         //Make sure path for a local file is valid
         std::string vc = validChars+".";
-        int numPeriods = 0;
         for(int i = 0; i<path.size(); i++) {
             //If invalid char found, stop
             if(vc.find(path[i])==std::string::npos) {
                 printf("Invalid characters within path \"%s\" (Use [Aa-Zz][ _/\\] and make sure a file extension exists).\n", path.c_str());
                 cleanpath = "?null?";
                 return;
-            }
-            //If period found, add to numPeriods.
-            if(path[i]=='.') {
-                numPeriods++;
-                //If more than one period found, stop (insecure, ../ used for path traversal).
-                if(numPeriods>1) {
-                    printf("Multiple periods within file path \"%s\". There should always be only one (part of the file extension)\n");
-                    cleanpath = "?null?";
-                    return;
-                }
             }
         }
     }

@@ -42,7 +42,11 @@ void Text::draw(int x, int y)
     SDL_SetTextureBlendMode(txtTex, SDL_BLENDMODE_BLEND);
 
     #if ( (SDL_MAJOR_VERSION>2) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION>0) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION==0 && SDL_PATCHLEVEL>=12))
-        SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeBest);
+        if(forceNearestScaling) {
+            SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeNearest);
+        } else {
+            SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeBest);
+        }
     #endif
 
     if(shadow) {
@@ -67,6 +71,11 @@ void Text::setScale(double scale)
     Text::scale = scale;
     updateTextTexture();
 }
+void Text::forcedNearestScaling(bool fns)
+{
+    forceNearestScaling = fns;
+}
+
 void Text::setText(std::u16string text)
 {
     if(text==Text::text) return;

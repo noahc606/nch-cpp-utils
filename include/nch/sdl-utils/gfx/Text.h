@@ -17,6 +17,7 @@ public:
     std::string getText();
 
     void setScale(double scale);
+    void forcedNearestScaling(bool fns);
     void setText(std::u16string text);
     void setText(std::string text);
     void setWrapLength(int wl);
@@ -28,6 +29,7 @@ private:
     bool initted = false;
     bool darkenBackground = false;
     bool shadow = true;
+    bool forceNearestScaling = false;
 
     double scale = 1;
     double width = 0;
