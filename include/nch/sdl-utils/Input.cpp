@@ -141,7 +141,7 @@ void Input::init()
 	//Open joystick(s)
 	if(SDL_NumJoysticks()>0) {
 		mainJoystick = SDL_JoystickOpen(0);
-		nch::Log::log("Found joystick \"%s\"...\n", SDL_JoystickName(mainJoystick));
+		nch::Log::log("Found joystick \"%s\"...", SDL_JoystickName(mainJoystick));
 
 		int numHats = SDL_JoystickNumHats(mainJoystick);
 		for(int i = 0; i<numHats; i++) {
