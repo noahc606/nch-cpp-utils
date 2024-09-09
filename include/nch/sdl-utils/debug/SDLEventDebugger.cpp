@@ -48,5 +48,5 @@ std::string SDLEventDebugger::toString(SDL_Event e)
 
     }
 
-    return "SDL_Event: [type:\""+type+"\"]";
+    return "SDL_Event: "+type;
 }

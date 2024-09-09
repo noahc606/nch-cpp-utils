@@ -1,4 +1,5 @@
 #include <iostream>
+#include <nch/cpp-utils/data/ArrayList.h>
 #include <nch/cpp-utils/fs/FsUtils.h>
 #include <nch/cpp-utils/gfx/Color.h>
 #include <nch/cpp-utils/io/Log.h>
@@ -17,9 +18,7 @@ int64_t drawTimer = -10;
 SDL_Texture* tex = nullptr;
 SDL_Window* win = nullptr;
 uint32_t winPixFormat = 0;
-nch::Text dbgTxt0;
-nch::Text dbgTxt1;
-nch::Text dbgTxt2;
+nch::ArrayList<nch::Text> dbgScreen;
 TTF_Font* dbgFont = nullptr;
 
 int getWidth() {
@@ -37,19 +36,41 @@ void drawInfo(SDL_Renderer* rend)
 {
     int width = getWidth();
     int height = getHeight();
+    
+    dbgScreen[0].setText(nch::MainLoopDriver::getPerformanceInfo());
 
-    dbgTxt0.setText( nch::SDLEventDebugger::toString(nch::Input::getLastKnownSDLEvent()) );
-    std::stringstream ss; ss << "Window dimensions (W x H) = " << width << " x " << " " << height << "."; dbgTxt1.setText(ss.str());
-    dbgTxt2.setText( nch::MainLoopDriver::getPerformanceInfo() );
+    std::stringstream s1; s1 << "Window dimensions (W x H) = " << width << " x " << " " << height << ".";
+    dbgScreen[1].setText(s1.str());
+
+    std::stringstream s2; s2 << "Last Known Input Event ID: " << nch::Input::getLastKnownSDLEventID();
+    dbgScreen[2].setText(s2.str());
+    
+    dbgScreen[3].setText( nch::SDLEventDebugger::toString(nch::Input::getLastKnownSDLEvent()) );
+
+    int secs = -1;
+    int pct = -1;
+    std::string powerState = "";
+    SDL_PowerState sps = SDL_GetPowerInfo(&secs, &pct);
+    switch(sps) {
+        case SDL_PowerState::SDL_POWERSTATE_CHARGED: { powerState = "Charged"; } break;
+        case SDL_PowerState::SDL_POWERSTATE_CHARGING: { powerState = "Charging"; } break;
+        case SDL_PowerState::SDL_POWERSTATE_NO_BATTERY: { powerState = "No Battery"; } break;
+        case SDL_PowerState::SDL_POWERSTATE_ON_BATTERY: { powerState = "On Battery"; } break;
+        case SDL_PowerState::SDL_POWERSTATE_UNKNOWN: { powerState = "Unknown"; } break;
+    }
+    
+    std::stringstream s4; s4 << "Battery: " << pct << "% (~" << secs << "s left). Power State: " << powerState;
+    dbgScreen[4].setText(s4.str());
 
     double scale = 0.25;
-    dbgTxt0.setScale(scale);
-    dbgTxt1.setScale(scale);
-    dbgTxt2.setScale(scale);
+    for(int i = 0; i<dbgScreen.size(); i++) {
+        dbgScreen.at(i).setScale(scale);
+    }
     
-    dbgTxt0.draw(width/2-dbgTxt0.getWidth()/2, height/2-dbgTxt1.getHeight());
-    dbgTxt1.draw(width/2-dbgTxt1.getWidth()/2, height/2-dbgTxt1.getHeight()*2);
-    dbgTxt2.draw(width/2-dbgTxt2.getWidth()/2, height/2-dbgTxt1.getHeight()*3);
+
+    for(int i = 0; i<dbgScreen.size(); i++) {
+        dbgScreen.at(i).draw(width/2-dbgScreen.at(i).getWidth()/2, height/3+dbgScreen.at(0).getHeight()*i);
+    }
 }
 
 void draw(SDL_Renderer* rend)
@@ -97,14 +118,6 @@ void draw(SDL_Renderer* rend)
 
 void tick()
 {
-    if(nch::Input::mouseDownTime(1)==1) {
-        printf("Click\n", nch::Input::mouseDownTime(1));
-    }
-
-    //printf()
-    //int t = nch::Input::isMouseDown(0);
-    //printf("Time: %d\n", t);
-
     //Increment tick timer
     tickTimer++;
 }
@@ -136,9 +149,11 @@ int main(int argc, char **argv)
     /* Init TTF */
     TTF_Init();
     dbgFont = TTF_OpenFont("res/BackToEarth.ttf", 64);
-    dbgTxt0.init(rend, dbgFont, true);
-    dbgTxt1.init(rend, dbgFont, true);
-    dbgTxt2.init(rend, dbgFont, true);
+    for(int i = 0; i<5; i++) {
+        nch::Text* t = new nch::Text();
+        t->init(rend, dbgFont, true);
+        dbgScreen.pushBack(t);
+    }
 
     /* Tests */
     Tests t;

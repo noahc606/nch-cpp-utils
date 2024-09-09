@@ -5,10 +5,10 @@
 /*
     Wrapper around std::vector<Object*>.
     Programmer can use 'pushBack(new Object(blah, blah))' without having to worry about memory cleanup.
-    Programmer should NOT use 'delete' with anything in this class.
+    Programmer should NOT use 'delete' with anything in this class - just use erase() or eraseMultiple().
 
     Features:
-    - Guaranteed single-time destruction of each element
+    - Guaranteed single-time destruction of each element (once within the vector and all external copies gone)
     - Programmer can use erase() without having to worry about 'delete vs erase'.
     - eraseMultiple() objects without having to worry about the order in which you erase them
     - All elements destroy themselves once the list itself destructs.
@@ -26,9 +26,10 @@ public:
     std::vector<T*> vecCopy() { return arrlist; }
     unsigned int size() { return arrlist.size(); }
 
-    T& at(int dex) {
+    T& at(unsigned int dex) {
         return (*arrlist.at(dex));
     }
+    T& operator[](unsigned int dex) { return at(dex); }
 
     void pushBack(T* obj) {
         if(obj!=nullptr)
@@ -39,21 +40,21 @@ public:
         pushBack(new T(objCopyable));
     }
 
-    void erase(int dex) {
+    void erase(unsigned int dex) {
         T* obj = &at(dex);
         if(obj!=nullptr) delete obj; 
         arrlist.erase(arrlist.begin()+dex);
     }
-    void erase(int start, int end) {
+    void erase(unsigned int start, unsigned int end) {
         for(int i = end; i>=0 && i>=start; i--) {
             erase(i);
         }
     }
     void clear() { erase(0, size()-1); }
 
-    void eraseMultiple(std::set<int> dexes)
+    void eraseMultiple(std::set<unsigned int> dexes)
     {
-        for(std::set<int>::reverse_iterator rit = dexes.rbegin(); rit != dexes.rend(); rit++) {
+        for(std::set<unsigned int>::reverse_iterator rit = dexes.rbegin(); rit != dexes.rend(); rit++) {
             erase(*rit);
         }
     }

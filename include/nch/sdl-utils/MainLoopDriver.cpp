@@ -124,6 +124,7 @@ void MainLoopDriver::events() {
 			case SDL_MOUSEBUTTONDOWN:		case SDL_MOUSEBUTTONUP:
 			case SDL_JOYBUTTONDOWN:			case SDL_JOYBUTTONUP:
 			case SDL_CONTROLLERBUTTONDOWN:	case SDL_CONTROLLERBUTTONUP:
+			case SDL_JOYHATMOTION:
 			{
 				Input::inputEvents(e);
 			} break;
