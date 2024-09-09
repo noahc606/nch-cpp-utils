@@ -14,7 +14,7 @@ if (WIN32)
     set(CMAKE_WIN32_EXECUTABLE FALSE)
 endif (WIN32)
 if (UNIX)
-    set(PROJ_OUT "nchutils-test-unix")
+    set(PROJ_OUT "nchutils-test-unix-amd64")
 endif (UNIX)
 # Project languages and flags
 project(${PROJ_OUT} VERSION 0.1.1.0 LANGUAGES C CXX)
