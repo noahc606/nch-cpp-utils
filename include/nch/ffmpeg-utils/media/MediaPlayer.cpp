@@ -81,11 +81,8 @@ void MediaPlayer::renderCurrentVidFrame(SDL_Rect* src, SDL_Rect* dst, const Colo
 
 void MediaPlayer::renderCurrentVidFrame(SDL_Rect* src, SDL_Rect* dst) { renderCurrentVidFrame(src, dst, Color(255, 255, 255)); }
 
-int MediaPlayer::decode(bool infiniteLoop)
+int MediaPlayer::decodeFull()
 {
-    /* MediaPlaybackData parameters */
-    mpd.infiniteLoop = infiniteLoop;
-
     /* [1] Setup FFMPEG's AVFormatContext and AV codecs; Setup SDL2 Audio. */
     //Initialize audio/video format context with URL and other info
     if(initAVFormatContext(&mpd.avFormatCtx, mpd.url, mpd.logInitInfo)!=0) {
@@ -98,6 +95,9 @@ int MediaPlayer::decode(bool infiniteLoop)
     openAVCodecs(mpd.avFormatCtx, mpd.videoStream, mpd.audioStream, &mpd.vCodec, &mpd.aCodec, &mpd.vCodecCtx, &mpd.aCodecCtx);
     //Open SDL audio device if an audio stream exists
     if(mpd.audioStream!=-1) openSDLAudioDevice(mpd.aCodecCtx, mpd.audioDeviceID, mpd.sdlAudioBufferSize);
+    //Audio queue init and unpause mpd.audioDeviceID
+    AudioUtils::initPacketQueue(&AudioUtils::audioq);
+    
     //Setup AVFrame* object
     setupAVFrame(mpd.currAVFrame);
     //Create texture for a rendering context
@@ -122,7 +122,8 @@ int MediaPlayer::decode(bool infiniteLoop)
     int ret = 0;
     int numFrames = 0;
     int numAudioPackets = 0;
-    while(av_read_frame(mpd.avFormatCtx, mpd.currAVPacket)>=0 ) {
+
+    while(av_read_frame(mpd.avFormatCtx, mpd.currAVPacket)>=0 && (numFrames<mpd.maxFramesToDecode||mpd.maxFramesToDecode==-1)) {
         //If we are looking at video data...
         if(mpd.currAVPacket->stream_index==mpd.videoStream) {
             //Send packet to vCodecCtx
@@ -152,7 +153,7 @@ int MediaPlayer::decode(bool infiniteLoop)
         //If we are looking at audio data...
         } else if (mpd.currAVPacket->stream_index==mpd.audioStream) {
             // put the AVPacket in the audio PacketQueue
-            AudioUtils::packet_queue_put(&AudioUtils::audioq, mpd.currAVPacket);
+            AudioUtils::putPacketQueue(&AudioUtils::audioq, mpd.currAVPacket);
             numAudioPackets++;
         //If else, something is wrong...
         } else {
@@ -167,24 +168,34 @@ int MediaPlayer::decode(bool infiniteLoop)
 
     /* Print info, mark complete, and return successful (0) after video decode finishes */
     uint64_t t1 = Timer::getTicks64()-t0;
-    printf("Finished decoding video \"%s\" in %dms (%d frames, %d audio packets).\n", mpd.url.c_str(), t1, numFrames, numAudioPackets);
+
+    
+    printf("Decoded video \"%s\" in %dms ", mpd.url.c_str(), t1);
+    printf("(%d/%d frames, %d/-1 audio packets). ", numFrames, mpd.maxFramesToDecode, numAudioPackets);
+    printf("Decode speed: %ffps\n", (float)numFrames/(t1/1000.));
+
     mpd.vFrameCacheComplete = true;
     return 0;
 }
 
-void MediaPlayer::playback()
+void MediaPlayer::startPlayback(bool infiniteLoop)
 {
+    /* MediaPlaybackData parameters */
+    mpd.infiniteLoop = infiniteLoop;
+
     /* Get FPS; Play audio stream; Get video start time. */
     //Get FPS
     if(mpd.videoStream!=-1) mpd.fps = av_q2d(mpd.avFormatCtx->streams[mpd.videoStream]->r_frame_rate);
-    //Audio queue init and unpause mpd.audioDeviceID
-    //AudioUtils::packet_queue_init(&AudioUtils::audioq);
+    //Start playing audio
     //SDL_PauseAudioDevice(mpd.audioDeviceID, 0);
     //Set mpd.startTimeMS
     mpd.startTimeMS = Timer::getTicks64();
 }
 
-int MediaPlayer::decode() { return decode(false); }
+void MediaPlayer::startPlayback() { startPlayback(false); }
+
+
+
 
 int MediaPlayer::initAVFormatContext(AVFormatContext** avfc, std::string url, bool dumpInfo)
 {
@@ -287,7 +298,7 @@ void MediaPlayer::openSDLAudioDevice(AVCodecContext* aCodecCtx, SDL_AudioDeviceI
     wanted_specs.channels = aCodecCtx->channels;
     wanted_specs.silence = 0;
     wanted_specs.samples = sdlAudioBufferSize;
-    wanted_specs.callback = AudioUtils::audio_callback;
+    wanted_specs.callback = AudioUtils::audioCallback;
     wanted_specs.userdata = aCodecCtx;
 
     // open audio device
@@ -309,7 +320,7 @@ void MediaPlayer::setupAVFrame(AVFrame*& avFrame)
 {
     avFrame = av_frame_alloc();
     if(avFrame==NULL) {
-        printf("Could not allocate frame.\n");
+        printf("Could not allocate AVFrame.\n");
     }
 }
 
@@ -344,7 +355,7 @@ int MediaPlayer::playVideo(void* data)
     nch::MediaPlaybackData* mpd = (nch::MediaPlaybackData*)data;
     
     double fps = mpd->fps;
-    printf("Running video thread (%f FPS)\n", fps);
+    printf("Running video playback thread (%f FPS)\n", fps);
 
     //If there is a video to be played, play the video. (For audio-only media, FPS is -1)
     if(fps>0) {
