@@ -78,7 +78,7 @@ MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t 
 			currentTPS = tps;
 			currentFPS = fps;
 
-			MainLoopDriver::performanceInfo = Log::getFormattedString("(FPS, TPS)=(%d/%d, %d/%d). NSPF=%d", currentFPS, targetFPS, currentTPS, targetTPS, getAvgNSPF());
+			MainLoopDriver::performanceInfo = Log::getFormattedString("(FPS, TPS)=(%d/%" PRIu64 ", %d/%" PRIu64 "). NSPF=%" PRIu64, currentFPS, targetFPS, currentTPS, targetTPS, getAvgNSPF());
             if(loggingPerformance) {
                 Log::log("%s\n", performanceInfo.c_str());
             }

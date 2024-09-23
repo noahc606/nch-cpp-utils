@@ -22,6 +22,6 @@ private:
     
     void (*tickFunc)(); void (*drawFunc)(SDL_Renderer*);
     int currentTPS = -1; int currentFPS = -1;
-    int hardMaxFPS = 300;
+    int hardMaxFPS = 60;
     std::vector<uint64_t> tickTimesNS; std::vector<uint64_t> frameTimesNS;    
 };}

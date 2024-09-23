@@ -25,9 +25,9 @@ public:
     static int getCurrentVidFrameIndex(nch::MediaPlaybackData* mpd);
     void renderCurrentVidFrame(SDL_Rect* src, SDL_Rect* dst, const Color& colormod);
     void renderCurrentVidFrame(SDL_Rect* src, SDL_Rect* dst);
-    int decode(bool infiniteLoop);
-    int decode();
-    void playback();
+    int decodeFull();
+    void startPlayback(bool infiniteLoop);
+    void startPlayback();
 
 
 private:

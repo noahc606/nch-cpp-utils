@@ -12,6 +12,7 @@
 #include <sstream>
 #include "Tests.h"
 
+bool doBackground = true;
 bool firstDraw = true;
 int64_t tickTimer = -10;
 int64_t drawTimer = -10;
@@ -77,8 +78,10 @@ void draw(SDL_Renderer* rend)
 {
     //Only on first draw, create a clear texture that is 640x480.
     if(firstDraw) {
-        tex = SDL_CreateTexture(rend, winPixFormat, SDL_TEXTUREACCESS_TARGET, 640, 480);
-        nch::TexUtils::clearTexture(rend, tex);
+        if(doBackground) {
+            tex = SDL_CreateTexture(rend, winPixFormat, SDL_TEXTUREACCESS_TARGET, 640, 480);
+            nch::TexUtils::clearTexture(rend, tex);
+        }
         firstDraw = false;
     }
 
@@ -87,25 +90,27 @@ void draw(SDL_Renderer* rend)
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
     SDL_RenderFillRect(rend, NULL);
 
-    //Update parts of texture depending on timer
-    SDL_SetRenderTarget(rend, tex);
-    if(drawTimer>=0 && drawTimer<=480) {
-        nch::Color c(255, 255, 255);
-        int iy = drawTimer;
-        for(int ix = 0; ix<640; ix++) {
-            int i = iy*640+ix;
-            c.setFromHSV(std::abs(ix+i/1000)%360, 100*iy/480, 100-(100*iy/480));
-            SDL_SetRenderDrawColor(rend, c.r, c.g, c.b, 255);
-            SDL_RenderDrawPoint(rend, ix, iy);
+    if(doBackground) {
+        //Update parts of texture depending on timer
+        SDL_SetRenderTarget(rend, tex);
+        if(drawTimer>=0 && drawTimer<=480) {
+            nch::Color c(255, 255, 255);
+            int iy = drawTimer;
+            for(int ix = 0; ix<640; ix++) {
+                int i = iy*640+ix;
+                c.setFromHSV(std::abs(ix+i/1000)%360, 100*iy/480, 100-(100*iy/480));
+                SDL_SetRenderDrawColor(rend, c.r, c.g, c.b, 255);
+                SDL_RenderDrawPoint(rend, ix, iy);
+            }
         }
-    }
-    SDL_SetRenderTarget(rend, NULL);
+        SDL_SetRenderTarget(rend, NULL);
 
-    //Draw texture and give it a color depending on the current tick timer
-    nch::Color c2(255, 255, 255);
-    c2.setFromHSV( std::abs(tickTimer%360), std::abs(tickTimer/3)%100, 100 );
-    SDL_SetTextureColorMod(tex, c2.r, c2.g, c2.b);
-    SDL_RenderCopy(rend, tex, NULL, NULL);
+        //Draw texture and give it a color depending on the current tick timer
+        nch::Color c2(255, 255, 255);
+        c2.setFromHSV( std::abs(tickTimer%360), std::abs(tickTimer/3)%100, 100 );
+        SDL_SetTextureColorMod(tex, c2.r, c2.g, c2.b);
+        SDL_RenderCopy(rend, tex, NULL, NULL);
+    }
 
     drawInfo(rend);
 
@@ -165,7 +170,7 @@ int main(int argc, char **argv)
     Tests t;
 
     /* Perform main loop and exit when ready */
-    nch::MainLoopDriver mainLoop(rend, &tick, 60, &draw, 1000);
+    nch::MainLoopDriver mainLoop(rend, &tick, 60, &draw, 60);
     return 0;
 }
 

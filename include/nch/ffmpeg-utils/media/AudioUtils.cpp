@@ -11,127 +11,117 @@ using namespace nch;
 int AudioUtils::quit = 0;
 AudioUtils::PacketQueue AudioUtils::audioq;
 
-/**
- * Initialize the given PacketQueue.
- *
- * @param   q   the PacketQueue to be initialized.
- */
-void AudioUtils::packet_queue_init(PacketQueue* q)
+void AudioUtils::initPacketQueue(PacketQueue* q)
 {
-    // alloc memory for the audio queue
-    memset(
-        q,
-        0,
-        sizeof(PacketQueue)
-      );
-
-    // Returns the initialized and unlocked mutex or NULL on failure
+    //Zero-out memory pointed to by 'q'
+    memset(q, 0, sizeof(PacketQueue));
+    
+    //Create thread mutex or exit on failure
     q->mutex = SDL_CreateMutex();
-    if (!q->mutex)
-    {
-        // could not create mutex
+    if(!q->mutex) {
         printf("SDL_CreateMutex Error: %s.\n", SDL_GetError());
         return;
     }
 
-    // Returns a new condition variable or NULL on failure
+    //Create condition variable or exit on failure
     q->cond = SDL_CreateCond();
-    if (!q->cond)
-    {
-        // could not create condition variable
+    if(!q->cond) {
         printf("SDL_CreateCond Error: %s.\n", SDL_GetError());
         return;
     }
 }
 
-/**
- * Put the given AVPacket in the given PacketQueue.
- *
- * @param   q   the queue to be used for the insert
- * @param   pkt the AVPacket to be inserted in the queue
- *
- * @return      0 if the AVPacket is correctly inserted in the given PacketQueue.
- */
-int AudioUtils::packet_queue_put(PacketQueue* q, AVPacket* pkt)
+int AudioUtils::putPacketQueue(PacketQueue* q, AVPacket* pkt)
 {
-    /* [4]
-     * if (av_dup_packet(pkt) < 0) { return -1; }
-     */
-
-    // alloc the new AVPacketList to be inserted in the audio PacketQueue
-    AVPacketList * avPacketList;
-    avPacketList = (AVPacketList*)av_malloc(sizeof(AVPacketList));
-
-    // check the AVPacketList was allocated
-    if (!avPacketList)
-    {
+    //From 'pkt', create an AVPacketList to be put into 'q'.
+    AVPacketList* avPacketList = (AVPacketList*)av_malloc(sizeof(AVPacketList));
+    if (!avPacketList) {
         return -1;
     }
 
-    // add reference to the given AVPacket
-    avPacketList->pkt = * pkt;
+    //Build 'avPacketList'
+    avPacketList->pkt = *pkt;
+    avPacketList->next = NULL;  //->next = end of queue
 
-    // the new AVPacketList will be inserted at the end of the queue
-    avPacketList->next = NULL;
-
-    // lock mutex
+    /* Work with the PacketQueue 'q' */
+    //Lock Mutex
     SDL_LockMutex(q->mutex);
-
-    // check the queue is empty
-    if (!q->last_pkt)
-    {
-        // if it is, insert as first
-        q->first_pkt = avPacketList;
+    //Build 'q'
+    if(!q->last_pkt) {                      //If queue is empty...
+        q->first_pkt = avPacketList;        //-> Insert as first
+    } else {                                //If queue unempty...
+        q->last_pkt->next = avPacketList;   //-> Insert as last
     }
-    else
-    {
-        // if not, insert as last
-        q->last_pkt->next = avPacketList;
-    }
-
-    // point the last AVPacketList in the queue to the newly created AVPacketList
-    q->last_pkt = avPacketList;
-
-    // increase by 1 the number of AVPackets in the queue
-    q->nb_packets++;
-
-    // increase queue size by adding the size of the newly inserted AVPacket
-    q->size += avPacketList->pkt.size;
-
-    // notify packet_queue_get which is waiting that a new packet is available
+    q->last_pkt = avPacketList;             //Last AVPacketList in the queue is the new 'avPacketList'
+    q->nb_packets++;                        //Update number of packets
+    q->size += avPacketList->pkt.size;      //Update total size of the queue
+    //Notify getPacketQueue which is waiting that a new packet is available
     SDL_CondSignal(q->cond);
-
-    // unlock mutex
+    //Unlock Mutex
     SDL_UnlockMutex(q->mutex);
 
     return 0;
 }
 
-/**
- * Get the first AVPacket from the given PacketQueue.
- *
- * @param   q       the PacketQueue to extract from
- * @param   pkt     the first AVPacket extracted from the queue
- * @param   block   0 to avoid waiting for an AVPacket to be inserted in the given
- *                  queue, != 0 otherwise.
- *
- * @return          < 0 if returning because the quit flag is set, 0 if the queue
- *                  is empty, 1 if it is not empty and a packet was extract (pkt)
- */
-int AudioUtils::packet_queue_get(PacketQueue* q, AVPacket* pkt, int block)
+void AudioUtils::audioCallback(void* userdata, Uint8* stream, int len)
+{
+    //Retrieve the audio codec context
+    AVCodecContext* aCodecCtx = (AVCodecContext*)userdata;
+    int len1 = -1;
+    int audio_size = -1;
+
+    // The size of audio_buf is 1.5 times the size of the largest audio frame
+    // that FFmpeg will give us, which gives us a nice cushion.
+    static uint8_t audio_buf[(MAX_AUDIO_FRAME_SIZE * 3) / 2];
+    static unsigned int audio_buf_size = 0;
+    static unsigned int audio_buf_index = 0;
+
+    while(len>0) {
+        if(quit) { return; }
+
+        if(audio_buf_index>=audio_buf_size) {
+            //We have already sent all avaialble data; get more
+            audio_size = audioDecodeFrame(aCodecCtx, audio_buf, sizeof(audio_buf));
+            if(audio_size<0) {
+                //Output silence...
+                audio_buf_size = 1024;
+                //Clear memory
+                memset(audio_buf, 0, audio_buf_size);
+                printf("audio_decode_frame() failed.\n");
+            } else {
+                audio_buf_size = audio_size;
+            }
+
+            audio_buf_index = 0;
+        }
+
+        len1 = audio_buf_size - audio_buf_index;
+        if (len1 > len) { len1 = len; }
+
+        // copy data from audio buffer to the SDL stream
+        memcpy(stream, (uint8_t*)audio_buf + audio_buf_index, len1);
+
+        len -= len1;
+        stream += len1;
+        audio_buf_index += len1;
+    }
+}
+
+
+
+
+
+int AudioUtils::getPacketQueue(PacketQueue* q, AVPacket* pkt, int block)
 {
     int ret;
-
-    AVPacketList * avPacketList;
+    AVPacketList* avPacketList;
 
     // lock mutex
     SDL_LockMutex(q->mutex);
 
-    for (;;)
-    {
+    for (;;) {
         // check quit flag
-        if (quit)
-        {
+        if(quit) {
             ret = -1;
             break;
         }
@@ -140,14 +130,12 @@ int AudioUtils::packet_queue_get(PacketQueue* q, AVPacket* pkt, int block)
         avPacketList = q->first_pkt;
 
         // if the first packet is not NULL, the queue is not empty
-        if (avPacketList)
-        {
+        if (avPacketList) {
             // place the second packet in the queue at first position
             q->first_pkt = avPacketList->next;
 
             // check if queue is empty after removal
-            if (!q->first_pkt)
-            {
+            if (!q->first_pkt) {
                 // first_pkt = last_pkt = NULL = empty queue
                 q->last_pkt = NULL;
             }
@@ -166,14 +154,10 @@ int AudioUtils::packet_queue_get(PacketQueue* q, AVPacket* pkt, int block)
 
             ret = 1;
             break;
-        }
-        else if (!block)
-        {
+        } else if (!block) {
             ret = 0;
             break;
-        }
-        else
-        {
+        } else {
             // unlock mutex and wait for cond signal, then lock mutex again
             SDL_CondWait(q->cond, q->mutex);
         }
@@ -185,76 +169,7 @@ int AudioUtils::packet_queue_get(PacketQueue* q, AVPacket* pkt, int block)
     return ret;
 }
 
-/**
- * Pull in data from audio_decode_frame(), store the result in an intermediary
- * buffer, attempt to write as many bytes as the amount defined by len to
- * stream, and get more data if we don't have enough yet, or save it for later
- * if we have some left over.
- *
- * @param   userdata    the pointer we gave to SDL.
- * @param   stream      the buffer we will be writing audio data to.
- * @param   len         the size of that buffer.
- */
-void AudioUtils::audio_callback(void* userdata, Uint8* stream, int len)
-{
-    // retrieve the audio codec context
-    AVCodecContext* aCodecCtx = (AVCodecContext*) userdata;
-    int len1 = -1;
-    int audio_size = -1;
-
-    // The size of audio_buf is 1.5 times the size of the largest audio frame
-    // that FFmpeg will give us, which gives us a nice cushion.
-    static uint8_t audio_buf[(MAX_AUDIO_FRAME_SIZE * 3) / 2];
-    static unsigned int audio_buf_size = 0;
-    static unsigned int audio_buf_index = 0;
-
-    while(len > 0) {
-        if(quit) {
-            return;
-        }
-
-        if(audio_buf_index>=audio_buf_size) {
-            // we have already sent all avaialble data; get more
-            audio_size = audio_decode_frame(aCodecCtx, audio_buf, sizeof(audio_buf));
-            if(audio_size<0) {
-                // output silence
-                audio_buf_size = 1024;
-
-                // clear memory
-                memset(audio_buf, 0, audio_buf_size);
-                printf("audio_decode_frame() failed.\n");
-            } else {
-                audio_buf_size = audio_size;
-            }
-
-            audio_buf_index = 0;
-        }
-
-        len1 = audio_buf_size - audio_buf_index;
-        if (len1 > len) { len1 = len; }
-
-        // copy data from audio buffer to the SDL stream
-        memcpy(stream, (uint8_t *)audio_buf + audio_buf_index, len1);
-
-        len -= len1;
-        stream += len1;
-        audio_buf_index += len1;
-    }
-}
-
-/**
- * Get a packet from the queue if available. Decode the extracted packet. Once
- * we have the frame, resample it and simply copy it to our audio buffer, making
- * sure the data_size is smaller than our audio buffer.
- *
- * @param   aCodecCtx   the audio AVCodecContext used for decoding
- * @param   audio_buf   the audio buffer to write into
- * @param   buf_size    the size of the audio buffer, 1.5 larger than the one
- *                      provided by FFmpeg
- *
- * @return              0 if everything goes well, -1 in case of error or quit
- */
-int AudioUtils::audio_decode_frame(AVCodecContext* aCodecCtx, uint8_t* audio_buf, int buf_size)
+int AudioUtils::audioDecodeFrame(AVCodecContext* aCodecCtx, uint8_t* audio_buf, int buf_size)
 {
     AVPacket * avPacket = av_packet_alloc();
     static uint8_t * audio_pkt_data = NULL;
@@ -263,8 +178,7 @@ int AudioUtils::audio_decode_frame(AVCodecContext* aCodecCtx, uint8_t* audio_buf
     // allocate a new frame, used to decode audio packets
     static AVFrame * avFrame = NULL;
     avFrame = av_frame_alloc();
-    if (!avFrame)
-    {
+    if (!avFrame) {
         printf("Could not allocate AVFrame.\n");
         return -1;
     }
@@ -272,16 +186,13 @@ int AudioUtils::audio_decode_frame(AVCodecContext* aCodecCtx, uint8_t* audio_buf
     int len1 = 0;
     int data_size = 0;
 
-    for (;;)
-    {
+    for (;;) {
         // check global quit flag
-        if (quit)
-        {
+        if (quit) {
             return -1;
         }
 
-        while (audio_pkt_size > 0)
-        {
+        while (audio_pkt_size > 0) {
             int got_frame = 0;
 
             // [5]
@@ -310,43 +221,25 @@ int AudioUtils::audio_decode_frame(AVCodecContext* aCodecCtx, uint8_t* audio_buf
             audio_pkt_size -= len1;
             data_size = 0;
 
-            if (got_frame)
-            {
-                // audio resampling
-                data_size = audio_resampling(
-                                aCodecCtx,
-                                avFrame,
-                                AV_SAMPLE_FMT_S16,
-                                aCodecCtx->channels,
-                                aCodecCtx->sample_rate,
-                                audio_buf
-                            );
-
+            if(got_frame) {
+                data_size = audioResampling( aCodecCtx, avFrame, AV_SAMPLE_FMT_S16, aCodecCtx->channels, aCodecCtx->sample_rate, audio_buf );
                 assert(data_size <= buf_size);
             }
 
-            if (data_size <= 0)
-            {
-                // no data yet, get more frames
+            if(data_size <= 0) {
                 continue;
             }
 
-            // we have the data, return it and come back for more later
             return data_size;
         }
 
-        if (avPacket->data)
-        {
-            // wipe the packet
+        if(avPacket->data) {
             av_packet_unref(avPacket);
         }
 
         // get more audio AVPacket
-        int ret = packet_queue_get(&audioq, avPacket, 1);
-
-        // if packet_queue_get returns < 0, the global quit flag was set
-        if (ret < 0)
-        {
+        int ret = getPacketQueue(&audioq, avPacket, 1);
+        if(ret<0) {
             return -1;
         }
 
@@ -357,25 +250,10 @@ int AudioUtils::audio_decode_frame(AVCodecContext* aCodecCtx, uint8_t* audio_buf
     return 0;
 }
 
-/**
- * Resample the audio data retrieved using FFmpeg before playing it.
- *
- * @param   audio_decode_ctx    the audio codec context retrieved from the original AVFormatContext.
- * @param   decoded_audio_frame the decoded audio frame.
- * @param   out_sample_fmt      audio output sample format (e.g. AV_SAMPLE_FMT_S16).
- * @param   out_channels        audio output channels, retrieved from the original audio codec context.
- * @param   out_sample_rate     audio output sample rate, retrieved from the original audio codec context.
- * @param   out_buf             audio output buffer.
- *
- * @return                      the size of the resampled audio data.
- */
-int AudioUtils::audio_resampling(AVCodecContext* audio_decode_ctx, AVFrame* decoded_audio_frame, enum AVSampleFormat out_sample_fmt, int out_channels, int out_sample_rate, uint8_t* out_buf)
+int AudioUtils::audioResampling(AVCodecContext* audio_decode_ctx, AVFrame* decoded_audio_frame, enum AVSampleFormat out_sample_fmt, int out_channels, int out_sample_rate, uint8_t* out_buf)
 {
-    // check global quit flag
-    if (quit)
-    {
-        return -1;
-    }
+    //Check global quit flag
+    if (quit) { return -1; }
 
     SwrContext * swr_ctx = NULL;
     int ret = 0;
@@ -391,8 +269,7 @@ int AudioUtils::audio_resampling(AVCodecContext* audio_decode_ctx, AVFrame* deco
 
     swr_ctx = swr_alloc();
 
-    if (!swr_ctx)
-    {
+    if (!swr_ctx) {
         printf("swr_alloc error.\n");
         return -1;
     }
@@ -404,30 +281,23 @@ int AudioUtils::audio_resampling(AVCodecContext* audio_decode_ctx, AVFrame* deco
                      av_get_default_channel_layout(audio_decode_ctx->channels);
 
     // check input audio channels correctly retrieved
-    if (in_channel_layout <= 0)
-    {
+    if (in_channel_layout <= 0) {
         printf("in_channel_layout error.\n");
         return -1;
     }
 
     // set output audio channels based on the input audio channels
-    if (out_channels == 1)
-    {
+    if (out_channels == 1) {
         out_channel_layout = AV_CH_LAYOUT_MONO;
-    }
-    else if (out_channels == 2)
-    {
+    } else if (out_channels == 2) {
         out_channel_layout = AV_CH_LAYOUT_STEREO;
-    }
-    else
-    {
+    } else {
         out_channel_layout = AV_CH_LAYOUT_SURROUND;
     }
 
     // retrieve number of audio samples (per channel)
     in_nb_samples = decoded_audio_frame->nb_samples;
-    if (in_nb_samples <= 0)
-    {
+    if (in_nb_samples <= 0) {
         printf("in_nb_samples error.\n");
         return -1;
     }
@@ -483,22 +353,15 @@ int AudioUtils::audio_resampling(AVCodecContext* audio_decode_ctx, AVFrame* deco
     // Once all values have been set for the SwrContext, it must be initialized
     // with swr_init().
     ret = swr_init(swr_ctx);;
-    if (ret < 0)
-    {
+    if (ret < 0) {
         printf("Failed to initialize the resampling context.\n");
         return -1;
     }
 
-    max_out_nb_samples = out_nb_samples = av_rescale_rnd(
-                                              in_nb_samples,
-                                              out_sample_rate,
-                                              audio_decode_ctx->sample_rate,
-                                              AV_ROUND_UP
-                                          );
+    max_out_nb_samples = out_nb_samples = av_rescale_rnd( in_nb_samples, out_sample_rate, audio_decode_ctx->sample_rate, AV_ROUND_UP );
 
     // check rescaling was successful
-    if (max_out_nb_samples <= 0)
-    {
+    if (max_out_nb_samples <= 0) {
         printf("av_rescale_rnd error.\n");
         return -1;
     }
@@ -506,38 +369,20 @@ int AudioUtils::audio_resampling(AVCodecContext* audio_decode_ctx, AVFrame* deco
     // get number of output audio channels
     out_nb_channels = av_get_channel_layout_nb_channels(out_channel_layout);
 
-    ret = av_samples_alloc_array_and_samples(
-              &resampled_data,
-              &out_linesize,
-              out_nb_channels,
-              out_nb_samples,
-              out_sample_fmt,
-              0
-          );
-
-    if (ret < 0)
-    {
+    ret = av_samples_alloc_array_and_samples( &resampled_data, &out_linesize, out_nb_channels, out_nb_samples, out_sample_fmt, 0 );
+    if (ret < 0) {
         printf("av_samples_alloc_array_and_samples() error: Could not allocate destination samples.\n");
         return -1;
     }
 
     // retrieve output samples number taking into account the progressive delay
-    out_nb_samples = av_rescale_rnd(
-                        swr_get_delay(swr_ctx, audio_decode_ctx->sample_rate) + in_nb_samples,
-                        out_sample_rate,
-                        audio_decode_ctx->sample_rate,
-                        AV_ROUND_UP
-                     );
-
-    // check output samples number was correctly retrieved
-    if (out_nb_samples <= 0)
-    {
+    out_nb_samples = av_rescale_rnd(swr_get_delay(swr_ctx, audio_decode_ctx->sample_rate) + in_nb_samples, out_sample_rate, audio_decode_ctx->sample_rate, AV_ROUND_UP);
+    if (out_nb_samples <= 0) {
         printf("av_rescale_rnd error\n");
         return -1;
     }
 
-    if (out_nb_samples > max_out_nb_samples)
-    {
+    if (out_nb_samples>max_out_nb_samples) {
         // free memory block and set pointer to NULL
         av_free(resampled_data[0]);
 
@@ -552,8 +397,7 @@ int AudioUtils::audio_resampling(AVCodecContext* audio_decode_ctx, AVFrame* deco
               );
 
         // check samples buffer correctly allocated
-        if (ret < 0)
-        {
+        if (ret < 0) {
             printf("av_samples_alloc failed.\n");
             return -1;
         }
@@ -561,8 +405,7 @@ int AudioUtils::audio_resampling(AVCodecContext* audio_decode_ctx, AVFrame* deco
         max_out_nb_samples = out_nb_samples;
     }
 
-    if (swr_ctx)
-    {
+    if (swr_ctx) {
         // do the actual audio data resampling
         ret = swr_convert(
                   swr_ctx,
@@ -573,8 +416,7 @@ int AudioUtils::audio_resampling(AVCodecContext* audio_decode_ctx, AVFrame* deco
               );
 
         // check audio conversion was successful
-        if (ret < 0)
-        {
+        if (ret < 0) {
             printf("swr_convert_error.\n");
             return -1;
         }
@@ -589,14 +431,11 @@ int AudioUtils::audio_resampling(AVCodecContext* audio_decode_ctx, AVFrame* deco
                               );
 
         // check audio buffer size
-        if (resampled_data_size < 0)
-        {
+        if (resampled_data_size < 0) {
             printf("av_samples_get_buffer_size error.\n");
             return -1;
         }
-    }
-    else
-    {
+    } else {
         printf("swr_ctx null error.\n");
         return -1;
     }
@@ -607,8 +446,7 @@ int AudioUtils::audio_resampling(AVCodecContext* audio_decode_ctx, AVFrame* deco
     /*
      * Memory Cleanup.
      */
-    if (resampled_data)
-    {
+    if (resampled_data)  {
         // free memory block and set pointer to NULL
         av_freep(&resampled_data[0]);
     }
@@ -616,8 +454,7 @@ int AudioUtils::audio_resampling(AVCodecContext* audio_decode_ctx, AVFrame* deco
     av_freep(&resampled_data);
     resampled_data = NULL;
 
-    if (swr_ctx)
-    {
+    if (swr_ctx) {
         // Free the given SwrContext and set the pointer to NULL
         swr_free(&swr_ctx);
     }

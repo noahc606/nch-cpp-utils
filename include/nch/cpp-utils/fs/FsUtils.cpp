@@ -66,8 +66,7 @@ bool FsUtils::fileExists(std::string path)
     #if ( defined(_WIN32) || defined(WIN32) )
         DWORD attrs = GetFileAttributesA(path.c_str());
 	    bool isDir = attrs&FILE_ATTRIBUTE_DIRECTORY;
-	    bool isArchive = attrs&FILE_ATTRIBUTE_ARCHIVE;
-        return (!isDir && !isArchive);
+        return (!isDir);
     #elif ( defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)) )
         struct stat sb;
         if((stat(path.c_str(), &sb)==0)) {

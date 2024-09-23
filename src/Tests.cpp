@@ -17,7 +17,7 @@ Tests::Tests()
 	    printf("%s\n", vec[i].c_str());
     }
 
-    printf("%s\n", nch::FsUtils::getPathWithInferredExtension("nchutils-test-windows").c_str());
+    printf("%s\n", nch::FsUtils::getPathWithInferredExtension("nchutils-test-win-x86_64").c_str());
 
     nch::ArrayList<int> al;
 
