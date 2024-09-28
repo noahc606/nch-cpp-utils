@@ -6,6 +6,13 @@
 
 namespace nch { class Text {
 public:
+    struct TextShadow {
+        bool enabled = true;
+        int dx = 4;
+        int dy = 4;
+        float fadeFactor = 0.8;
+        nch::Color customColor = nch::Color(0, 0, 0, 0);
+    };
 
     Text();
     ~Text();
@@ -23,13 +30,20 @@ public:
     void setWrapLength(int wl);
     void setDarkBackground(bool db);
     void setTextColor(Color tc);
+    void setShadowing(bool hasShadow);
+    void setShadowRelPos(int shadowDX, int shadowDY);
+    void setShadowFadeFactor(float shadowFadeFactor);
+    void removeShadowCustomColor();
+    void setShadowCustomColor(nch::Color shadowCustomColor);
+
 private:
     SDL_Renderer* rend = nullptr;
     SDL_Texture* txtTex = nullptr;
     bool initted = false;
     bool darkenBackground = false;
-    bool shadow = true;
+    
     bool forceNearestScaling = false;
+    TextShadow shadow;
 
     double scale = 1;
     double width = 0;

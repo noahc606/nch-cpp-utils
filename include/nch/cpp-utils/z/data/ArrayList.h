@@ -4,7 +4,7 @@
 
 /*
     Wrapper around std::vector<Object*>.
-    Programmer can use 'pushBack(new Object(blah, blah))' without having to worry about memory cleanup.
+    Programmer can use 'pushBack(new Object(blah, blah))' without having to worry about manual memory cleanup.
     Programmer should NOT use 'delete' with anything in this class - just use erase() or eraseMultiple().
 
     Features:

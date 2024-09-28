@@ -1,13 +1,14 @@
 #include <iostream>
-#include <nch/cpp-utils/data/ArrayList.h>
-#include <nch/cpp-utils/fs/FsUtils.h>
-#include <nch/cpp-utils/gfx/Color.h>
-#include <nch/cpp-utils/io/Log.h>
-#include <nch/sdl-utils/debug/SDLEventDebugger.h>
-#include <nch/sdl-utils/gfx/Text.h>
-#include <nch/sdl-utils/gfx/TexUtils.h>
-#include <nch/sdl-utils/Input.h>
-#include <nch/sdl-utils/MainLoopDriver.h>
+#include <nch/cpp-utils/arraylist.h>
+#include <nch/cpp-utils/fs-utils.h>
+#include <nch/cpp-utils/color.h>
+#include <nch/cpp-utils/log.h>
+#include <nch/sdl-utils/z/debug/SDLEventDebugger.h>
+#include <nch/sdl-utils/text.h>
+#include <nch/sdl-utils/texture-utils.h>
+#include <nch/sdl-utils/input.h>
+#include <nch/sdl-utils/main-loop-driver.h>
+#include <nch/sdl-utils/timer.h>
 #include <SDL2/SDL.h>
 #include <sstream>
 #include "Tests.h"
@@ -37,16 +38,19 @@ void drawInfo(SDL_Renderer* rend)
 {
     int width = getWidth();
     int height = getHeight();
+
+    std::stringstream s1; s1 << "CurrentTimeNS=" << nch::Timer::getCurrentTimeNS();
+    dbgScreen[0].setText(s1.str());
     
-    dbgScreen[0].setText(nch::MainLoopDriver::getPerformanceInfo());
+    dbgScreen[1].setText(nch::MainLoopDriver::getPerformanceInfo());
 
-    std::stringstream s1; s1 << "Window dimensions (W x H) = " << width << " x " << " " << height << ".";
-    dbgScreen[1].setText(s1.str());
-
-    std::stringstream s2; s2 << "Last Known Input Event ID: " << nch::Input::getLastKnownSDLEventID();
+    std::stringstream s2; s2 << "Window dimensions (W x H) = " << width << " x " << " " << height << ".";
     dbgScreen[2].setText(s2.str());
+
+    std::stringstream s3; s3 << "Last Known Input Event ID: " << nch::Input::getLastKnownSDLEventID();
+    dbgScreen[3].setText(s3.str());
     
-    dbgScreen[3].setText( nch::SDLEventDebugger::toString(nch::Input::getLastKnownSDLEvent()) );
+    dbgScreen[4].setText( nch::SDLEventDebugger::toString(nch::Input::getLastKnownSDLEvent()) );
 
     int secs = -1;
     int pct = -1;
@@ -125,7 +129,8 @@ void tick()
 {
     using namespace nch;
     if(Input::isJoystickButtonDown(6) && Input::isJoystickButtonDown(7)) {
-        MainLoopDriver::quit();
+        doBackground = false;
+        //MainLoopDriver::quit();
     }
 
     //Increment tick timer
@@ -159,7 +164,7 @@ int main(int argc, char **argv)
     /* Init TTF and any fonts */
     TTF_Init();
     dbgFont = TTF_OpenFont("res/BackToEarth.ttf", 100);
-    for(int i = 0; i<5; i++) {
+    for(int i = 0; i<6; i++) {
         nch::Text* t = new nch::Text();
         t->init(rend, dbgFont, true);
         t->forcedNearestScaling(true);
@@ -170,7 +175,7 @@ int main(int argc, char **argv)
     Tests t;
 
     /* Perform main loop and exit when ready */
-    nch::MainLoopDriver mainLoop(rend, &tick, 60, &draw, 60);
+    nch::MainLoopDriver mainLoop(rend, &tick, 60, &draw, 300);
     return 0;
 }
 

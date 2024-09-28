@@ -9,7 +9,7 @@ extern "C" {
     #include <libswscale/swscale.h>
     #include <libswresample/swresample.h>
 }
-#include <nch/cpp-utils/gfx/Color.h>
+#include "nch/cpp-utils/color.h"
 #include "MediaPlaybackData.h"
 
 namespace nch { class MediaPlayer

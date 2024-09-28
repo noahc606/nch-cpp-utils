@@ -1,15 +1,15 @@
-#include "SimpleEncryption.h"
-#include "nch/cpp-utils/fs/FsUtils.h"
-#include "nch/cpp-utils/fs/FileUtils.h"
+#include "NoahSimpleCryption.h"
+#include "nch/cpp-utils/fs-utils.h"
+#include "nch/cpp-utils/file-utils.h"
 
 using namespace nch;
 
-void SimpleEncryption::encryptFile(std::string file, std::string key)
+void NoahSimpleCryption::encryptFile(std::string file, std::string key)
 {
     encryptFile(file, getShiftSetFromStr(key));
 }
 
-void SimpleEncryption::decryptFile(std::string file, std::string key)
+void NoahSimpleCryption::decryptFile(std::string file, std::string key)
 {
     encryptFile(file, getShiftSetComplement( getShiftSetFromStr(key) ));
 }
@@ -17,7 +17,7 @@ void SimpleEncryption::decryptFile(std::string file, std::string key)
 
 
 
-std::vector<unsigned char> SimpleEncryption::getShiftSetComplement(std::vector<unsigned char> shiftset)
+std::vector<unsigned char> NoahSimpleCryption::getShiftSetComplement(std::vector<unsigned char> shiftset)
 {
     std::vector<unsigned char> res;
     for(int i = 0; i<shiftset.size();i++) {
@@ -27,7 +27,7 @@ std::vector<unsigned char> SimpleEncryption::getShiftSetComplement(std::vector<u
     return res;
 }
 
-std::vector<unsigned char> SimpleEncryption::getShiftSetFromStr(std::string str)
+std::vector<unsigned char> NoahSimpleCryption::getShiftSetFromStr(std::string str)
 {
     std::vector<unsigned char> res;
     for(int i = 0; i<str.size(); i++) {
@@ -41,7 +41,7 @@ std::vector<unsigned char> SimpleEncryption::getShiftSetFromStr(std::string str)
     return res;
 }
 
-void SimpleEncryption::encryptFile(std::string file, std::vector<unsigned char> shiftset)
+void NoahSimpleCryption::encryptFile(std::string file, std::vector<unsigned char> shiftset)
 {
     //Open file to be encrypted (read+binary)
     FILE* pFile = fopen(file.c_str(), "rb");

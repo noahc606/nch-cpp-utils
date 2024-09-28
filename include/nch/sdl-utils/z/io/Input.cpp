@@ -1,6 +1,6 @@
 #include "Input.h"
-#include "nch/cpp-utils/io/Log.h"
-#include "nch/sdl-utils/debug/SDLEventDebugger.h"
+#include "nch/cpp-utils/log.h"
+#include "nch/sdl-utils/z/debug/SDLEventDebugger.h"
 
 
 using namespace nch;

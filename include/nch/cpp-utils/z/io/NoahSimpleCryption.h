@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-namespace nch { class SimpleEncryption
+namespace nch { class NoahSimpleCryption
 {
 public:
     void encryptFile(std::string file, std::string key);

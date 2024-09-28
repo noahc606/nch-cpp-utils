@@ -1,6 +1,6 @@
 #include "Tests.h"
 #include <iostream>
-#include "nch/cpp-utils/data/ArrayList.h"
+#include "nch/cpp-utils/arraylist.h"
 
 Tests::Tests()
 {

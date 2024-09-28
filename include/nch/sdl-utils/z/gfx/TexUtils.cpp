@@ -23,10 +23,10 @@ void TexUtils::clearTexture(SDL_Renderer* rend, SDL_Texture*& tex)
 
 /*
     Render a bordered filled rectangle to the render target.
-    The border's color is the opposite color of the current RenderDrawColor.
     The border's size is clamped to 1 if it is less than 1.
+    If NOT specified: The border's color is the opposite color of the current RenderDrawColor.
 */
-void TexUtils::renderFillBorderedRect(SDL_Renderer* rend, SDL_Rect* r, float borderSize)
+void TexUtils::renderFillBorderedRect(SDL_Renderer* rend, SDL_Rect* r, int borderSize)
 {
     //"Background" rectangle
     uint8_t rr, rg, rb, ra;
@@ -37,7 +37,7 @@ void TexUtils::renderFillBorderedRect(SDL_Renderer* rend, SDL_Rect* r, float bor
     //Primary rectangle
     if(borderSize<1) borderSize = 1;
     SDL_Rect r2 = *r;
-    r2.x += borderSize; r2.y += 1*borderSize;
+    r2.x += borderSize; r2.y += borderSize;
     r2.w -= 2*borderSize; r2.h -= 2*borderSize;
     SDL_SetRenderDrawColor(rend, rr, rg, rb, ra);
     SDL_RenderFillRect(rend, &r2);

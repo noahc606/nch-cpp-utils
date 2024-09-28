@@ -1,8 +1,9 @@
 #include "MainLoopDriver.h"
-#include <nch/cpp-utils/io/Log.h>
-#include <nch/sdl-utils/Input.h>
-#include <nch/sdl-utils/Timer.h>
 #include <SDL2/SDL_timer.h>
+#include "nch/cpp-utils/log.h"
+#include "nch/sdl-utils/input.h"
+#include "nch/sdl-utils/input.h"
+#include "nch/sdl-utils/timer.h"
 
 using namespace nch;
 
@@ -13,6 +14,7 @@ MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t 
 {
 	MainLoopDriver::tickFunc = tickFunc;
 	MainLoopDriver::drawFunc = drawFunc;
+	MainLoopDriver::maxTargetFPS = targetFPS;
 	
 	int tps = 0;
 	int fps = 0;
@@ -21,9 +23,10 @@ MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t 
 
 	//Run while game is running, every millisecond.
 	while(running) {
-		uint64_t nsPerTick = 1000000000/targetTPS;
-		uint64_t nsPerFrame = 1000000000/targetFPS;
+		uint64_t nsPerTick = 1000000000/(uint64_t)targetTPS;
+		uint64_t nsPerFrame = 1000000000/(uint64_t)targetFPS;
 
+		/* Tick and draw if needed */
 		//If the game is ready to tick
 		if(Timer::getCurrentTimeNS()>=tickNextNS) {
 			//Update when the next tick should happen
@@ -66,11 +69,24 @@ MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t 
 			frameTimesNS.push_back(frameDeltaNS);
 		}
 
-		if(getAvgNSPT()>nsPerTick) {
-			if(targetFPS>5) targetFPS--;
-		} else {
-			if(targetFPS<hardMaxFPS) targetFPS++;
+		/* Regulate draw and tick speed if one of them is not optimal */
+		//Decrease targetFPS (up to a point) if ticks are taking too long
+
+		if(currentTPS) {
+
 		}
+		/*
+		if(getAvgNSPT()>nsPerTick) {
+			if(targetFPS>minTargetFPS) {
+				printf("Dec\n");
+				//targetFPS--;
+			}
+		} else {
+			if(targetFPS<maxTargetFPS) {
+				printf("Inc\n");
+				//targetFPS++;
+			}
+		}*/
 
 		//Run this block every second.
 		if( Timer::getTicks64()>=secLast ) {
@@ -78,7 +94,7 @@ MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t 
 			currentTPS = tps;
 			currentFPS = fps;
 
-			MainLoopDriver::performanceInfo = Log::getFormattedString("(FPS, TPS)=(%d/%" PRIu64 ", %d/%" PRIu64 "). NSPF=%" PRIu64, currentFPS, targetFPS, currentTPS, targetTPS, getAvgNSPF());
+			MainLoopDriver::performanceInfo = Log::getFormattedString("(FPS, TPS)=(%d/%" PRIu64 ", %d/%" PRIu64 "). (NSPF, NSPT)=(%" PRIu64 ", %" PRIu64 ").", currentFPS, targetFPS, currentTPS, targetTPS, getAvgNSPF(), getAvgNSPT());
             if(loggingPerformance) {
                 Log::log("%s\n", performanceInfo.c_str());
             }

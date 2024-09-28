@@ -1,8 +1,8 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include "MediaPlayer.h"
-#include <nch/sdl-utils/Timer.h>
-#include <nch/ffmpeg-utils/media/AudioUtils.h>
+#include "nch/sdl-utils/timer.h"
+#include "nch/ffmpeg-utils/z/media/AudioUtils.h"
 using namespace nch;
 
 MediaPlayer::MediaPlayer(std::string url, SDL_Renderer* rend, int maxFramesToDecode, bool logInitInfo, bool logFrameInfo)

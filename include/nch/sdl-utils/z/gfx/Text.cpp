@@ -38,7 +38,6 @@ void Text::draw(int x, int y)
         SDL_RenderFillRect(rend, &dst);
     }
 
-    SDL_SetTextureAlphaMod(txtTex, textColor.a);
     SDL_SetTextureBlendMode(txtTex, SDL_BLENDMODE_BLEND);
 
     #if ( (SDL_MAJOR_VERSION>2) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION>0) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION==0 && SDL_PATCHLEVEL>=12))
@@ -49,15 +48,24 @@ void Text::draw(int x, int y)
         }
     #endif
 
-    if(shadow) {
-        dst.x += (4*scale); dst.y += (4*scale);
-        SDL_SetTextureColorMod(txtTex, 255-textColor.r, 255-textColor.g, 255-textColor.b);
+    if(shadow.enabled) {
+        dst.x += (shadow.dx*scale); dst.y += (shadow.dy*scale);
+
+        if(shadow.customColor.a==0) {
+            SDL_SetTextureColorMod(txtTex, 255-textColor.r, 255-textColor.g, 255-textColor.b);
+        } else {
+            SDL_SetTextureColorMod(txtTex, shadow.customColor.r, shadow.customColor.g, shadow.customColor.b);
+        }
+        
+        SDL_SetTextureAlphaMod(txtTex, 255*shadow.fadeFactor);
+        
         SDL_RenderCopy(rend, txtTex, NULL, &dst );
 
-        dst.x -= (4*scale); dst.y -= (4*scale);
+        dst.x -= (shadow.dx*scale); dst.y -= (shadow.dy*scale);
     }
     
     SDL_SetTextureColorMod(txtTex, textColor.r, textColor.g, textColor.b);
+    SDL_SetTextureAlphaMod(txtTex, textColor.a);
     SDL_RenderCopy(rend, txtTex, NULL, &dst );
 }
 
@@ -105,6 +113,18 @@ void Text::setWrapLength(int wl)
 
 void Text::setDarkBackground(bool db) { darkenBackground = db; }
 void Text::setTextColor(Color tc) { textColor = tc; }
+void Text::setShadowing(bool hasShadow) { shadow.enabled = hasShadow; }
+void Text::setShadowRelPos(int shadowDX, int shadowDY) { shadow.dx = shadowDX; shadow.dy = shadowDY; }
+void Text::setShadowFadeFactor(float shadowFadeFactor) { shadow.fadeFactor = shadow.fadeFactor; }
+void Text::removeShadowCustomColor() { shadow.customColor = nch::Color(0, 0, 0, 0); }
+void Text::setShadowCustomColor(nch::Color shadowCustomColor)
+{
+    nch::Color scc = shadowCustomColor;
+    shadow.customColor.r = scc.r;
+    shadow.customColor.g = scc.g;
+    shadow.customColor.b = scc.b;
+    shadow.customColor.a = 255;
+}
 
 void Text::updateTextTexture()
 {
