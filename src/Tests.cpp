@@ -1,15 +1,37 @@
 #include "Tests.h"
 #include <iostream>
-#include "nch/cpp-utils/arraylist.h"
+#include <nch/cpp-utils/arraylist.h>
+#include <nch/cpp-utils/noah-alloc-table.h>
+#include <nch/cpp-utils/file-utils.h>
+#include <nch/cpp-utils/string-utils.h>
+#include <sstream>
 
 Tests::Tests()
 {
     nch::FsUtils fsu;
-    //FILE* fx = fopen("test.c", "w");
-    //fclose(fx);
 
+    nch::NoahAllocTable nat("tests/nch_nat_test_1");
+
+    std::vector<unsigned char> data = { };
+    //0b01010101, 0b11111111, 0b11111111, 0b11111111, 0b00000001
+    for(int i = 0; i<257; i++) {
+        data.push_back(0b10101011);
+    }
+    nat.save("test_e", data);
+
+    std::stringstream info;
+    nat.putInfo(info);
+    printf("%s\n", info.str().c_str());
+
+    //unsigned char x = 0b11111111;
+    //
+    //nat.alloc("test label", &data[0], data.size());
     
-    printf("Starting tests...\n");
+    auto nv = nat.load("test_e");
+    nat.close();
+
+
+    return;
 
     auto vec = nch::FsUtils::getDirContents("");
     printf("=-=-= Test Result =-=-=\n");

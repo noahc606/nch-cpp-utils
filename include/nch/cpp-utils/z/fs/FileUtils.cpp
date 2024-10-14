@@ -1,4 +1,5 @@
 #include "FileUtils.h"
+#include <sstream>
 
 using namespace nch;
 
@@ -25,4 +26,31 @@ void FileUtils::writeToFile(FILE* pFile, unsigned char c)
     //Write buffer to file then delete the malloc'ed buffer
     fwrite(buffer, 1, 1, pFile);
     delete[] buffer;
+}
+
+std::vector<std::string> FileUtils::getFileLines(FILE* pFile)
+{
+    std::vector<std::string> res;
+    bool foundNewLine = false;
+    std::stringstream currentLine;
+	
+	char c = '\0';
+	while( (c = std::fgetc(pFile))!=EOF ) {
+        if( !foundNewLine && (c=='\n' || c=='\r') ) {  /* Found newline character */
+            foundNewLine = true;
+
+            res.push_back(currentLine.str());
+            currentLine.str(std::string());
+            currentLine.clear();
+        } else {                                        /* Found any other character */
+            foundNewLine = false;
+            currentLine << c;
+        }
+    }
+
+    //Add last currentLine
+    res.push_back(currentLine.str());
+
+    //Return result
+    return res;
 }

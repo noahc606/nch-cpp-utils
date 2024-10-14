@@ -21,7 +21,8 @@ public:
     void draw(int x, int y);
     
     double getWidth(); double getHeight();
-    std::string getText();
+    double getUnscaledHeight();
+    std::u16string getText();
 
     void setScale(double scale);
     void forcedNearestScaling(bool fns);

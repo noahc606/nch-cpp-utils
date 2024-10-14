@@ -22,26 +22,39 @@ void TexUtils::clearTexture(SDL_Renderer* rend, SDL_Texture*& tex)
 }
 
 /*
-    Render a bordered filled rectangle to the render target.
+    Render a bordered filled rectangle (with foreground color==RenderDrawColor) to the render target.
     The border's size is clamped to 1 if it is less than 1.
-    If NOT specified: The border's color is the opposite color of the current RenderDrawColor.
+    If border color NOT specified: it becomes the opposite color (255-r,g,b) of the current RenderDrawColor.
 */
-void TexUtils::renderFillBorderedRect(SDL_Renderer* rend, SDL_Rect* r, int borderSize)
+void TexUtils::renderFillBorderedRect(SDL_Renderer* rend, SDL_Rect* r, int borderSize, nch::Color borderColor)
 {
-    //"Background" rectangle
+    nch::Color bc = borderColor;
+
     uint8_t rr, rg, rb, ra;
     SDL_GetRenderDrawColor(rend, &rr, &rg, &rb, &ra);
-    SDL_SetRenderDrawColor(rend, 255-rr, 255-rg, 255-rb, ra);
+    nch::Color fc = nch::Color(rr, rg, rb, ra);
+
+    //Fill "background" rectangle (includes the outline and has the border color)
+    SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(rend, bc.r, bc.g, bc.b, bc.a);
     SDL_RenderFillRect(rend, r);
 
-    //Primary rectangle
+    //Fill the "inner" rectangle
     if(borderSize<1) borderSize = 1;
     SDL_Rect r2 = *r;
     r2.x += borderSize; r2.y += borderSize;
     r2.w -= 2*borderSize; r2.h -= 2*borderSize;
-    SDL_SetRenderDrawColor(rend, rr, rg, rb, ra);
+    SDL_SetRenderDrawColor(rend, fc.r, fc.g, fc.b, fc.a);
     SDL_RenderFillRect(rend, &r2);
 }
+
+void TexUtils::renderFillBorderedRect(SDL_Renderer* rend, SDL_Rect* r, int borderSize)
+{
+    uint8_t rr, rg, rb, ra;
+    SDL_GetRenderDrawColor(rend, &rr, &rg, &rb, &ra);
+    renderFillBorderedRect(rend, r, borderSize, nch::Color(255-rr, 255-rg, 255-rb));
+}
+
 
 /*
     Render a filled triangle to the render target using many horizontal lines

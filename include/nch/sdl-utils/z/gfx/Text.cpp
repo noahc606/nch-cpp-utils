@@ -71,6 +71,8 @@ void Text::draw(int x, int y)
 
 double Text::getWidth() { return width*scale; }
 double Text::getHeight() { return height*scale; }
+double Text::getUnscaledHeight() { return height; }
+std::u16string Text::getText() { return text; }
 
 void Text::setScale(double scale)
 {

@@ -1,11 +1,10 @@
 ### Project Settings ###
 # Set min cmake version
-if(WIN32)
-    cmake_minimum_required(VERSION 3.21)
-endif(WIN32)
-if(UNIX)
-    cmake_minimum_required(VERSION 3.5)
-endif(UNIX)
+cmake_minimum_required(VERSION 3.5)
+if(TRUE)
+    set(CMAKE_C_FLAGS_DEBUG "-g -DDEBUG")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG")
+endif()
 
 # Set executable target depending on OS...
 if(WIN32)

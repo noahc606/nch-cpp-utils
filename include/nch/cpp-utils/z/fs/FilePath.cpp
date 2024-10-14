@@ -4,36 +4,9 @@
 #include "FsUtils.h"
 
 using namespace nch;
-const std::string FilePath::validChars = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789-+= _/\\";
 
 FilePath::FilePath(std::string path)
 {
-    if(FsUtils::fileExists(path)) {
-        //Make sure path for a local file is valid
-        std::string vc = validChars+".";
-        for(int i = 0; i<path.size(); i++) {
-            //If invalid char found, stop
-            if(vc.find(path[i])==std::string::npos) {
-                printf("Invalid characters within path \"%s\" (Use [Aa-Zz][ _/\\] and make sure a file extension exists).\n", path.c_str());
-                cleanpath = "?null?";
-                return;
-            }
-        }
-    }
-
-    if(FsUtils::dirExists(path)) {
-        //Make sure path for a local directory is valid
-        std::string vc = validChars;
-        for(int i = 0; i<path.size(); i++) {
-            //If invalid char found, stop
-            if(vc.find(path[i])==std::string::npos) {
-                printf("Invalid characters within directory path \"%s\" (Use [Aa-Zz][ _/\\]).\n", path.c_str());
-                cleanpath = "?null?";
-                return;
-            }
-        }
-    }
-
     std::stringstream res;
     for(int i = 0; i<path.size(); i++) {
         if(path[i]=='\"') { continue; }             //Replace backslashes ('\') with forward slashes ('/')
@@ -44,15 +17,14 @@ FilePath::FilePath(std::string path)
 }
 
 std::string FilePath::get() { return cleanpath; }
-std::string FilePath::getFilename(bool includeExtension)
+std::string FilePath::getObjectName(bool includeExtension)
 {
     std::string wp = get(); //Working Path
     if(!includeExtension) {
         wp = getWithoutExtension();
     }
 
-    if(FsUtils::dirExists(get()))   return "?directory?";
-    if(!FsUtils::fileExists(get())) return "?null?";
+    if(!FsUtils::pathExists(get())) return "?null?";
     
     std::string filename = "";
     for(int i = wp.size()-1; i>=0; i--) {
@@ -63,9 +35,8 @@ std::string FilePath::getFilename(bool includeExtension)
         }
     }
     return filename;
-
 }
-std::string FilePath::getFilename() { return getFilename(true); }
+std::string FilePath::getObjectName() { return getObjectName(true); }
 std::string FilePath::getGrandparentDir(int numUpDirs)
 {
     if(numUpDirs<1) return "?invalid-numUpDirs?";

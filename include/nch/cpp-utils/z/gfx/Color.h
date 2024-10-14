@@ -13,7 +13,7 @@ public:
     Color();
     ~Color();
 
-    /**/
+    /* Getters */
     static uint32_t getRGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
     static uint32_t getRGBA(uint8_t r, uint8_t g, uint8_t b);
     static uint32_t getRGB(uint8_t r, uint8_t g, uint8_t b);

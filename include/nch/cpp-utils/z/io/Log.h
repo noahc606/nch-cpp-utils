@@ -7,7 +7,7 @@ namespace nch { class Log
 {
 public:
     enum LogModes {
-        DEFAULT, DEBUG
+        DEFAULT, DEBUGGING
     };
 
     /**/
@@ -30,7 +30,7 @@ public:
     
     /* Debug (log only if debugging OR troubleshooting is on) */
     template<typename ... T> static void debug(std::string format, T ... args) {
-        if(logMode==LogModes::DEBUG) {
+        if(logMode==LogModes::DEBUGGING) {
             logString(getFormattedString("[ Debug ] "+format+"\n", args ...));
         }
     }

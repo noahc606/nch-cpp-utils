@@ -6,8 +6,8 @@ public:
     FilePath(std::string path);
 
     std::string get();
-    std::string getFilename(bool includeExtension);
-    std::string getFilename();
+    std::string getObjectName(bool includeExtension);
+    std::string getObjectName();
     std::string getGrandparentDir(int numUpDirs);
     std::string getParentDir();
     int getNumDirsDown();

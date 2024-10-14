@@ -148,7 +148,7 @@ int main(int argc, char **argv)
         printf("SDL_Init Error: %s\n", SDL_GetError());
     }
     //Window
-    win = SDL_CreateWindow("nchUtils Test", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_RESIZABLE);
+    win = SDL_CreateWindow("NCH-CPP-Utils Example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_RESIZABLE);
     if(win==NULL) {
         printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
     }

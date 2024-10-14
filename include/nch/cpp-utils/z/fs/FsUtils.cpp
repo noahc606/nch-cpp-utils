@@ -94,7 +94,37 @@ bool FsUtils::dirExists(std::string path)
     return false;
 }
 
-std::vector<std::string> FsUtils::ls(std::string dirPath, int maxItemsToList)
+bool FsUtils::symlinkExists(std::string path)
+{
+    if(!pathExists(path)) return false;
+
+    //Remove all trailing slashes at the end of 'path'
+    int count = 0;
+    for(int i = path.size()-1; i>=0; i--) {
+        if(path[i]=='/' || path[i]=='\\') {
+            count++;
+        } else {
+            break;
+        }
+    }
+    path = path.substr(0, path.size()-count);    
+
+    #if ( defined(_WIN32) || defined(WIN32) )
+        DWORD attrs = GetFileAttributesA(path.c_str());
+        return attrs&FILE_ATTRIBUTE_REPARSE_POINT;
+    #elif ( defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)) )
+        struct stat sb;
+        if((lstat(path.c_str(), &sb)==0)) {
+            return S_ISLNK(sb.st_mode);
+        }
+    #endif
+
+    return false;
+}
+
+
+
+std::vector<std::string> FsUtils::lsx(std::string dirPath, ListSettings& lise)
 {
     if(dirPath=="") dirPath = ".";
 
@@ -109,10 +139,7 @@ std::vector<std::string> FsUtils::ls(std::string dirPath, int maxItemsToList)
         if( (hFind = FindFirstFileA(wildcardPath.c_str(), &winFindData))!=INVALID_HANDLE_VALUE ) {
             do {
 		        std::string entry = winFindData.cFileName;
-                if(res.size()<maxItemsToList) {
-     		        //If this is NOT the "." or ".." directory, add it.
-               	    if(entry!="." && entry!="..") res.push_back(entry);
-                }
+                tryAddToDirentList(dirPath, res, entry, lise);
             } while(FindNextFileA(hFind, &winFindData)!=0);
             FindClose(hFind);
         }
@@ -124,10 +151,7 @@ std::vector<std::string> FsUtils::ls(std::string dirPath, int maxItemsToList)
             struct dirent* ent;
             while((ent = readdir(dir))!=NULL) {
 		        std::string entry = ent->d_name;
-                if(res.size()<maxItemsToList) {
-     		        //If this is NOT the "." or ".." directory, we consider it.
-               	    if(entry!="." && entry!="..") res.push_back(entry);
-                }
+                tryAddToDirentList(dirPath, res, entry, lise);
             }
             
             if(closedir(dir)==-1) {
@@ -141,15 +165,25 @@ std::vector<std::string> FsUtils::ls(std::string dirPath, int maxItemsToList)
     return res;
 }
 
-std::vector<std::string> FsUtils::ls(std::string dirPath) { return ls(dirPath, 1024); }
+std::vector<std::string> FsUtils::ls(std::string dirPath, int maxItemsToList)
+{
+    ListSettings lise;
+    lise.maxItemsToList = maxItemsToList;
+    return lsx(dirPath, lise);
+}
+std::vector<std::string> FsUtils::ls(std::string dirPath)
+{
+    return ls(dirPath, 1024);
+}
 
-std::vector<std::string> FsUtils::getDirContents(std::string dirPath, int listType, bool recursive, int maxItemsToList)
+std::vector<std::string> FsUtils::getDirContents(std::string dirPath, ListSettings& lise, RecursionSettings& rese)
 {
     //Result to be returned
     std::vector<std::string> res;
 
     //Go through all the entries of this directory...
-    std::vector<std::string> lsRes = ls(dirPath, maxItemsToList);
+    std::vector<std::string> lsRes;
+    lsRes = lsx(dirPath, lise);
     for(int i = 0; i<lsRes.size(); i++) {
         std::string entpath;
         if(dirPath.size()>0) {
@@ -160,44 +194,46 @@ std::vector<std::string> FsUtils::getDirContents(std::string dirPath, int listTy
 
         //If doing recursive listing, add everything within any dir we come across.
         std::vector<std::string> subDirContents;
-        if(recursive && dirExists(entpath)) {
-            subDirContents = getDirContents(entpath, listType, true, maxItemsToList-res.size());
+        if(rese.recursiveSearch && dirExists(entpath) && rese.numLayersDown<rese.maxLayersDown) {
+            bool shouldSkip = false;
+            for(int j = 0; j<rese.skippedDirPaths.size() && !shouldSkip; j++) {
+                if(dirPath==rese.skippedDirPaths[j]) { shouldSkip = true; }
+            }
+
+            if(!shouldSkip) {
+                ListSettings liseNew = lise; liseNew.maxItemsToList = lise.maxItemsToList-res.size();
+                RecursionSettings reseNew = rese; reseNew.numLayersDown++;
+
+                subDirContents = getDirContents(entpath, liseNew, reseNew);
+            }
         }
 
-        //Add this entry as well as everything in subDirContents.
-        if(res.size()<maxItemsToList) {
-            switch(listType) {
-                case FsUtils::ONLY_DIRS: {
-                    if(dirExists(entpath)) res.push_back(entpath);
-                } break;
-                case FsUtils::ONLY_FILES: {
-                    if(fileExists(entpath)) res.push_back(entpath);
-                } break;
-                default: {
-                    res.push_back(entpath);
-                } break;
-            }
+        //Add this entry
+        if(res.size()<lise.maxItemsToList) {
+            res.push_back(entpath);
 	    }
+        //Add everything in subDirContents.
         for(int i = 0; i<subDirContents.size(); i++) {
-            if(res.size()<maxItemsToList) res.push_back(subDirContents[i]);
+            if(res.size()<lise.maxItemsToList) {
+                res.push_back(subDirContents[i]);
+            }
         }
     }
 
     return res;
 }
 
-std::vector<std::string> FsUtils::getDirContents(std::string dirPath, int listType, bool recursive) { return getDirContents(dirPath, listType, recursive, 1024); }
-std::vector<std::string> FsUtils::getDirContents(std::string dirPath, int listType) { return getDirContents(dirPath, listType, false); }
-std::vector<std::string> FsUtils::getDirContents(std::string dirPath) { return getDirContents(dirPath, FsUtils::ALL); }
+std::vector<std::string> FsUtils::getDirContents(std::string dirPath, ListSettings& lise) { RecursionSettings rese; return getDirContents(dirPath, lise, rese); }
+std::vector<std::string> FsUtils::getDirContents(std::string dirPath) { ListSettings lise; return getDirContents(dirPath, lise); }
 
-std::vector<std::string> FsUtils::getDirContents(std::vector<std::string> dirPaths, int listType, bool recursive)
+std::vector<std::string> FsUtils::getManyDirContents(std::vector<std::string> dirPaths, ListSettings& lise, RecursionSettings& rese)
 {
     std::vector<std::string> res;
     
     //Loop through all dirPaths
     for(int i = 0; i<dirPaths.size(); i++) {
         //Loop through this dirPath's list of strings.
-        auto gdc = getDirContents(dirPaths[i], listType, recursive);
+        auto gdc = getDirContents(dirPaths[i], lise, rese);
         for(std::string s : gdc) {
             //Make sure each of strings does not exist within res before adding it
             bool contained = false;
@@ -226,14 +262,20 @@ std::string FsUtils::getPathWithInferredExtension(std::string path) {
         }
     }
 
+    std::vector<std::string> dirFileList;
+    ListSettings lise;
+    lise.includeDirs = false;
+    RecursionSettings rese;
+    rese.recursiveSearch = false;
+    if(i==-1) {
+        dirFileList = getDirContents("", lise, rese);
+    } else {
+        dirFileList = getDirContents(path.substr(0, i), lise, rese);
+    }
+
+
     std::string res = "?null?";
     int count = 0;
-    std::vector<std::string> dirFileList;
-    if(i==-1) {
-        dirFileList = getDirContents("", ListTypes::ONLY_FILES, false);
-    } else {
-        dirFileList = getDirContents(path.substr(0, i), ListTypes::ONLY_FILES, false);
-    }
     for(std::string f : dirFileList) {
         FilePath fp(f);
         std::string ext = fp.getExtension();
@@ -253,4 +295,49 @@ std::string FsUtils::getPathWithInferredExtension(std::string path) {
 
     Log::warnv(__PRETTY_FUNCTION__, "returning "+res, "Found %d possible matches for \"%s\"", count, path.c_str());
     return res;
+}
+
+bool FsUtils::tryAddToDirentList(std::string dirPath, std::vector<std::string>& vec, std::string ent, ListSettings& lise)
+{
+    /* Prelims */
+    //If we are about to exceed the maxItemsToList, stop.
+    if(vec.size()>=lise.maxItemsToList) return false;
+    //If this is the "." or ".." directory, stop.
+    if(ent=="." || ent=="..") return false;
+
+    /* Default ls behavior */
+    //Simply list dirs and files without checking their type
+    if(lise.includeDirs && lise.includeFiles && lise.includeHiddenEntries && !lise.excludeSymlinkDirs) {
+        vec.push_back(ent);
+        return true;
+    }
+
+    /* Custom ls behavior */
+    //Build full path of dir entry
+    std::string entpath = dirPath+"/"+ent;
+    //Exclude hidden entries if necessary
+    if(!lise.includeHiddenEntries && ent[0]=='.') {
+        return false;
+    }
+
+    //If including dirs...
+    if(lise.includeDirs && dirExists(entpath)) {
+        if(lise.excludeSymlinkDirs) {
+            if(!symlinkExists(entpath)) {
+                vec.push_back(ent);
+                return true;
+            }
+        } else {
+            vec.push_back(ent);
+            return true;    
+        }
+    }
+    //If including files...
+    if(lise.includeFiles && fileExists(entpath)) {
+        vec.push_back(ent);
+        return true;
+    }
+
+    //If neither...?
+    return false;
 }
