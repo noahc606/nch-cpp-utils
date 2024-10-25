@@ -74,6 +74,15 @@ std::vector<double> Color::getHSV()
 	return res;
 }
 
+std::vector<uint8_t> Color::getRGBTriple()
+{
+	std::vector<uint8_t> res;
+	res.push_back(r);
+	res.push_back(g);
+	res.push_back(b);
+	return res;
+}
+
 /**
  * Get the V in the HSV value
 */

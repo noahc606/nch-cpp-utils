@@ -1,6 +1,9 @@
 ### Project Settings ###
 # Set min cmake version
 cmake_minimum_required(VERSION 3.5)
+set(PROJ_NAME "nchutils-test")
+
+# Set Debug flags if debugging...
 if(TRUE)
     set(CMAKE_C_FLAGS_DEBUG "-g -DDEBUG")
     set(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG")
@@ -8,18 +11,20 @@ endif()
 
 # Set executable target depending on OS...
 if(WIN32)
-    set(PROJ_OUT "nchutils-test-win-x86_64")
+    set(PROJ_OUT "${PROJ_NAME}-win-x86_64")
     # Show console (FALSE=show, TRUE=don't show)
     set(CMAKE_WIN32_EXECUTABLE FALSE)
 endif(WIN32)
 if(UNIX)
     EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
-    set(PROJ_OUT "nchutils-test-unix-${ARCHITECTURE}")
+    set(PROJ_OUT "${PROJ_NAME}-unix-${ARCHITECTURE}")
 endif(UNIX)
+
 # Project languages and flags
 project(${PROJ_OUT} VERSION 0.1.1.0 LANGUAGES C CXX)
 #set(CMAKE_C_FLAGS "-std=c++11 -O3 -DNDEBUG -s -flto")
 set(CMAKE_C_FLAGS "-std=c++11")
+
 
 ### Create List of Sources, Headers, and Directories ###
 # Get list of sources and headers
@@ -36,13 +41,7 @@ list (REMOVE_DUPLICATES PROJ_SRC_DIRS)
 
 ### Create Executable and add Links/Includes/DLLs ###
 # Add executable
-if (WIN32)
-#    add_executable(${PROJ_OUT} WIN32 ${PROJ_SOURCES})
-    add_executable(${PROJ_OUT} ${PROJ_SOURCES})
-endif (WIN32)
-if (UNIX)
-    add_executable(${PROJ_OUT} ${PROJ_SOURCES})
-endif (UNIX)
+add_executable(${PROJ_OUT} ${PROJ_SOURCES})
 set_target_properties(${PROJ_OUT} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
 )

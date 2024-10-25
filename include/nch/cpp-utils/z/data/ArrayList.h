@@ -13,7 +13,6 @@
     - eraseMultiple() objects without having to worry about the order in which you erase them
     - All elements destroy themselves once the list itself destructs.
     - If doing pushBack(nullptr), nothing gets added.
-    - size() is actually an unsigned int
 */
 
 namespace nch { template <typename T> class ArrayList {
@@ -60,6 +59,6 @@ public:
     }
 
 private:
-    std::vector<T*> arrlist;
+    std::vector<T*> arrlist = std::vector<T*>();
 
 }; }

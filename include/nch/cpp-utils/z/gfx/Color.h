@@ -22,12 +22,25 @@ public:
     uint32_t getRGBA();
     uint32_t getRGB();
     std::vector<double> getHSV();
+    std::vector<uint8_t> getRGBTriple();
     double getHSV2();
 	Color getInterpolColor(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a, double weight);
 	Color getInterpolColor(Color& c, double weight);
 
 	std::string toStringB10();
 	std::string toStringB16(bool transparency);
+
+    bool operator==(Color& other) {
+        return (
+            r==other.r &&
+            g==other.g &&
+            b==other.b &&
+            a==other.a
+        );
+    }
+    bool operator!=(Color& other) {
+        return !((*this)==other);
+    }
 
 	/* Color setting & combining */
 	//Linear interpolation between two colors

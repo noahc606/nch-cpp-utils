@@ -25,8 +25,8 @@ void NoahAllocTable::open(std::string pathWithoutExtension)
     fpFilename = pathWithoutExtension;
     std::string fpNatPath = fpFilename+".nat";
     std::string fpHeadPath = fpFilename+".nath";
-    fpNat = std::fopen(fpNatPath.c_str(), "r+");    std::fclose(fpNat);
-    fpHead = std::fopen(fpHeadPath.c_str(), "r+");  std::fclose(fpHead);
+    fpNat = std::fopen(fpNatPath.c_str(), "ab+");   std::fclose(fpNat);
+    fpHead = std::fopen(fpHeadPath.c_str(), "a+");  std::fclose(fpHead);
 
     //Open NAT file for reading/writing
     fpNat = std::fopen(fpNatPath.c_str(), "r+b");
@@ -130,7 +130,7 @@ std::vector<unsigned char> NoahAllocTable::load(std::string label)
     auto ent = findLabeledData(label);  //Get header entry related to label.
 
     //If 'ent' invalid or not found, return empty 'res'.
-    if(ent.first==-1) { return res;}
+    if(ent.first==-1) { return res; }
 
     //Build 'res' by reading the file 1 byte (unsigned char) at a time
     for(int i = 0; i<ent.second; i++) {
