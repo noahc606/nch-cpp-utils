@@ -124,6 +124,16 @@ int64_t NoahAllocTable::save(std::string label, std::vector<unsigned char>& data
     return save(label, &data[0], data.size());
 }
 
+int64_t NoahAllocTable::save(std::string label, std::string data)
+{
+    std::vector<unsigned char> charData;
+    for(int i = 0; i<data.size(); i++) {
+        charData.push_back(data[i]);
+    }
+
+    return save(label, charData);
+}
+
 std::vector<unsigned char> NoahAllocTable::load(std::string label)
 {
     std::vector<unsigned char> res;     //'res'ult to be built
