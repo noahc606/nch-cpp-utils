@@ -1,6 +1,7 @@
 #pragma once
-#include <vector>
+#include <cstdint>
 #include <string>
+#include <vector>
 
 namespace nch { class StringUtils {
 public:

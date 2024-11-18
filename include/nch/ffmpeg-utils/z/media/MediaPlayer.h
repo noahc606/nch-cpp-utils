@@ -15,7 +15,7 @@ extern "C" {
 namespace nch { class MediaPlayer
 {
 public:
-    MediaPlayer(std::string url, SDL_Renderer* rend, int maxFramesToDecode, bool logInitInfo, bool logFrameInfo);
+    MediaPlayer(std::string url, SDL_Renderer* rend, int numCachedFrames);
     MediaPlayer(std::string url, SDL_Renderer* rend);
     ~MediaPlayer();
 
@@ -25,19 +25,15 @@ public:
     static int getCurrentVidFrameIndex(nch::MediaPlaybackData* mpd);
     void renderCurrentVidFrame(SDL_Rect* src, SDL_Rect* dst, const Color& colormod);
     void renderCurrentVidFrame(SDL_Rect* src, SDL_Rect* dst);
-    int decodeFull();
+
+    bool initMediaPlaybackData();
+    int startDecodingFrom(int startingVidFrameNum);
+    int startDecoding();
     void startPlayback(bool infiniteLoop);
     void startPlayback();
 
 
 private:
-    static int initAVFormatContext(AVFormatContext** avfc, std::string url, bool dumpInfo);
-    static void checkAVFormatContext(AVFormatContext* avfc, int& videoStream, int& audioStream);
-    static void openAVCodecs(AVFormatContext* avfc, int videoStream, int audioStream, const AVCodec** vCodec, const AVCodec** aCodec, AVCodecContext** vCodecCtx, AVCodecContext** aCodecCtx);
-    static void openSDLAudioDevice(AVCodecContext* aCodecCtx, SDL_AudioDeviceID& audioDeviceID, int sdlAudioBufferSize);
-    static void setupAVFrame(AVFrame*& avPacket);
-    static void setupAVPacket(AVPacket*& avPacket);
-    static void setupSwsContext(SwsContext*& swsCtx, AVCodecContext* vCodecCtx);
 
     static int playVideo(void* data);
     static int playAudio(void* data);
@@ -46,5 +42,14 @@ private:
 
     nch::MediaPlaybackData mpd;
     SDL_Thread* videoThread = nullptr;
+    SDL_Renderer* renderer = nullptr;
+    
+    //Playback parameters
+    int numCachedFrames = 1000;
+    std::string url = "???null???";
+    //Debugging parameters
+    static bool logInitInfo;
+    static bool logFrameInfo;
+    static bool shouldPlaybackQuit;
 };
 }

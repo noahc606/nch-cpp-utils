@@ -6,31 +6,21 @@ extern "C" {
     #include <libswscale/swscale.h>
     #include <libswresample/swresample.h>
 }
+#include <map>
 #include <string>
 #include <SDL2/SDL.h>
 
-namespace nch {
-class MediaPlaybackData {
+namespace nch { class MediaPlaybackData {
 public:
     MediaPlaybackData(){}
     ~MediaPlaybackData(){}
 
-    //Playback parameters
-    int maxFramesToDecode = 10000;
-    std::string url = "???null???";
-    //Debugging parameters
-    bool logInitInfo = false;
-    bool logFrameInfo = false;
-
-
-    SDL_Renderer* renderer = nullptr;
     double fps = -1;
 
     int sdlAudioBufferSize = -1;
-    uint64_t startTimeMS = 0;
-    bool infiniteLoop = false;
+    uint64_t logicalStartTimeMS = 0;
 
-    AVFormatContext* avFormatCtx = nullptr;
+    AVFormatContext* avFormatCtx = NULL;
     int videoStream = -1;
     int audioStream = -1;
     const AVCodec* vCodec = nullptr;
@@ -43,7 +33,7 @@ public:
     AVPacket* currAVPacket = nullptr;
     SDL_Texture* currVidTexture = nullptr;
     struct SwsContext* swsCtx = nullptr;
-    std::vector<AVFrame*> vFrameCache;
+    std::map<int, AVFrame*> vFrameCacheMap;
     bool vFrameCacheComplete = false;
 
     SDL_AudioDeviceID audioDeviceID = 0;
