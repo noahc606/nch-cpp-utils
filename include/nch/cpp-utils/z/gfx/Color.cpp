@@ -204,6 +204,18 @@ void Color::brighten(int val)
 
 	setFromHSV(hsv[0], hsv[1], hsv[2]);
 }
+void Color::saturate(int val)
+{
+    auto hsv = getHSV();
+    
+	hsv[1] += val;
+	if(hsv[1]<=0) { hsv[1] = 0; }
+	if(hsv[1]>=100.) {
+		hsv[1] = 100;
+	}
+
+	setFromHSV(hsv[0], hsv[1], hsv[2]);
+}
 
 void Color::transpare(int dA)
 {

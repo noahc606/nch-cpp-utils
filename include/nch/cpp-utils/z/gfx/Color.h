@@ -52,6 +52,7 @@ public:
     void mod(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a);
     void mod(Color& c);
     void brighten(int val);
+    void saturate(int val);
     void transpare(int dA);
     void set(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
     void set(uint8_t r, uint8_t g, uint8_t b);
