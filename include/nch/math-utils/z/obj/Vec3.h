@@ -1,5 +1,7 @@
 #pragma once
 #include <cmath>
+#include <cstdint>
+#include <sstream>
 #include <tuple>
 
 namespace nch { template <typename T> class Vec3
@@ -49,6 +51,10 @@ public:
     T distanceTo(const Vec3<T>& v) {
         return std::sqrt( (v.x-x)*(v.x-x) + (v.y-y)*(v.y-y) + (v.z-z)*(v.z-z) );
     }
+
+    Vec3<double> toDouble() { return Vec3<double>(x, y, z); }
+    Vec3<int64_t> toInt64() { return Vec3<int64_t>(x, y, z); }
+    std::string toString() { std::stringstream ss; ss << "(" << x << ", " << y << ", " << z << ")"; return ss.str(); }
 
     T x;
     T y;

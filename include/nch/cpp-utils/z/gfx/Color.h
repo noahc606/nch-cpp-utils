@@ -30,7 +30,7 @@ public:
 	std::string toStringB10();
 	std::string toStringB16(bool transparency);
 
-    bool operator==(Color& other) {
+    bool operator==(const Color& other) {
         return (
             r==other.r &&
             g==other.g &&
@@ -38,7 +38,7 @@ public:
             a==other.a
         );
     }
-    bool operator!=(Color& other) {
+    bool operator!=(const Color& other) {
         return !((*this)==other);
     }
 
