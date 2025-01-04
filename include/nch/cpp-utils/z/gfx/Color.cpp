@@ -183,7 +183,7 @@ void Color::mod(Color& c) { mod(c.r, c.g, c.b, c.a); }
 
 /*
     Brighten the current color by 'val' (added to 'value' in HSV).
-	When HSV's value exceeds 100, HSV's saturation is decreased by the remaining amount to increase brightness even more.
+	When HSV's 'value' exceeds 100, HSV's 'saturation' is decreased by the remaining amount to increase visual brightness even more.
     Use negative 'val' for darkening.
 */
 void Color::brighten(int val)
