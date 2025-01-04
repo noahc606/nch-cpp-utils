@@ -19,11 +19,11 @@ public:
     void close();
 
     std::pair<int64_t, int64_t> findLabeledData(std::string lbl);
+    std::vector<std::string> getLabelList();
 
     int64_t save(std::string label, unsigned char* data, int64_t size);
     int64_t save(std::string label, std::vector<unsigned char>& data);
     int64_t save(std::string label, std::string data);
-    std::vector<unsigned char> load(std::string label, int64_t dataBitSize, int64_t numDataPieces);
     std::vector<unsigned char> load(std::string label);
     void putInfo(std::stringstream& ss);
 private:

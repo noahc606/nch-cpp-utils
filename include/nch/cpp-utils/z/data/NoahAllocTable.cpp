@@ -100,6 +100,15 @@ std::pair<int64_t, int64_t> NoahAllocTable::findLabeledData(std::string lbl)
     }
 }
 
+std::vector<std::string> NoahAllocTable::getLabelList()
+{
+    std::vector<std::string> res;
+    for(auto elem : headerLbls) {
+        res.push_back(elem.first);
+    }
+    return res;
+}
+
 int64_t NoahAllocTable::save(std::string label, unsigned char* data, int64_t size)
 {
     auto ent = findLabeledData(label);
