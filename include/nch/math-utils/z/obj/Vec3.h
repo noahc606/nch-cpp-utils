@@ -37,6 +37,15 @@ public:
     Vec3<T> operator*(const Vec3<T>& v) const { return Vec3<T>(x*v.x, y*v.y, z*v.z); }  //Not dot product! Returns "stretched" vector
     T dot(const Vec3<T>& v) const { return x*v.x+y*v.y+z*v.z; }
     Vec3<T> cross(const Vec3<T>& v) const { return Vec3<T>(y*v.z-z*v.y, z*v.x-x*v.z, x*v.y-y*v.x); }
+    Vec3<T> normalized() {
+        Vec3<T> res = (*this);
+        T len2 = res.length2();
+        if(len2>0) {
+            double invLen = 1/std::sqrt(len2);
+            res *= invLen;
+        }
+        return res;
+    }
     
     //Comparison
     bool operator==(Vec3<T> v) const { return v.x==x && v.y==y && v.z==z; };
@@ -44,15 +53,8 @@ public:
 
     /** Mutators **/
     Vec3<T>& operator+=(const Vec3<T>& v) { x+=v.x, y+=v.y, z+=v.z; return *this; }     //Add-set
+    Vec3<T>& operator-=(const Vec3<T>& v) { x-=v.x, y-=v.y, z-=v.z; return *this; }     //Add-set
     Vec3<T>& operator*=(const T& r) { x*=r, y*=r, z*=r; return *this; }                 //Scale-set
-    Vec3<T>& normalize() {
-        T len2 = length2();
-        if(len2>0) {
-            double invLen = 1/std::sqrt(len2);
-            (*this) *= invLen;
-        }
-        return *this;
-    }
     T distanceTo(const Vec3<T>& v) {
         return std::sqrt( (v.x-x)*(v.x-x) + (v.y-y)*(v.y-y) + (v.z-z)*(v.z-z) );
     }

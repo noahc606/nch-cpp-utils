@@ -28,7 +28,10 @@ std::vector<std::string> StringUtils::split(std::string toSplit, char delim)
     posList.push_back(toSplit.size());
     
     //Split string, add to 'res'
-    res.push_back(toSplit.substr(0, posList[0]));
+    std::string potentialFirst = toSplit.substr(0, posList[0]);
+    if(potentialFirst.size()>0) {
+        res.push_back(potentialFirst);
+    }
     for(int i = 0; i<posList.size()-1; i++) {
         std::string potential = toSplit.substr(posList[i]+1, posList[i+1]-posList[i]-1);
         if(potential.size()>0) {
@@ -96,4 +99,28 @@ std::string StringUtils::extractBracketedStr(std::string s)
     } else {
         return "][";
     }
+}
+
+std::string StringUtils::trimmed(std::string s)
+{
+    //Whitespace characters to be trimmed at beginning or end
+    std::string ws = " \t\n";
+
+    //Find first non-whitespace character from beginning
+    int start = 0;
+    for(int i = start; i<s.size(); i++) {
+        if(ws.find(s[i])==std::string::npos) { start = i; break; }
+        //Special case: All characters found to be whitespace -> return "".
+        if(i==s.size()-1) {
+            return "";
+        }
+    }
+    //Find first non-whitespace character from end
+    int end = s.size()-1;
+    for(int i = end; i>=0; i--) {
+        if(ws.find(s[i])==std::string::npos) { end = i+1; break; }
+    }
+
+    //Return final substring
+    return s.substr(start, end-start);
 }
