@@ -87,7 +87,7 @@ std::vector<int64_t> StringUtils::parseI64Array(std::string s)
 
 /*
     Search from either end of 's' until we find '[' from the left and ']' from the right.
-    Return a string of the form "[...]" or "" if we couldn't find a proper bracketed string.
+    Returns: a string of the form "[...]" or "" if we couldn't find a proper bracketed string.
 */
 std::string StringUtils::extractBracketedStr(std::string s)
 {
@@ -123,4 +123,13 @@ std::string StringUtils::trimmed(std::string s)
 
     //Return final substring
     return s.substr(start, end-start);
+}
+
+/*
+    Returns: Whether or not the string 's' has 'prefix's string sequence at the beginning.
+*/
+bool StringUtils::prefixMatches(std::string s, std::string prefix)
+{
+    int psize = prefix.size();
+    return (s.substr(0, psize)==prefix);
 }
