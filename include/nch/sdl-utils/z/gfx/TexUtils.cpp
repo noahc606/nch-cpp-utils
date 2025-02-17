@@ -2,6 +2,29 @@
 
 using namespace nch;
 
+Color TexUtils::getPixelColor(SDL_Surface* pSurface, int x, int y)
+{
+	//Bytes per pixel
+	uint8_t bpp = pSurface->format->BytesPerPixel;
+    //Ptr to pixel @ (x, y)
+	uint8_t* pPixel = (uint8_t*)pSurface->pixels + y*pSurface->pitch+x*bpp;
+    //Get pixel as pixel data
+	uint32_t pixelData = *(uint32_t*)pPixel;
+
+	//Return final color
+	Color res;
+    Uint8 r = 0, g = 0, b = 0, a = 0;
+	SDL_GetRGBA(pixelData, pSurface->format, &r, &g, &b, &a);
+	return Color(r, g, b, a);
+}
+
+void TexUtils::setPixelColor(SDL_Surface* pSurface, int x, int y, uint32_t rgba)
+{
+    uint32_t* const targetPixel = (uint32_t*)
+        ((uint8_t*)pSurface->pixels + y*pSurface->pitch + x*pSurface->format->BytesPerPixel);
+    *targetPixel = rgba;
+}
+
 void TexUtils::clearTexture(SDL_Renderer* rend, SDL_Texture*& tex)
 {
     //Save old render target, draw blend mode, and draw color

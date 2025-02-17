@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include "TimerInit.h"
 
 namespace nch { class Timer {
 public:
@@ -11,23 +12,25 @@ public:
     virtual ~Timer();
     
     static uint64_t getCurrentTimeNS();
-    static uint64_t getTicks64();
+    static uint64_t getTicks();
     double getElapsedTimeMS();
-    
-    void debugElapsedTimeMS();
 
+    void debugElapsedTimeMS();
+    static void sleep(int ms);
 private:
     uint64_t getCurrentTime();
     
     void updateElapsedTime();
     
-    /* Times (in milliseconds) */
-    uint64_t t0 = 0.0;    //Initial time
-    uint64_t t1 = 0.0;    //End time
-    double dT = -1.0;   //Time elapsed
+    /* Times (in nanoseconds) */
+    uint64_t t0 = 0;    //Initial time (time constructor was called)
+    uint64_t t1 = 0;    //End time (time destructor activates)
+    /* Time Elapsed (in milliseconds) */
+    double dT = -1.0;   //Time elapsed between t0 and t1
 
     /* Peripherals */
     bool logging = true;
     std::string desc = "Description unuset";
+    static TimerInit ti;
     /**/
 };}

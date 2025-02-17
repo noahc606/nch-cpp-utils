@@ -3,7 +3,7 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include "SimpleMediaPlayer.h"
 #include "MediaLoader.h"
-#include "nch/sdl-utils/timer.h"
+#include "nch/cpp-utils/timer.h"
 #include "nch/cpp-utils/log.h"
 using namespace nch;
 
@@ -37,7 +37,7 @@ int SimpleMediaPlayer::getCurrentVidFrameIndex(nch::MediaPlaybackData* mpd)
 {
     /* Get current frame index */
     //Calculate current frame based on time & FPS
-    uint64_t elapsedMS = Timer::getTicks64()-startTimeMS;
+    uint64_t elapsedMS = Timer::getTicks()-startTimeMS;
     int frame = ((double)elapsedMS/1000.0*mpd->fps);
 
     //Since we are looping the video, make the frame index loop as well
@@ -117,7 +117,7 @@ int SimpleMediaPlayer::decodeFull()
 
     /* [3] Packet decode loop - Add video frames to mpd.vFrameCache and add audio packets to AudioUtils' PacketQueue for playback */
     // read data from the AVFormatContext by repeatedly calling av_read_frame()
-    uint64_t t0 = Timer::getTicks64();
+    uint64_t t0 = Timer::getTicks();
     int ret = 0;
     int numVidFrames = 0;
     int numAudioPackets = 0;
@@ -164,7 +164,7 @@ int SimpleMediaPlayer::decodeFull()
     }
 
     /* Print info, mark complete, and return successful (0) after video decode finishes */
-    uint64_t t1 = Timer::getTicks64()-t0;
+    uint64_t t1 = Timer::getTicks()-t0;
 
     
     nch::Log::log(
@@ -179,7 +179,7 @@ int SimpleMediaPlayer::decodeFull()
 void SimpleMediaPlayer::startPlayback()
 {
     if(mpd.videoStream!=-1) mpd.fps = av_q2d(mpd.avFormatCtx->streams[mpd.videoStream]->r_frame_rate);
-    startTimeMS = Timer::getTicks64();
+    startTimeMS = Timer::getTicks();
 }
 
 bool SimpleMediaPlayer::shouldQuit() { return !running; }

@@ -1,0 +1,41 @@
+#pragma once
+#include <SDL2/SDL.h>
+
+namespace nch { class Rect {
+public:
+    Rect(){}
+    Rect(int x, int y, int w, int h) {
+        r.x = x; 
+        r.y = y;
+        r.w = w;
+        r.h = h;
+    }
+    Rect(const SDL_Rect& r) { Rect::r = r; }
+    ~Rect(){}
+
+    /* Getters */
+    int x2() const { return r.x+r.w; }
+    int y2() const { return r.y+r.h; }
+    static Rect createFromTwoPts(int x1, int y1, int x2, int y2) { return Rect(x1, y1, x2-x1, y2-y1); }
+    bool intersects(const Rect& b) {
+        return (
+            r.x<=b.r.x+b.r.w && b.r.x<=r.x+r.w &&
+            r.y<=b.r.y+b.r.h && b.r.y<=r.y+r.h
+        );
+    }
+    
+    /* Mutators */
+    void scale(float factor) {
+        r.x *= factor;
+        r.y *= factor;
+        r.w *= factor;
+        r.h *= factor;
+    }
+    void translate(int dx, int dy) {
+        r.x += dx;
+        r.y += dy;
+    }
+
+    SDL_Rect r;
+private:
+}; }

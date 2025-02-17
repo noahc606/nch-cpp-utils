@@ -146,7 +146,7 @@ Color Color::getInterpolColor(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a
 	
 	return Color(r1-dR, g1-dG, b1-dB, a1-dA);
 }
-Color Color::getInterpolColor(Color& c, double weight)
+Color Color::getInterpolColor(const Color& c, double weight)
 {
 	return getInterpolColor(c.r, c.g, c.b, c.a, weight);
 }

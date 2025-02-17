@@ -128,8 +128,12 @@ std::string StringUtils::trimmed(std::string s)
 /*
     Returns: Whether or not the string 's' has 'prefix's string sequence at the beginning.
 */
-bool StringUtils::prefixMatches(std::string s, std::string prefix)
+bool StringUtils::aHasPrefixB(std::string a, std::string b)
 {
-    int psize = prefix.size();
-    return (s.substr(0, psize)==prefix);
+    return (a.substr(0, b.size())==b);
+}
+
+bool StringUtils::aHasSuffixB(std::string a, std::string b)
+{
+    return(a.substr(a.size()-b.size())==b);
 }

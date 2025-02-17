@@ -2,7 +2,7 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include "MediaLoader.h"
 #include "MediaPlayer.h"
-#include "nch/sdl-utils/timer.h"
+#include "nch/cpp-utils/timer.h"
 #include "nch/cpp-utils/log.h"
 using namespace nch;
 
@@ -40,7 +40,7 @@ int MediaPlayer::getCurrentVidFrameIndex(nch::MediaPlaybackData* mpd)
 {
     /* Get current frame index */
     //Calculate current frame based on time & FPS
-    uint64_t elapsedMS = Timer::getTicks64()-mpd->logicalStartTimeMS;
+    uint64_t elapsedMS = Timer::getTicks()-mpd->logicalStartTimeMS;
     int frame = ((double)elapsedMS/1000.0*mpd->fps);
     return frame;
 }
@@ -120,7 +120,7 @@ int MediaPlayer::startDecodingFrom(int startingVidFrameNum)
 
     /* [3] Packet decode loop - Add video frames to mpd.vFrameCacheMap and add audio packets to AudioUtils' PacketQueue for playback */
     // read data from the AVFormatContext by repeatedly calling av_read_frame()
-    uint64_t t0 = Timer::getTicks64();
+    uint64_t t0 = Timer::getTicks();
     int ret = 0;
     int numFramesCached = 0;
     int numAudioPackets = 0;
@@ -199,7 +199,7 @@ int MediaPlayer::startDecodingFrom(int startingVidFrameNum)
     }
 
     /* Print info, mark complete, and return successful (0) after video decode finishes */
-    uint64_t t1 = Timer::getTicks64()-t0;
+    uint64_t t1 = Timer::getTicks()-t0;
 
     
     nch::Log::log(
@@ -216,7 +216,7 @@ int MediaPlayer::startDecoding() { return startDecodingFrom(0); }
 void MediaPlayer::startPlayback(bool infiniteLoop)
 {
     /* Get video start time; Start video playback thread. */
-    mpd.logicalStartTimeMS = Timer::getTicks64();
+    mpd.logicalStartTimeMS = Timer::getTicks();
 
     SDL_Thread* threadID = SDL_CreateThread(playVideo, "VideoThread", (void*)(&mpd));
 }

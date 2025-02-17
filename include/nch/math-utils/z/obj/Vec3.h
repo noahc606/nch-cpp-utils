@@ -25,6 +25,13 @@ public:
     T length2() { return x*x+y*y+z*z; }
     T length() { return std::sqrt(length2()); }
     std::tuple<T, T, T> tuple() { return std::make_tuple(x, y, z); }
+    T distanceTo(const Vec3<T>& v) {
+        return std::sqrt( (v.x-x)*(v.x-x) + (v.y-y)*(v.y-y) + (v.z-z)*(v.z-z) );
+    }
+    Vec3<double> toDouble() { return Vec3<double>(x, y, z); }
+    Vec3<int64_t> toInt64() { return Vec3<int64_t>(x, y, z); }
+    std::string toString() { std::stringstream ss; ss << "(" << x << ", " << y << ", " << z << ")"; return ss.str(); }
+    std::string toArrayString() { std::stringstream ss; ss << "[" << x << "," << y << "," << z << "]"; return ss.str(); }
     
     /** Operations **/
     //Basic operations
@@ -55,15 +62,7 @@ public:
     Vec3<T>& operator+=(const Vec3<T>& v) { x+=v.x, y+=v.y, z+=v.z; return *this; }     //Add-set
     Vec3<T>& operator-=(const Vec3<T>& v) { x-=v.x, y-=v.y, z-=v.z; return *this; }     //Add-set
     Vec3<T>& operator*=(const T& r) { x*=r, y*=r, z*=r; return *this; }                 //Scale-set
-    T distanceTo(const Vec3<T>& v) {
-        return std::sqrt( (v.x-x)*(v.x-x) + (v.y-y)*(v.y-y) + (v.z-z)*(v.z-z) );
-    }
     Vec3<T>& operator=(const Vec3<T>& v) { x = v.x; y = v.y; z = v.z; return (*this); }
-
-    Vec3<double> toDouble() { return Vec3<double>(x, y, z); }
-    Vec3<int64_t> toInt64() { return Vec3<int64_t>(x, y, z); }
-    std::string toString() { std::stringstream ss; ss << "(" << x << ", " << y << ", " << z << ")"; return ss.str(); }
-    std::string toArrayString() { std::stringstream ss; ss << "[" << x << "," << y << "," << z << "]"; return ss.str(); }
 
     T x = (T)0, y = (T)0, z = (T)0;
 protected:

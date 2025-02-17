@@ -25,7 +25,7 @@ public:
     std::vector<uint8_t> getRGBTriple();
     double getHSV2();
 	Color getInterpolColor(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a, double weight);
-	Color getInterpolColor(Color& c, double weight);
+	Color getInterpolColor(const Color& c, double weight);
 
 	std::string toStringB10();
 	std::string toStringB16(bool transparency);

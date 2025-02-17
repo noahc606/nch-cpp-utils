@@ -59,6 +59,9 @@ bool FsUtils::pathExists(std::string path)
     return false;
 }
 
+/// @brief Searches for a file at the given 'path' and returns true if it was found, false if not.
+/// @param path The path of the potential file to look for.
+/// @return Whether or not a file at 'path' exists.
 bool FsUtils::fileExists(std::string path)
 {
     if(!pathExists(path)) return false;
@@ -77,6 +80,9 @@ bool FsUtils::fileExists(std::string path)
     return false;
 }
 
+/// @brief Searches for a directory at the given 'path' and returns true if it was found, false if not.
+/// @param path The path of the potential directory to look for.
+/// @return Whether or not a directory at 'path' exists.
 bool FsUtils::dirExists(std::string path)
 {
     if(!pathExists(path)) return false;
@@ -94,6 +100,9 @@ bool FsUtils::dirExists(std::string path)
     return false;
 }
 
+/// @brief Searches for a symlink at the given 'path' and returns true if it was found, false if not.
+/// @param path The path of the potential symlink to look for.
+/// @return Whether or not a symlink at 'path' exists.
 bool FsUtils::symlinkExists(std::string path)
 {
     if(!pathExists(path)) return false;
@@ -121,8 +130,6 @@ bool FsUtils::symlinkExists(std::string path)
 
     return false;
 }
-
-
 
 std::vector<std::string> FsUtils::lsx(std::string dirPath, ListSettings& lise)
 {

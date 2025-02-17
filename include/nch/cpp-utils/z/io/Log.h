@@ -27,6 +27,7 @@ public:
     template<typename ... T> static void log(std::string format, T ... args) {
 	    logString(getFormattedString("[  Log  ] "+format+"\n", args ... ));
     }
+    template<typename ... T> static void log() { log(""); }
     
     /* Debug (log only if debugging OR troubleshooting is on) */
     template<typename ... T> static void debug(std::string format, T ... args) {
@@ -48,12 +49,13 @@ public:
 
     /* Error (log during invalid program state) */
     //Verbose char* error
-    template<typename ... T> static void errorv(std::string funcname, const char *error, std::string format, T ... args) {
-        logString(getFormattedString("[ ERROR ] "+funcname+" - "+format+": "+error+"!\n", args ...));
+    template<typename ... T> static void errorv(std::string funcname, const char *errorOrigin, std::string format, T ... args) {
+        logString(getFormattedString("[ ERROR ] "+funcname+" - "+errorOrigin+": "+format+"!\n", args ...));
     }
+
     //Verbose string error
-    template<typename ... T> static void errorv(std::string funcname, std::string error, std::string format, T ... args) {
-        errorv(funcname, error.c_str(), format, args ...);
+    template<typename ... T> static void errorv(std::string funcname, std::string errorOrigin, std::string format, T ... args) {
+        errorv(funcname, errorOrigin.c_str(), format, args ...);
     }
     //Normal error
     template<typename ... T> static void error(std::string funcname, std::string format, T ... args) {

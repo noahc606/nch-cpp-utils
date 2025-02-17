@@ -1,133 +1,133 @@
 #include "MainLoopDriver.h"
 #include <SDL2/SDL_timer.h>
+#include <thread>
 #include "nch/cpp-utils/log.h"
+#include "nch/cpp-utils/timer.h"
 #include "nch/sdl-utils/input.h"
 #include "nch/sdl-utils/input.h"
-#include "nch/sdl-utils/timer.h"
 
 using namespace nch;
 
-std::string MainLoopDriver::performanceInfo = "???null???";
+bool MainLoopDriver::mldExists = false;
 bool MainLoopDriver::running = true;
+int MainLoopDriver::targetFPS = -1, MainLoopDriver::targetTPS = -1;
+uint64_t MainLoopDriver::numTicksPassedTotal = 0;
+
+bool MainLoopDriver::loggingPerformance = false;
+std::string MainLoopDriver::performanceInfo = "???null???";
+int MainLoopDriver::currentFPS = 0, MainLoopDriver::currentTPS = 0;
+
+std::mutex MainLoopDriver::mtx;
+int MainLoopDriver::currentNumTicksLeft = 0;
+uint64_t MainLoopDriver::lastTickNS = 0;
 
 MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS)
 {
+	if(mldExists) {
+		Log::warn(__PRETTY_FUNCTION__, "A MainLoopDriver has already been created");
+		return;
+	}
+	mldExists = true;
+
+	//Set target FPS + TPS
+	MainLoopDriver::targetTPS = targetTPS;
+	MainLoopDriver::targetFPS = targetFPS;
+
+	//Set draw, tick, and ticker callbacks
 	MainLoopDriver::tickFunc = tickFunc;
 	MainLoopDriver::drawFunc = drawFunc;
-	MainLoopDriver::maxTargetFPS = targetFPS;
-	
-	int tps = 0;
-	int fps = 0;
-	uint64_t tickNextNS = 0;
-	uint64_t frameNextNS = 0;
+	std::thread tickerThread(MainLoopDriver::ticker);
 
-	//Run while game is running, every millisecond.
+	//On main thread, run game loop as long as needed
+	uint64_t nsPerFrame = 1000000000/(uint64_t)targetFPS;
+	int fps = 0, tps = 0;
+	uint64_t nextFrameNS = 0;
+	uint64_t numTicksPassedThisSec = 0;
 	while(running) {
-		uint64_t nsPerTick = 1000000000/(uint64_t)targetTPS;
-		uint64_t nsPerFrame = 1000000000/(uint64_t)targetFPS;
+		//Tick as many times as currently needed by the program (may be 0 or more)
+		while(currentNumTicksLeft>0) {
+			const std::lock_guard<std::mutex> lock(mtx);
+			numTicksPassedThisSec++;
+			currentNumTicksLeft--;
 
-		/* Tick and draw if needed */
-		//If the game is ready to tick
-		if(Timer::getCurrentTimeNS()>=tickNextNS) {
-			//Update when the next tick should happen
-			tickNextNS = Timer::getCurrentTimeNS()+nsPerTick;
-
-			//Perform the tick, calculating how much time it takes.
-			uint64_t tickT0 = Timer::getCurrentTimeNS();
+			lastTickNS = Timer::getCurrentTimeNS();
 			Input::tick();
 			tickFunc();
 			tps++;
-			uint64_t tickT1 = Timer::getCurrentTimeNS();
-			uint64_t tickDeltaNS = tickT1-tickT0;
-
-			/* Store how long the last 'targetTPS' ticks have taken within 'tickTimesNS' */
-			//If we have 'targetTPS' elements, erase the first (and oldest) one.
-			while(tickTimesNS.size()>=targetTPS) {
-				tickTimesNS.erase(tickTimesNS.begin());
-			}
-			//Add the latest time.
-			tickTimesNS.push_back(tickDeltaNS);
+			numTicksPassedTotal++;
 		}
 
-		//If the game is ready to draw (new frame)
-		if(Timer::getCurrentTimeNS()>=frameNextNS) {
-			//Update when the next frame should be drawn
-			frameNextNS = Timer::getCurrentTimeNS()+nsPerFrame;
-
-			//Perform the draw, calculating how much time it takes.
-			uint64_t frameT0 = Timer::getCurrentTimeNS();
-			drawFunc(rend); fps++;
-			uint64_t frameT1 = Timer::getCurrentTimeNS();
-			uint64_t frameDeltaNS = frameT1-frameT0;
-
-			/* Store how long the last 'targetFPS' frames have taken within 'frameTimesNS */
-			//If we have >= 'targetFPS' elements, erase the oldest ones.
-			while(frameTimesNS.size()>=targetFPS) {
-				frameTimesNS.erase(frameTimesNS.begin());
-			}
-			//Add the latest time.
-			frameTimesNS.push_back(frameDeltaNS);
+		//Draw once if we should (never draw multiple times at once)
+		if(Timer::getCurrentTimeNS()>=nextFrameNS) {
+			nextFrameNS = Timer::getCurrentTimeNS()+nsPerFrame;
+			drawFunc(rend);
+			fps++;
 		}
-
-		/* Regulate draw and tick speed if one of them is not optimal */
-		//Decrease targetFPS (up to a point) if ticks are taking too long
-
-		if(currentTPS) {
-
-		}
-		/*
-		if(getAvgNSPT()>nsPerTick) {
-			if(targetFPS>minTargetFPS) {
-				printf("Dec\n");
-				//targetFPS--;
-			}
-		} else {
-			if(targetFPS<maxTargetFPS) {
-				printf("Inc\n");
-				//targetFPS++;
-			}
-		}*/
-
+		
+		//Events
+		events();
+		
 		//Run this block every second.
-		if( Timer::getTicks64()>=secLast ) {
-			secLast = Timer::getTicks64()+1000;
+		if(numTicksPassedThisSec>=targetTPS) {
+			numTicksPassedThisSec -= targetTPS;
 			currentTPS = tps;
 			currentFPS = fps;
-
-			MainLoopDriver::performanceInfo = Log::getFormattedString("(FPS, TPS)=(%d/%" PRIu64 ", %d/%" PRIu64 "). (NSPF, NSPT)=(%" PRIu64 ", %" PRIu64 ").", currentFPS, targetFPS, currentTPS, targetTPS, getAvgNSPF(), getAvgNSPT());
-            if(loggingPerformance) {
-                Log::log("%s\n", performanceInfo.c_str());
-            }
-
 			tps = 0;
 			fps = 0;
 		}
-
-		events();
+		Timer::sleep(1);
 	}
+
+	//Upon running==false, cleanup and quit.
+	tickerThread.detach();
+	SDL_Quit();
 }
 
-std::string MainLoopDriver::getPerformanceInfo() { return performanceInfo; }
+int MainLoopDriver::getCurrentTPS() { return currentTPS; }
+int MainLoopDriver::getCurrentFPS() { return currentFPS; }
+std::string MainLoopDriver::getPerformanceInfo()
+{
+	std::string res = Log::getFormattedString("(FPS, TPS)=(%d/%" PRIu64 ", %d/%" PRIu64 ").", currentFPS, targetFPS, currentTPS, targetTPS);
+	return res;
+}
+uint64_t MainLoopDriver::getNumTicksPassedTotal() { return numTicksPassedTotal; }
+
 void MainLoopDriver::quit()
 {
 	running = false;
 }
 
-uint64_t MainLoopDriver::getAvgNSPT()
+
+void MainLoopDriver::ticker()
 {
-	uint64_t res = 0;
-	for(int i = 0; i<tickTimesNS.size(); i++) {
-		res += tickTimesNS[i];
+	//Tick loop
+	uint64_t nsPerTick = 1000000000/(uint64_t)targetTPS;
+	uint64_t numTicksPassed = 0;	//Number of ticks that should have passed according to time since launch
+	uint64_t nextTickNS = 0;		//Time of the next tick
+	while(true) {
+		//Get current time
+		uint64_t nowNS = Timer::getCurrentTimeNS();
+
+		//Fix "speeding up" behavior if more than a second has passed from last tick to this tick.
+		if(nowNS-lastTickNS>1000000000) {
+			const std::lock_guard<std::mutex> lock(mtx);
+			numTicksPassed = nowNS/nsPerTick-1;
+			currentNumTicksLeft = 0;
+			nextTickNS = nsPerTick*numTicksPassed;
+			lastTickNS = nsPerTick*(numTicksPassed-1);
+		}
+
+		//If the current time exceeds the time of the next tick, schedule a new tick using 'currentNumTicksLeft'.
+		while(nowNS>=nextTickNS) {
+			const std::lock_guard<std::mutex> lock(mtx);
+			
+			numTicksPassed++;
+			currentNumTicksLeft++;
+			nextTickNS = nsPerTick*numTicksPassed;
+		}
+
+		Timer::sleep(1);
 	}
-	return res/tickTimesNS.size();
-}
-uint64_t MainLoopDriver::getAvgNSPF()
-{
-	uint64_t res = 0;
-	for(int i = 0; i<frameTimesNS.size(); i++) {
-		res += frameTimesNS[i];
-	}
-	return res/frameTimesNS.size();
 }
 
 void MainLoopDriver::events() {

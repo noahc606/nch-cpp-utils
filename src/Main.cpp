@@ -3,12 +3,12 @@
 #include <nch/cpp-utils/fs-utils.h>
 #include <nch/cpp-utils/color.h>
 #include <nch/cpp-utils/log.h>
+#include <nch/cpp-utils/timer.h>
 #include <nch/sdl-utils/z/debug/SDLEventDebugger.h>
 #include <nch/sdl-utils/text.h>
 #include <nch/sdl-utils/texture-utils.h>
 #include <nch/sdl-utils/input.h>
 #include <nch/sdl-utils/main-loop-driver.h>
-#include <nch/sdl-utils/timer.h>
 #include <SDL2/SDL.h>
 #include <sstream>
 #include "Tests.h"
