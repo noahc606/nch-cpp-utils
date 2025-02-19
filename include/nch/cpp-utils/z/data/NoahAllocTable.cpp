@@ -243,8 +243,16 @@ int64_t NoahAllocTable::alloc(std::string label, unsigned char* data, int64_t si
     
     /* Change map structures */
     removeUnallocArea(dataPos, dataSize);
-    headerEnts.insert_or_assign(dataPos, dataSize);
-    headerLbls.insert_or_assign(label, dataPos);
+    if(headerEnts.find(dataPos)!=headerEnts.end()) {
+        headerEnts.insert(std::make_pair(dataPos, dataSize));
+    } else {
+        headerEnts.find(dataPos)->second = dataSize;
+    }
+    if(headerLbls.find(label)!=headerLbls.end()) {
+        headerLbls.insert(std::make_pair(label, dataPos));
+    } else {
+        headerLbls.find(label)->second = dataPos;
+    }
 
     return dataPos;
 }
