@@ -6,6 +6,7 @@
 
 namespace nch { class MainLoopDriver {
 public:
+    MainLoopDriver(SDL_Renderer*, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS, void (*eventFunc)(SDL_Event&));
     MainLoopDriver(SDL_Renderer*, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS);
 
     static int getCurrentTPS();
@@ -17,7 +18,7 @@ public:
 private:
 
     static void ticker();
-    static void events();
+    void events();
 
     //Main loop states
     static bool mldExists;
@@ -32,7 +33,8 @@ private:
 	static std::mutex mtx;
 	static int currentNumTicksLeft;
 	static uint64_t lastTickNS;
-    //Draw and tick callbacks
-    void (*tickFunc)();
-    void (*drawFunc)(SDL_Renderer*);
+    //Draw, tick, event callbacks
+    void (*tickFunc)() = nullptr;
+    void (*drawFunc)(SDL_Renderer*) = nullptr;
+    void (*eventFunc)(SDL_Event&) = nullptr;
 };}

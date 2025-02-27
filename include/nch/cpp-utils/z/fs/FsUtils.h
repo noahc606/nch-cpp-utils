@@ -34,7 +34,10 @@ public:
     static std::vector<std::string> getDirContents(std::string dirPath);
     static std::vector<std::string> getManyDirContents(std::vector<std::string> dirPaths, ListSettings& lise, RecursionSettings& rese);
     static std::string getPathWithInferredExtension(std::string path);
-private:
 
+    static void setLogWarnings(bool lw);
+private:
     static bool tryAddToDirentList(std::string dirPath, std::vector<std::string>& vec, std::string ent, ListSettings& lise);
+
+    static bool logWarnings;
 };}

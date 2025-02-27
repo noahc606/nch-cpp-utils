@@ -21,7 +21,7 @@ std::mutex MainLoopDriver::mtx;
 int MainLoopDriver::currentNumTicksLeft = 0;
 uint64_t MainLoopDriver::lastTickNS = 0;
 
-MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS)
+MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS, void (*eventFunc)(SDL_Event&))
 {
 	if(mldExists) {
 		Log::warn(__PRETTY_FUNCTION__, "A MainLoopDriver has already been created");
@@ -36,6 +36,7 @@ MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t 
 	//Set draw, tick, and ticker callbacks
 	MainLoopDriver::tickFunc = tickFunc;
 	MainLoopDriver::drawFunc = drawFunc;
+	MainLoopDriver::eventFunc = eventFunc;
 	std::thread tickerThread(MainLoopDriver::ticker);
 
 	//On main thread, run game loop as long as needed
@@ -83,6 +84,9 @@ MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t 
 	SDL_Quit();
 }
 
+MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS)
+:MainLoopDriver::MainLoopDriver(rend, tickFunc, targetTPS, drawFunc, targetFPS, nullptr){}
+
 int MainLoopDriver::getCurrentTPS() { return currentTPS; }
 int MainLoopDriver::getCurrentFPS() { return currentFPS; }
 std::string MainLoopDriver::getPerformanceInfo()
@@ -92,8 +96,7 @@ std::string MainLoopDriver::getPerformanceInfo()
 }
 uint64_t MainLoopDriver::getNumTicksPassedTotal() { return numTicksPassedTotal; }
 
-void MainLoopDriver::quit()
-{
+void MainLoopDriver::quit() {
 	running = false;
 }
 
@@ -150,5 +153,7 @@ void MainLoopDriver::events() {
 				Input::inputEvents(e);
 			} break;
 		}
+
+		if(eventFunc!=nullptr) eventFunc(e);
 	}	
 }

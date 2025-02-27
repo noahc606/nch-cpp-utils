@@ -36,6 +36,7 @@ public:
     void setShadowFadeFactor(float shadowFadeFactor);
     void removeShadowCustomColor();
     void setShadowCustomColor(nch::Color shadowCustomColor);
+    void updateTextTexture();
 
 private:
     SDL_Renderer* rend = nullptr;
@@ -53,7 +54,5 @@ private:
     TTF_Font* font = nullptr;
     Color textColor = Color(255, 255, 255);
     int wrapLength = 9999;
-
-    void updateTextTexture();
 };
 }

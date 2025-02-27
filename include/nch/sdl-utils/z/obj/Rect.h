@@ -14,6 +14,8 @@ public:
     ~Rect(){}
 
     /* Getters */
+    int x1() const { return r.x; }
+    int y1() const { return r.y; }
     int x2() const { return r.x+r.w; }
     int y2() const { return r.y+r.h; }
     static Rect createFromTwoPts(int x1, int y1, int x2, int y2) { return Rect(x1, y1, x2-x1, y2-y1); }

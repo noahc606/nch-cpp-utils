@@ -40,6 +40,12 @@ public:
         return Box2<T>(x, y, x+w, y+h);
     }
 
+    /* Mutators */
+    void scale(T scaleFactor) {
+        c1 *= scaleFactor;
+        c2 *= scaleFactor;
+    }
+
     Vec2<T> c1; //Corner 1
     Vec2<T> c2; //Corner 2
 protected:

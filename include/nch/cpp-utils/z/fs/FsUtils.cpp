@@ -17,8 +17,9 @@
 
 using namespace nch;
 
-int FsUtils::createDir(std::string path)
-{
+bool FsUtils::logWarnings = false;
+
+int FsUtils::createDir(std::string path) {
     return -100;
 }
 
@@ -162,7 +163,7 @@ std::vector<std::string> FsUtils::lsx(std::string dirPath, ListSettings& lise)
             }
             
             if(closedir(dir)==-1) {
-                Log::warn(__PRETTY_FUNCTION__, "Failed to close directory \"%s\" after operation", dirPath.c_str());
+                if(logWarnings) Log::warn(__PRETTY_FUNCTION__, "Failed to close directory \"%s\" after operation", dirPath.c_str());
             }
         } else {
             Log::error(__PRETTY_FUNCTION__, "Could not open directory \"%s\", returning empty vector.", dirPath.c_str());
@@ -300,8 +301,12 @@ std::string FsUtils::getPathWithInferredExtension(std::string path) {
         return res;
     }
 
-    Log::warnv(__PRETTY_FUNCTION__, "returning "+res, "Found %d possible matches for \"%s\"", count, path.c_str());
+    if(logWarnings) Log::warnv(__PRETTY_FUNCTION__, "returning "+res, "Found %d possible matches for \"%s\"", count, path.c_str());
     return res;
+}
+
+void FsUtils::setLogWarnings(bool lw) {
+    logWarnings = lw;
 }
 
 bool FsUtils::tryAddToDirentList(std::string dirPath, std::vector<std::string>& vec, std::string ent, ListSettings& lise)
