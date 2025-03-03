@@ -91,7 +91,7 @@ int MainLoopDriver::getCurrentTPS() { return currentTPS; }
 int MainLoopDriver::getCurrentFPS() { return currentFPS; }
 std::string MainLoopDriver::getPerformanceInfo()
 {
-	std::string res = Log::getFormattedString("(FPS, TPS)=(%d/%" PRIu64 ", %d/%" PRIu64 ").", currentFPS, targetFPS, currentTPS, targetTPS);
+	std::string res = Log::getFormattedString("(FPS, TPS)=(%d/%d, %d/%d)", currentFPS, targetFPS, currentTPS, targetTPS);
 	return res;
 }
 uint64_t MainLoopDriver::getNumTicksPassedTotal() { return numTicksPassedTotal; }

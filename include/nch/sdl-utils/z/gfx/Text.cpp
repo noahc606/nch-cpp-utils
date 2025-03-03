@@ -5,16 +5,13 @@
 using namespace nch;
 
 Text::Text(){}
-Text::~Text()
-{
-    if(txtTex!=nullptr) {
-        SDL_DestroyTexture(txtTex);
-    }
-}
+Text::~Text() { destroy(); }
 
 void Text::init(SDL_Renderer* rend, TTF_Font* font, bool darkenBackground)
 {
-    if(initted) return;
+    if(initted) {
+        destroy();
+    }
     initted = true;
     
     //Set renderer and font
@@ -23,6 +20,14 @@ void Text::init(SDL_Renderer* rend, TTF_Font* font, bool darkenBackground)
     Text::darkenBackground = darkenBackground;
 }
 void Text::init(SDL_Renderer* rend, TTF_Font* font) { init(rend, font, false); }
+
+void Text::destroy()
+{
+    if(txtTex!=nullptr) {
+        SDL_DestroyTexture(txtTex);
+    }
+    txtTex = nullptr;
+}
 
 void Text::draw(int x, int y)
 {
