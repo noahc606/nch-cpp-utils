@@ -14,4 +14,11 @@ public:
 
 private:
     T v[4];
-}; }
+};
+
+typedef Vec4<int> Vec4i;
+typedef Vec4<int64_t> Vec4i64;
+typedef Vec4<uint64_t> Vec4u64;
+typedef Vec4<float> Vec4f;
+typedef Vec4<double> Vec4d;
+}

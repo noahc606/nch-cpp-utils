@@ -68,4 +68,11 @@ public:
 protected:
 
 private:
-}; }
+};
+
+typedef Vec3<int> Vec3i;
+typedef Vec3<int64_t> Vec3i64;
+typedef Vec3<uint64_t> Vec3u64;
+typedef Vec3<float> Vec3f;
+typedef Vec3<double> Vec3d;
+}

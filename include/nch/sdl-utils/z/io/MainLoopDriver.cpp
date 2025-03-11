@@ -21,7 +21,36 @@ std::mutex MainLoopDriver::mtx;
 int MainLoopDriver::currentNumTicksLeft = 0;
 uint64_t MainLoopDriver::lastTickNS = 0;
 
-MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS, void (*eventFunc)(SDL_Event&))
+/**/
+
+MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS, void (*eventFunc)(SDL_Event&)) {
+	start(rend, tickFunc, targetTPS, drawFunc, nullptr, targetFPS, eventFunc);
+}
+MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS)
+:MainLoopDriver(rend, tickFunc, targetTPS, drawFunc, targetFPS, nullptr){}
+
+MainLoopDriver::MainLoopDriver(void (*tickFunc)(), uint64_t targetTPS, void (*altDrawFunc)(), uint64_t targetFPS, void (*eventFunc)(SDL_Event&)) {
+	start(nullptr, tickFunc, targetTPS, nullptr, altDrawFunc, targetFPS, eventFunc);
+}
+MainLoopDriver::MainLoopDriver(void (*tickFunc)(), uint64_t targetTPS, void (*altDrawFunc)(), uint64_t targetFPS)
+:MainLoopDriver(tickFunc, targetTPS, altDrawFunc, targetFPS, nullptr){}
+
+/**/
+
+int MainLoopDriver::getCurrentTPS() { return currentTPS; }
+int MainLoopDriver::getCurrentFPS() { return currentFPS; }
+std::string MainLoopDriver::getPerformanceInfo()
+{
+	std::string res = Log::getFormattedString("(FPS, TPS)=(%d/%d, %d/%d)", currentFPS, targetFPS, currentTPS, targetTPS);
+	return res;
+}
+uint64_t MainLoopDriver::getNumTicksPassedTotal() { return numTicksPassedTotal; }
+
+void MainLoopDriver::quit() {
+	running = false;
+}
+
+void MainLoopDriver::start(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), void (*altDrawFunc)(), uint64_t targetFPS, void (*eventFunc)(SDL_Event&))
 {
 	if(mldExists) {
 		Log::warn(__PRETTY_FUNCTION__, "A MainLoopDriver has already been created");
@@ -36,6 +65,7 @@ MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t 
 	//Set draw, tick, and ticker callbacks
 	MainLoopDriver::tickFunc = tickFunc;
 	MainLoopDriver::drawFunc = drawFunc;
+	MainLoopDriver::altDrawFunc = altDrawFunc;
 	MainLoopDriver::eventFunc = eventFunc;
 	std::thread tickerThread(MainLoopDriver::ticker);
 
@@ -61,7 +91,8 @@ MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t 
 		//Draw once if we should (never draw multiple times at once)
 		if(Timer::getCurrentTimeNS()>=nextFrameNS) {
 			nextFrameNS = Timer::getCurrentTimeNS()+nsPerFrame;
-			drawFunc(rend);
+			if(drawFunc!=nullptr) drawFunc(rend);
+			if(altDrawFunc!=nullptr) altDrawFunc();
 			fps++;
 		}
 		
@@ -82,22 +113,6 @@ MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t 
 	//Upon running==false, cleanup and quit.
 	tickerThread.detach();
 	SDL_Quit();
-}
-
-MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS)
-:MainLoopDriver::MainLoopDriver(rend, tickFunc, targetTPS, drawFunc, targetFPS, nullptr){}
-
-int MainLoopDriver::getCurrentTPS() { return currentTPS; }
-int MainLoopDriver::getCurrentFPS() { return currentFPS; }
-std::string MainLoopDriver::getPerformanceInfo()
-{
-	std::string res = Log::getFormattedString("(FPS, TPS)=(%d/%d, %d/%d)", currentFPS, targetFPS, currentTPS, targetTPS);
-	return res;
-}
-uint64_t MainLoopDriver::getNumTicksPassedTotal() { return numTicksPassedTotal; }
-
-void MainLoopDriver::quit() {
-	running = false;
 }
 
 
@@ -155,5 +170,5 @@ void MainLoopDriver::events() {
 		}
 
 		if(eventFunc!=nullptr) eventFunc(e);
-	}	
+	}
 }

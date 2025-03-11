@@ -51,4 +51,11 @@ public:
     Vec2<T>& operator=(const Vec2<T>& v) { x = v.x; y = v.y; return (*this); }
 
     T x = (T)0, y = (T)0;
-}; }
+};
+
+typedef Vec2<int> Vec2i;
+typedef Vec2<int64_t> Vec2i64;
+typedef Vec2<uint64_t> Vec2u64;
+typedef Vec2<float> Vec2f;
+typedef Vec2<double> Vec2d;
+}
