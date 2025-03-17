@@ -156,7 +156,6 @@ void MainLoopDriver::events() {
 		switch(e.type) {
 			case SDL_QUIT: {
 				running = false;
-				SDL_Quit();
 			} break;
 			
 			case SDL_KEYDOWN:				case SDL_KEYUP:

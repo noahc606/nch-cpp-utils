@@ -138,15 +138,16 @@ void Text::updateTextTexture()
     //Create surface representing the current text
     SDL_Surface* txtSurf = TTF_RenderUNICODE_Blended_Wrapped(font, (const Uint16*)text.c_str(), SDL_Color{255, 255, 255, 255}, wrapLength);
     if(txtSurf==NULL) {
-        printf("Error rendering font: %s\n", TTF_GetError());
+        //Width will be zero so don't do anything
+    } else {
+        //Destroy the last texture if it exists and create a new one based on the txtSurf.
+        if(txtTex!=nullptr) SDL_DestroyTexture(txtTex);
+        txtTex = SDL_CreateTextureFromSurface(rend, txtSurf);
+
+        //Set width and height, destroy the txtSurf.
+        width = txtSurf->w;
+        height = txtSurf->h;
     }
 
-    //Destroy the last texture if it exists and create a new one based on the txtSurf.
-    if(txtTex!=nullptr) SDL_DestroyTexture(txtTex);
-    txtTex = SDL_CreateTextureFromSurface(rend, txtSurf);
-
-    //Set width and height, destroy the txtSurf.
-    width = txtSurf->w;
-    height = txtSurf->h;
     SDL_FreeSurface(txtSurf);
 }

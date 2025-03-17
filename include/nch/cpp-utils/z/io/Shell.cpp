@@ -3,7 +3,8 @@
 #include <memory>
 #include <stdexcept>
 #include <stdio.h>
-#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#ifdef _UNISTD_H
     #include <unistd.h>
 #endif
 #include "nch/cpp-utils/log.h"
@@ -25,7 +26,7 @@ std::string Shell::exec(const char* cmd) {
 
 std::string Shell::exec(std::string cmd) { return exec(cmd.c_str()); }
 
-#ifdef HAVE_UNISTD_H
+#ifdef _UNISTD_H
 int Shell::cd(const char* path) { return chdir(path); }
 int Shell::cd(std::string path) { return cd(path.c_str()); }
 #else

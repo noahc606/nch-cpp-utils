@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-class Shell {
+namespace nch { class Shell {
 public:
     static std::string exec(const char* cmd);
     static std::string exec(std::string cmd);
@@ -9,4 +9,4 @@ public:
     static int cd(std::string path);
 private:
     
-};
+}; }
