@@ -53,7 +53,6 @@ void NoahSimpleCryption::encryptFile(std::string file, std::vector<unsigned char
 
     //Build char* buffer which has the contents of the entire file
     unsigned char* buffer = (unsigned char*)malloc(fileSize*sizeof(unsigned char));   //Get an (unsigned char*) buffer
-    printf("File size: %d bytes.", fileSize);
     for(int i = 0; i<fileSize; i++) {
         buffer[i] = fgetc(pFile);
     }
