@@ -27,7 +27,7 @@ void Input::tick()
 		std::map<int32_t, int>* inmap = &inputStates[i];
 		//Go thru 'inmap' and manage their itr->second value (represents # of ticks held down)
 		for(auto itr = inmap->begin(); itr!=inmap->end(); itr++) {
-			//printf("Found (%d, %d)\n", itr->first, itr->second);
+			//printf("Currently inputting ID #%d for %d ticks\n", itr->first, itr->second);
 			if(itr->second<0) {
 				itr->second = 1;
 			} else if(itr->second>0) {

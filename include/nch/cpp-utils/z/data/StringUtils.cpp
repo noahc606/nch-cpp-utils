@@ -14,7 +14,7 @@ using namespace nch;
 */
 std::vector<std::string> StringUtils::split(std::string toSplit, char delim)
 {
-    std::string delims = ""+delim;
+    std::string delims(1, delim);
     std::vector<std::string> res;
     if(toSplit.size()==0) return res;
 

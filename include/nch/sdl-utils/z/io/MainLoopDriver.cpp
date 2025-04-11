@@ -37,6 +37,12 @@ MainLoopDriver::MainLoopDriver(void (*tickFunc)(), uint64_t targetTPS, void (*al
 
 /**/
 
+uint64_t MainLoopDriver::getTargetNSPT() {
+	return 1000000000/(uint64_t)targetTPS;
+}
+uint64_t MainLoopDriver::getTargetNSPF() {
+	return 1000000000/(uint64_t)targetFPS;
+}
 int MainLoopDriver::getCurrentTPS() { return currentTPS; }
 int MainLoopDriver::getCurrentFPS() { return currentFPS; }
 std::string MainLoopDriver::getPerformanceInfo()

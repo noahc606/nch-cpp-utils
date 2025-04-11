@@ -25,6 +25,24 @@ public:
             r.y<=b.r.y+b.r.h && b.r.y<=r.y+r.h
         );
     }
+    bool contains(int x, int y) {
+        return (
+            r.x<=x && x<=r.x+r.w &&
+            r.y<=y && y<=r.y+r.h
+        );
+    };
+    
+    bool operator==(const Rect& other) {
+        return (
+            r.x==other.r.x &&
+            r.y==other.r.y &&
+            r.w==other.r.w &&
+            r.h==other.r.h
+        );
+    }
+    bool operator!=(const Rect& other) {
+        return !(*this==other);
+    }
     
     /* Mutators */
     void scale(float factor) {

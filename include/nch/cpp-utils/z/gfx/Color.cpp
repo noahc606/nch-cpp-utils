@@ -126,6 +126,17 @@ std::string Color::toStringB16(bool transparency)
 	return res.str();
 }
 
+std::string Color::toStringReadable(bool transparency)
+{
+	std::stringstream ss;
+	ss << "(" << (int)r << ", " << (int)g << ", " << (int)b;
+	if(transparency) {
+		ss << ", " << (int) a;
+	}
+	ss << ")";
+	return ss.str();
+}
+
 /*
  * Return a new color that is the weighted average between two colors. 'weight' is a value from 0.0 to 1.0.
  * 

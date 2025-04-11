@@ -9,6 +9,7 @@ namespace nch { class TexUtils {
 public:
     typedef std::tuple<double, double, double> t_tuple3d;
 
+    static nch::Color getPixelColor(void* pixels, SDL_PixelFormat* pxFmt, int pitch, int x, int y);
     static nch::Color getPixelColor(SDL_Surface* pSurface, int x, int y);
     static void setPixelColor(SDL_Surface* pSurface, int x, int y, uint32_t rgba);
     static void clearTexture(SDL_Renderer* rend, SDL_Texture*& tex);

@@ -29,6 +29,7 @@ public:
 
 	std::string toStringB10();
 	std::string toStringB16(bool transparency);
+    std::string toStringReadable(bool transparency);
 
     bool operator==(const Color& other) {
         return (

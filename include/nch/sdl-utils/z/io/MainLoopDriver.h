@@ -11,6 +11,8 @@ public:
     MainLoopDriver(void (*tickFunc)(), uint64_t targetTPS, void (*altDrawFunc)(), uint64_t targetFPS, void (*eventFunc)(SDL_Event&));
     MainLoopDriver(void (*tickFunc)(), uint64_t targetTPS, void (*altDrawFunc)(), uint64_t targetFPS);
     
+    static uint64_t getTargetNSPT();
+    static uint64_t getTargetNSPF();
     static int getCurrentTPS();
     static int getCurrentFPS();
     static std::string getPerformanceInfo();

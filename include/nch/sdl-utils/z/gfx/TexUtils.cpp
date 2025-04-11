@@ -2,6 +2,20 @@
 
 using namespace nch;
 
+Color TexUtils::getPixelColor(void* pixels, SDL_PixelFormat* pxFmt, int pitch, int x, int y)
+{
+    //Ptr to pixel @ (x, y)
+	uint8_t* pPixel = (uint8_t*)pixels + y*pitch+x*pxFmt->BytesPerPixel;
+    //Get pixel as pixel data
+	uint32_t pixelData = *(uint32_t*)pPixel;
+
+	//Return final color
+	Color res;
+    Uint8 r = 0, g = 0, b = 0, a = 0;
+	SDL_GetRGBA(pixelData, pxFmt, &r, &g, &b, &a);
+	return Color(r, g, b, a);
+}
+
 Color TexUtils::getPixelColor(SDL_Surface* pSurface, int x, int y)
 {
 	//Bytes per pixel

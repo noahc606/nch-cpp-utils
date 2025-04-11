@@ -5,7 +5,7 @@
 namespace nch { class FsUtils {
 public:
 
-    typedef struct {
+    typedef struct ListSettings {
         bool includeDirs = true;            //Normal dirs
         bool includeFiles = true;           //Normal files
         bool includeHiddenEntries = true;   //Hidden dirs and files (filename starts with a ".");
@@ -14,7 +14,7 @@ public:
         int maxItemsToList = 1024;
     } ListSettings;
 
-    typedef struct {
+    typedef struct RecursionSettings {
         bool recursiveSearch = false;
         std::vector<std::string> skippedDirPaths;
         int numLayersDown = 0;
