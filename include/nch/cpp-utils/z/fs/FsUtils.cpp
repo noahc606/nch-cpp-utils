@@ -4,7 +4,7 @@
 #include <sstream>
 #include <unistd.h>
 #include "FilePath.h"
-#include "Log.h"
+#include "nch/cpp-utils/log.h"
 
 #if ( defined(_WIN32) || defined(WIN32) )
     #include "direct.h"

@@ -11,7 +11,10 @@
 #include <nch/sdl-utils/main-loop-driver.h>
 #include <SDL2/SDL.h>
 #include <sstream>
-#include "Tests.h"
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 bool doBackground = true;
 bool firstDraw = true;
@@ -22,6 +25,7 @@ SDL_Window* win = nullptr;
 uint32_t winPixFormat = 0;
 nch::ArrayList<nch::Text> dbgScreen;
 TTF_Font* dbgFont = nullptr;
+std::string basePath = "";
 
 int getWidth() {
     int width = 0;
@@ -44,7 +48,7 @@ void drawInfo(SDL_Renderer* rend)
     
     dbgScreen[1].setText(nch::MainLoopDriver::getPerformanceInfo());
 
-    std::stringstream s2; s2 << "Window dimensions (W x H) = " << width << " x " << " " << height << ".";
+    std::stringstream s2; s2 << "Window dimensions (W x H) = " << width << " x " << height << ".";
     dbgScreen[2].setText(s2.str());
 
     std::stringstream s3; s3 << "Last Known Input Event ID: " << nch::Input::getLastKnownSDLEventID();
@@ -127,12 +131,6 @@ void draw(SDL_Renderer* rend)
 
 void tick()
 {
-    using namespace nch;
-    if(Input::isJoystickButtonDown(6) && Input::isJoystickButtonDown(7)) {
-        doBackground = false;
-        //MainLoopDriver::quit();
-    }
-
     //Increment tick timer
     tickTimer++;
 }
@@ -140,30 +138,40 @@ void tick()
 int main(int argc, char **argv)
 {
     /* Say hello */
-    printf("Hello world\n");
+    nch::Log::log("Hello world");
 
     /* Init SDL, create window and renderer */
-    //SDL
-    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)<0) {
-        printf("SDL_Init Error: %s\n", SDL_GetError());
-    }
-    //Window
-    win = SDL_CreateWindow("NCH-CPP-Utils Example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_RESIZABLE);
-    if(win==NULL) {
-        printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
-    }
-    SDL_RaiseWindow(win);
-    winPixFormat = SDL_GetWindowPixelFormat(win);
-    
-    //Renderer
-    SDL_Renderer* rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
-    if(rend==NULL) {
-        printf("SDL_CreateRenderer Error: %s\n", SDL_GetError());
+    SDL_Renderer* rend;
+    {
+        //SDL
+        if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)<0) {
+            printf("SDL_Init Error: %s\n", SDL_GetError());
+        }
+        //Window
+        win = SDL_CreateWindow("NCH-CPP-Utils Example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_RESIZABLE);
+        if(win==NULL) {
+            printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
+        }
+        SDL_RaiseWindow(win);
+        winPixFormat = SDL_GetWindowPixelFormat(win);
+        //Renderer
+        rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+        if(rend==NULL) {
+            printf("SDL_CreateRenderer Error: %s\n", SDL_GetError());
+        }
+        #ifdef EMSCRIPTEN
+            basePath = "/bin/";
+        #else
+            basePath = SDL_GetBasePath();
+        #endif
     }
 
     /* Init TTF and any fonts */
     TTF_Init();
-    dbgFont = TTF_OpenFont("res/BackToEarth.ttf", 100);
+    dbgFont = TTF_OpenFont((basePath+"res/BackToEarth.ttf").c_str(), 100);
+    if(dbgFont==NULL) {
+        nch::Log::errorv(__PRETTY_FUNCTION__, TTF_GetError(), "Could not open font.");
+    }
     for(int i = 0; i<6; i++) {
         nch::Text* t = new nch::Text();
         t->init(rend, dbgFont, true);
@@ -171,11 +179,8 @@ int main(int argc, char **argv)
         dbgScreen.pushBack(t);
     }
 
-    /* Tests */
-    Tests t;
-
-    /* Perform main loop and exit when ready */
     nch::MainLoopDriver mainLoop(rend, &tick, 60, &draw, 300);
+    nch::Log::log("Quitting");
     return 0;
 }
 

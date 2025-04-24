@@ -52,4 +52,11 @@ protected:
 
 private:
 
-}; }
+};
+
+typedef Box2<int> Box2i;
+typedef Box2<int64_t> Box2i64;
+typedef Box2<uint64_t> Box2u64;
+typedef Box2<float> Box2f;
+typedef Box2<double> Box2d;
+}

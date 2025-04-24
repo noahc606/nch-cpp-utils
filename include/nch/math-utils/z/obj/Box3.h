@@ -90,11 +90,21 @@ public:
             c2.z==other.c2.z
         );
     }
-
+    bool operator!=(Box3<T> other) {
+        return !((*this)==other);
+    }
+    
     Vec3<T> c1; //Corner 1
     Vec3<T> c2; //Corner 2
 protected:
 
 private:
 
-}; }
+};
+
+typedef Box3<int> Box3i;
+typedef Box3<int64_t> Box3i64;
+typedef Box3<uint64_t> Box3u64;
+typedef Box3<float> Box3f;
+typedef Box3<double> Box3d;
+}

@@ -10,7 +10,7 @@ public:
     T& operator[](int index) { if(index<0 || index>3) { throw std::out_of_range("Element index for Vec4 out of range (must be in [0, 3])."); } return v[index]; }
     T operator[](int index) const { if(index<0 || index>3) { throw std::out_of_range("Element index for Vec4 out of range (must be in [0, 3])."); } return v[index]; }
     
-    Vec3<T> vec3() { return Vec3(v[0], v[1], v[2]); }
+    Vec3<T> vec3() { return Vec3<T>(v[0], v[1], v[2]); }
 
 private:
     T v[4];

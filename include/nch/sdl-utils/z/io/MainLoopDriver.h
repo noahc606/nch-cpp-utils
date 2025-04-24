@@ -17,21 +17,27 @@ public:
     static int getCurrentFPS();
     static std::string getPerformanceInfo();
     static uint64_t getNumTicksPassedTotal();
-
+    
     static void quit();
 private:
     void start(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), void (*altDrawFunc)(), uint64_t targetFPS, void (*eventFunc)(SDL_Event&));
-
+    static void mainLoop();
 
     static void ticker();
-    void events();
+    static void events();
 
     //Main loop states
     static bool mldExists;
     static bool running;
     static int targetTPS; static int targetFPS;
     static uint64_t numTicksPassedTotal;
-    //Debug info
+	//mainloop() helper variables
+	static uint64_t nsPerFrame;
+	static int fps, tps;
+	static uint64_t nextFrameNS;
+	static uint64_t numTicksPassedThisSec;
+    static SDL_Renderer* rend;
+    //Debug stuff
     static bool loggingPerformance;
     static std::string performanceInfo;
     static int currentTPS; static int currentFPS;
@@ -39,9 +45,13 @@ private:
 	static std::mutex mtx;
 	static int currentNumTicksLeft;
 	static uint64_t lastTickNS;
+    static bool manualTicker;
+	static uint64_t numTicksPassed;	//Number of ticks that should have passed according to time since launch
+	static uint64_t nextTickNS;		//Time of the next tick
+
     //Draw, tick, event callbacks
-    void (*tickFunc)() = nullptr;
-    void (*altDrawFunc)() = nullptr;
-    void (*drawFunc)(SDL_Renderer*) = nullptr;
-    void (*eventFunc)(SDL_Event&) = nullptr;
+    static void (*tickFunc)();
+    static void (*altDrawFunc)();
+    static void (*drawFunc)(SDL_Renderer*);
+    static void (*eventFunc)(SDL_Event&);
 };}
