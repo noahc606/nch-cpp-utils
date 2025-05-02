@@ -3,7 +3,9 @@
 
 using namespace nch;
 
-int Log::logMode = LogModes::DEFAULT;
+bool Log::enabledBrackets = true;
+bool Log::enabledColors = false;
+
 bool Log::logToFile = false;
 bool Log::logDestroyed = false;
 
@@ -22,8 +24,7 @@ void Log::throwException()
     throw std::exception();
 }
 
-void Log::logString(std::string s)
-{
+void Log::logString(std::string s) {
 	std::cout << s;
 }
 

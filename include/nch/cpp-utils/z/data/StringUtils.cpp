@@ -125,6 +125,16 @@ std::string StringUtils::trimmed(std::string s)
     return s.substr(start, end-start);
 }
 
+std::string StringUtils::fromByteStream(std::vector<char>& byteStream)
+{
+    std::stringstream res("");
+    for(int i = 0; i<byteStream.size(); i++) {
+        if(byteStream[i]=='\0') return res.str();
+        res << byteStream[i];
+    }
+    return res.str();
+}
+
 /*
     Returns: Whether or not the string 's' has 'prefix's string sequence at the beginning.
 */

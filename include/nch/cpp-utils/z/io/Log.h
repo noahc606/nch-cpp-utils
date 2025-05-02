@@ -6,10 +6,6 @@
 namespace nch { class Log
 {
 public:
-    enum LogModes {
-        DEFAULT, DEBUGGING
-    };
-
     /**/
     Log();
     virtual ~Log();
@@ -33,49 +29,105 @@ public:
 
     /* Normal logging (almost same as printf) */
     template<typename ... T> static void log(std::string format, T ... args) {
-	    logString(getFormattedString("[  Log  ] "+format+"\n", args ... ));
+
+        if(enabledBrackets) {
+            if(enabledColors) logString("\033[1;37m");
+            logString("[  Log  ] ");
+            if(enabledColors) logString("\033[1;0m");
+        }
+        if(enabledColors) logString("\033[0;37m");
+        logString(getFormattedString(format+"\n", args ... ));
+        if(enabledColors) logString("\033[1;0m");
     }
     template<typename ... T> static void log() { log(""); }
     
-    /* Debug (log only if debugging OR troubleshooting is on) */
+    /* Debug (log only if debugging on) */
     template<typename ... T> static void debug(std::string format, T ... args) {
-        if(logMode==LogModes::DEBUGGING) {
-            logString(getFormattedString("[ Debug ] "+format+"\n", args ...));
+        #ifdef NDEBUG
+            return;
+        #endif
+        if(enabledBrackets) {
+            if(enabledColors) logString("\033[1;36m");
+            logString("[ Debug ] ");
+            if(enabledColors) logString("\033[1;0m");
         }
+        if(enabledColors) logString("\033[0;36m");
+        logString(getFormattedString(format+"\n", args ... ));
+        if(enabledColors) logString("\033[1;0m");
     }
 
 
     /* Warning (log during bad program state) */
-    //Verbose
     template<typename ... T> static void warnv(std::string funcname, std::string resolution, std::string format, T ... args) {
-        logString(getFormattedString("[Warning] "+funcname+" - "+format+", "+resolution+"\n", args ...));
+        if(enabledBrackets) {
+            if(enabledColors) logString("\033[1;33m");
+            logString("[Warning] ");
+            if(enabledColors) logString("\033[1;0m");
+        }
+
+        #ifndef NDEBUG
+            if(enabledColors) logString("\033[0;35m");
+            logString(funcname);
+            if(enabledColors) logString("\033[1;0m");
+            logString(" - ");
+        #endif
+        
+        if(enabledColors) logString("\033[0;33m");
+        logString(getFormattedString(format+", "+resolution+"\n", args ...));
+        if(enabledColors) logString("\033[1;0m");
     }
-    //Normal warning
-    template<typename ... T> static void warn (std::string funcname, std::string format, T ... args) {
+    template<typename ... T> static void warn(std::string funcname, std::string format, T ... args) {
         warnv(funcname, "ignoring issue", format, args ...);
     }
 
     /* Error (log during invalid program state) */
-    //Verbose char* error
-    template<typename ... T> static void errorv(std::string funcname, const char *errorOrigin, std::string format, T ... args) {
-        logString(getFormattedString("[ ERROR ] "+funcname+" - "+errorOrigin+": "+format+"!\n", args ...));
-    }
-
-    //Verbose string error
-    template<typename ... T> static void errorv(std::string funcname, std::string errorOrigin, std::string format, T ... args) {
-        errorv(funcname, errorOrigin.c_str(), format, args ...);
-    }
-    //Normal error
     template<typename ... T> static void error(std::string funcname, std::string format, T ... args) {
-    	logString(getFormattedString("[ ERROR ] "+funcname+" - "+format+"!\n", args ...));
+        if(enabledBrackets) {
+            if(enabledColors) logString("\033[1;31m");
+            logString("[ ERROR ] ");
+            if(enabledColors) logString("\033[1;0m");
+        }
+        
+        #ifndef NDEBUG
+            if(enabledColors) logString("\033[0;35m");
+            logString(funcname);
+            if(enabledColors) logString("\033[1;0m");
+            logString(" - ");
+        #endif
+
+        if(enabledColors) logString("\033[0;31m");
+        logString(getFormattedString(format+"!\n", args ...));
+        if(enabledColors) logString("\033[1;0m");
+    }
+    template<typename ... T> static void errorv(std::string funcname, std::string errorOrigin, std::string format, T ... args) {
+        if(enabledBrackets) {
+            if(enabledColors) logString("\033[1;31m");
+            logString("[ ERROR ] ");
+            if(enabledColors) logString("\033[1;0m");
+        }
+
+        #ifndef NDEBUG
+            if(enabledColors) logString("\033[0;35m");
+            logString(funcname);
+            if(enabledColors) logString("\033[1;0m");
+            logString(" - ");
+        #endif
+
+        if(enabledColors) logString("\033[0;31m");
+        logString(getFormattedString(errorOrigin+": "+format+"!\n", args ...));
+        if(enabledColors) logString("\033[1;0m");
+    }
+    template<typename ... T> static void errorv(std::string funcname, const char *errorOrigin, std::string format, T ... args) {
+        std::string eo = errorOrigin;
+        errorv(funcname, eo, format, args ...);
     }
 
     static void throwException(std::string funcname, std::string format);
     static void throwException();
     /**/
 
-    static int logMode;
-
+    static bool enabledBrackets;
+    static bool enabledColors;
 protected:
 
 private:

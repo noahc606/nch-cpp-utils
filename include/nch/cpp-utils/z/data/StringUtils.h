@@ -9,6 +9,7 @@ public:
     static std::vector<int64_t> parseI64Array(std::string s);
     static std::string extractBracketedStr(std::string s);
     static std::string trimmed(std::string s);
+    static std::string fromByteStream(std::vector<char>& byteStream);
     static bool aHasPrefixB(std::string a, std::string b);
     static bool aHasSuffixB(std::string a, std::string b);
 private:

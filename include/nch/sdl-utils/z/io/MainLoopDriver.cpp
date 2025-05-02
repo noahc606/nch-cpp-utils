@@ -70,6 +70,10 @@ std::string MainLoopDriver::getPerformanceInfo()
 }
 uint64_t MainLoopDriver::getNumTicksPassedTotal() { return numTicksPassedTotal; }
 
+bool MainLoopDriver::hasQuit() {
+	return !running;
+}
+
 void MainLoopDriver::quit() {
 	running = false;
 }

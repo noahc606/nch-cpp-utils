@@ -17,6 +17,7 @@ public:
     static int getCurrentFPS();
     static std::string getPerformanceInfo();
     static uint64_t getNumTicksPassedTotal();
+    static bool hasQuit();
     
     static void quit();
 private:
