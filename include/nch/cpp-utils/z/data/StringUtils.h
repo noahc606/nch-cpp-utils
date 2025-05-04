@@ -12,6 +12,10 @@ public:
     static std::string fromByteStream(std::vector<char>& byteStream);
     static bool aHasPrefixB(std::string a, std::string b);
     static bool aHasSuffixB(std::string a, std::string b);
+    static bool validateString(std::string s, std::string charSet);
+    static bool validateAlphanumeric(std::string s);
+    static bool validateInjectionless(std::string s);
+    static bool validateSafeString(std::string s);
 private:
 
 }; }

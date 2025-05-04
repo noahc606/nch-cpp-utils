@@ -147,3 +147,23 @@ bool StringUtils::aHasSuffixB(std::string a, std::string b)
 {
     return(a.substr(a.size()-b.size())==b);
 }
+
+bool StringUtils::validateString(std::string s, std::string charSet)
+{
+    for(int i = 0; i<s.size(); i++)
+        if(charSet.find(s[i])==std::string::npos) {
+            Log::warnv(__PRETTY_FUNCTION__, "returning false", "String validation failed");
+            return false;
+        }
+    return true;
+}
+
+bool StringUtils::validateAlphanumeric(std::string s) {
+    return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+}
+bool StringUtils::validateInjectionless(std::string s) {
+    return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
+}
+bool StringUtils::validateSafeString(std::string s) {
+    return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_ ()[]{}'");
+}
