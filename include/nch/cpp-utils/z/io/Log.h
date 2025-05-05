@@ -117,10 +117,6 @@ public:
         logString(getFormattedString(errorOrigin+": "+format+"!\n", args ...));
         if(enabledColors) logString("\033[1;0m");
     }
-    template<typename ... T> static void errorv(std::string funcname, const char *errorOrigin, std::string format, T ... args) {
-        std::string eo = errorOrigin;
-        errorv(funcname, eo, format, args ...);
-    }
 
     static void throwException(std::string funcname, std::string format);
     static void throwException();
