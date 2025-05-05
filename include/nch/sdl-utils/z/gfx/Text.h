@@ -21,6 +21,7 @@ public:
     void reinit(SDL_Renderer* rend, TTF_Font* font);
     void destroy();
     void draw(int x, int y);
+    static void stream(SDL_Renderer* rend, TTF_Font* font, std::string text, nch::Color c, int x, int y, double scale);
     
     double getWidth(); double getHeight();
     double getUnscaledHeight();

@@ -74,6 +74,26 @@ void Text::draw(int x, int y)
     SDL_RenderCopy(rend, txtTex, NULL, &dst );
 }
 
+void Text::stream(SDL_Renderer* rend, TTF_Font* font, std::string text, Color c, int x, int y, double scale)
+{
+    int textWidth = 0;
+    TTF_MeasureText(font, text.c_str(), 5000, &textWidth, NULL);
+    int textHeight = TTF_FontHeight(font);
+    
+    SDL_Surface* txtSurf = TTF_RenderText_Solid(font, text.c_str(), {255, 255, 255});
+    SDL_Texture* txtTex = SDL_CreateTextureFromSurface(rend, txtSurf);
+    
+    SDL_Rect txtRect; txtRect.x = x; txtRect.y = y; txtRect.w = textWidth*scale; txtRect.h = textHeight*scale;
+    #if ( (SDL_MAJOR_VERSION>2) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION>0) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION==0 && SDL_PATCHLEVEL>=12))
+        SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeBest);
+    #endif
+    SDL_SetTextureColorMod(txtTex, c.r, c.g, c.b);
+    SDL_RenderCopy(rend, txtTex, NULL, &txtRect);
+    
+    SDL_FreeSurface(txtSurf);
+    SDL_DestroyTexture(txtTex);
+}
+
 double Text::getWidth() { return width*scale; }
 double Text::getHeight() { return height*scale; }
 double Text::getUnscaledHeight() { return height; }
