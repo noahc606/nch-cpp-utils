@@ -9,6 +9,8 @@ SDL_Event Input::lastKnownEvent;
 int32_t Input::lastKnownEventID = -1;
 std::vector<std::map<int32_t, int>> Input::inputStates;
 std::map<int, int> Input::joyHatStates;
+int Input::currMouseWheelDelta;
+int Input::mouseWheelDelta;
 uint16_t Input::currentModKeys = 0;
 SDL_Joystick* Input::mainJoystick = nullptr;
 
@@ -35,7 +37,10 @@ void Input::tick()
 			}
 		}
 	}
-	
+
+	//Update mouse wheel delta
+	mouseWheelDelta = currMouseWheelDelta;
+	currMouseWheelDelta = 0;
 }
 void Input::allEvents(SDL_Event& e)
 {
@@ -52,6 +57,9 @@ void Input::inputEvents(SDL_Event& e)
 		case SDL_KEYUP: 			{ updInputState(InputTypeID::KEY, e.key.keysym.sym, false); } break;
 		case SDL_MOUSEBUTTONDOWN: 	{ updInputState(InputTypeID::MOUSE, e.button.button, true); } break;
 		case SDL_MOUSEBUTTONUP:		{ updInputState(InputTypeID::MOUSE, e.button.button, false); } break;
+		case SDL_MOUSEWHEEL: {
+			currMouseWheelDelta += e.wheel.y;
+		} break;
 		case SDL_JOYBUTTONDOWN:		{ updInputState(InputTypeID::JOYBUTTON, e.jbutton.button, true); } break;
 		case SDL_JOYBUTTONUP:		{ updInputState(InputTypeID::JOYBUTTON, e.jbutton.button, false); } break;
 		case SDL_JOYHATMOTION: {
@@ -80,7 +88,6 @@ void Input::inputEvents(SDL_Event& e)
 					updInputState(InputTypeID::JOYHATAXIS, (int32_t)joyHatStateList[i], false);
 				}
 			}
-			
 		} break;
 	}
 
@@ -91,6 +98,7 @@ SDL_Event Input::getLastKnownSDLEvent() { return lastKnownEvent; }
 int32_t Input::getLastKnownSDLEventID() { return lastKnownEventID; }
 int Input::getMouseX() { int x; SDL_GetMouseState(&x, NULL); return x; }
 int Input::getMouseY() { int y; SDL_GetMouseState(NULL, &y); return y; }
+int Input::getMouseWheelDelta() { return mouseWheelDelta; }
 
 int Input::keyDownTime(SDL_Keycode kc) { return inputDownTime(InputTypeID::KEY, kc); }
 int Input::mouseDownTime(int mouseButton) { return inputDownTime(InputTypeID::MOUSE, mouseButton); }

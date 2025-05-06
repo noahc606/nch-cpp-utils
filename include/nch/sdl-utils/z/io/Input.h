@@ -29,6 +29,7 @@ public:
     static int32_t getLastKnownSDLEventID();
 	static int getMouseX();
 	static int getMouseY();
+	static int getMouseWheelDelta();
 	static int keyDownTime(SDL_Keycode kc);
 	static int mouseDownTime(int mouseButton);
 	static int joystickButtonDownTime(int joyButton);
@@ -50,7 +51,9 @@ private:
     static int32_t lastKnownEventID;
 	static std::vector<std::map<int32_t, int>> inputStates;	//<int32_t, int> = <event ID, time held down>
 	static std::map<int, int> joyHatStates; //<int, int> = <joyhat index, position>
-	
+	static int currMouseWheelDelta;
+	static int mouseWheelDelta;
+
 	static std::map<int32_t, int> modKeyStates;
 	static uint16_t currentModKeys;
 	static SDL_Joystick* mainJoystick;
