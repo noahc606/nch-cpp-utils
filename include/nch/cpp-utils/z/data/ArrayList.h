@@ -8,7 +8,7 @@
     Programmer should NOT use 'delete' with anything in this class - just use erase() or eraseMultiple().
 
     Features:
-    - Guaranteed single-time destruction of each element (once within the vector and all external copies gone)
+    - Guaranteed single-time destruction of each element (once within the vector -> all external copies gone)
     - Programmer can use erase() without having to worry about 'delete vs erase'.
     - eraseMultiple() objects without having to worry about the order in which you erase them
     - All elements destroy themselves once the list itself destructs.
@@ -29,6 +29,9 @@ public:
         return (*arrlist.at(dex));
     }
     T& operator[](unsigned int dex) { return at(dex); }
+    T* ref(unsigned int dex) {
+        return arrlist.at(dex);
+    }
 
     void pushBack(T* obj) {
         if(obj!=nullptr)
