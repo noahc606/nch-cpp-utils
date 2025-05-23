@@ -138,15 +138,27 @@ std::string StringUtils::fromByteStream(std::vector<char>& byteStream)
 /*
     Returns: Whether or not the string 's' has 'prefix's string sequence at the beginning.
 */
-bool StringUtils::aHasPrefixB(std::string a, std::string b)
+bool StringUtils::aHasPrefixB(const std::string& a, const std::string& b)
 {
     return (a.substr(0, b.size())==b);
 }
 
-bool StringUtils::aHasSuffixB(std::string a, std::string b)
+bool StringUtils::aHasSuffixB(const std::string& a, const std::string& b)
 {
     return(a.substr(a.size()-b.size())==b);
 }
+
+bool StringUtils::aContainsB(const std::string& a, const std::string& b) {
+    return (a.find(b)!=std::string::npos);    
+}
+
+bool StringUtils::aContainsAllMembersOfB(const std::string& a, const std::vector<std::string>& b) {
+    for(int i = 0; i<b.size(); i++) {
+        if(!aContainsB(a, b[i])) return false;
+    }
+    return true;
+}
+
 
 bool StringUtils::validateString(std::string s, std::string charSet)
 {
@@ -163,6 +175,9 @@ bool StringUtils::validateAlphanumeric(std::string s) {
 }
 bool StringUtils::validateInjectionless(std::string s) {
     return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
+}
+bool StringUtils::validateSpaceless(std::string s) {
+    return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.?=&#_-~%");
 }
 bool StringUtils::validateSafeString(std::string s) {
     return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_ ()[]{}'");

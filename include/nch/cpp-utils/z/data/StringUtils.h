@@ -10,11 +10,15 @@ public:
     static std::string extractBracketedStr(std::string s);
     static std::string trimmed(std::string s);
     static std::string fromByteStream(std::vector<char>& byteStream);
-    static bool aHasPrefixB(std::string a, std::string b);
-    static bool aHasSuffixB(std::string a, std::string b);
+    static bool aHasPrefixB(const std::string& a, const std::string& b);
+    static bool aHasSuffixB(const std::string& a, const std::string& b);
+    static bool aContainsB(const std::string& a, const std::string& b);
+    static bool aContainsAllMembersOfB(const std::string& a, const std::vector<std::string>& b);
+
     static bool validateString(std::string s, std::string charSet);
     static bool validateAlphanumeric(std::string s);
     static bool validateInjectionless(std::string s);
+    static bool validateSpaceless(std::string s);
     static bool validateSafeString(std::string s);
 private:
 

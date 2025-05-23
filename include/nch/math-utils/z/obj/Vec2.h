@@ -11,11 +11,16 @@ public:
         Vec2::x = x;
         Vec2::y = y;
     }
+    Vec2(std::pair<T, T> xy) {
+        Vec2::x = xy.first;
+        Vec2::y = xy.second;
+    }
 
     /** Getters **/
     //Functions
     T length2() { return x*x+y*y; }
     T length() { return std::sqrt(length2()); }
+    std::pair<T, T> pair() { return std::make_pair(x, y); }
     T distanceTo(const Vec2<T>& v) { return std::sqrt( (v.x-x)*(v.x-x) + (v.y-y)*(v.y-y) ); }
     Vec2<int> toInt() { return Vec2<int>(x, y); }
     Vec2<double> toDouble() { return Vec2<double>(x, y); }
