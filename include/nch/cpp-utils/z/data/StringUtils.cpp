@@ -77,7 +77,29 @@ std::vector<int64_t> StringUtils::parseI64Array(std::string s)
             res.push_back(std::atoll(spl[i].c_str()));
         } catch(...) {
             res.push_back(0);
-            Log::warnv(__PRETTY_FUNCTION__, "inserting -1 into 'res'", "Failed to parse int64_t from split string element \"%s\"", spl[i].c_str());
+            Log::warnv(__PRETTY_FUNCTION__, "inserting 0 into 'res'", "Failed to parse int64_t from split string element \"%s\"", spl[i].c_str());
+        }
+    }
+
+    /* Return */
+    return res;
+}
+
+/*
+    Same as parseI64Array, but uses strings of the form "# # # ... #". Add 0 for every non-integer found.
+*/
+std::vector<int64_t> StringUtils::parseI64ArraySimple(std::string s)
+{
+    /* 2BReturned */
+    std::vector<int64_t> res;
+
+    /* Splitting + Parse #s */
+    auto spl = split(s, ' ');
+    for(int i = 0; i<spl.size(); i++) {
+        try {
+            res.push_back(std::atoll(spl[i].c_str()));
+        } catch(...) {
+            res.push_back(0);
         }
     }
 
@@ -177,7 +199,7 @@ bool StringUtils::validateInjectionless(std::string s) {
     return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
 }
 bool StringUtils::validateSpaceless(std::string s) {
-    return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.?=&#_-~%");
+    return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.?=&#_-~%+");
 }
 bool StringUtils::validateSafeString(std::string s) {
     return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_ ()[]{}'");

@@ -13,15 +13,20 @@ using namespace nch;
 
 std::string Shell::exec(const char* cmd) {    
     std::array<char, 128> buffer;
-    std::string result;
+    std::stringstream result;
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
-    if (!pipe) {
+    if(!pipe) {
         throw std::runtime_error("popen() failed!");
     }
-    while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe.get()) != nullptr) {
-        result += buffer.data();
+    
+    int numIterations = 0;
+    auto bufData = buffer.data();
+    int bufSize = static_cast<int>(buffer.size());
+    while(fgets(bufData, bufSize, pipe.get()) != nullptr) {
+        result << buffer.data();
+        numIterations++;
     }
-    return result;
+    return result.str();
 }
 
 std::string Shell::exec(std::string cmd) { return exec(cmd.c_str()); }
