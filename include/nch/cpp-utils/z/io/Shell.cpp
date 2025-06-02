@@ -1,13 +1,17 @@
 #include "Shell.h"
 #include <array>
+#include <chrono>
+#include <future>
 #include <memory>
 #include <stdexcept>
 #include <stdio.h>
+#include <thread>
 #include <unistd.h>
 #ifdef _UNISTD_H
     #include <unistd.h>
 #endif
 #include "nch/cpp-utils/log.h"
+#include "nch/cpp-utils/timer.h"
 
 using namespace nch;
 
@@ -27,6 +31,30 @@ std::string Shell::exec(const char* cmd) {
         numIterations++;
     }
     return result.str();
+}
+
+std::string Shell::execWithTimeout(std::string cmd, int timeoutMS) {
+    //Promise and future
+    std::promise<std::string> resultPromise;
+    std::future<std::string> resultFuture = resultPromise.get_future();
+    //Thread function using promise
+    auto thdFunc = [](std::string p_cmd, std::promise<std::string> p_result) {
+        std::string tempRes = Shell::exec(p_cmd);
+        p_result.set_value(tempRes);
+    };
+    
+    //Create thread, and wait for 'timeoutMS' milliseconds
+    std::thread cmdThd(thdFunc, cmd, std::move(resultPromise));
+    Timer::sleep(timeoutMS);
+
+    //Get result
+    if(resultFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+        cmdThd.join();
+        return resultFuture.get();
+    } else {
+        cmdThd.detach();
+        return "???null???";
+    }
 }
 
 std::string Shell::exec(std::string cmd) { return exec(cmd.c_str()); }
