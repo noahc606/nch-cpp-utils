@@ -14,7 +14,7 @@ public:
     ~Rect(){}
 
     /* Getters */
-    bool isEmpty() { return r.w==0 || r.h==0; }
+    bool isEmpty() const { return r.w==0 || r.h==0; }
     int x1() const { return r.x; }
     int y1() const { return r.y; }
     int x2() const { return r.x+r.w; }
@@ -22,20 +22,20 @@ public:
     int midX() const { return r.x+r.w/2; }
     int midY() const { return r.y+r.h/2; }
     static Rect createFromTwoPts(int x1, int y1, int x2, int y2) { return Rect(x1, y1, x2-x1, y2-y1); }
-    bool intersects(const Rect& b) {
+    bool intersects(const Rect& b) const {
         return (
             r.x<=b.r.x+b.r.w && b.r.x<=r.x+r.w &&
             r.y<=b.r.y+b.r.h && b.r.y<=r.y+r.h
         );
     }
-    bool contains(int x, int y) {
+    bool contains(int x, int y) const {
         return (
             r.x<=x && x<=r.x+r.w &&
             r.y<=y && y<=r.y+r.h
         );
     };
     
-    bool operator==(const Rect& other) {
+    bool operator==(const Rect& other) const {
         return (
             r.x==other.r.x &&
             r.y==other.r.y &&
@@ -43,7 +43,7 @@ public:
             r.h==other.r.h
         );
     }
-    bool operator!=(const Rect& other) {
+    bool operator!=(const Rect& other) const {
         return !(*this==other);
     }
     

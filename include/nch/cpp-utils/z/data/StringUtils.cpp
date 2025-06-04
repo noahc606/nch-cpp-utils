@@ -44,7 +44,7 @@ std::vector<std::string> StringUtils::split(std::string toSplit, char delim)
 }
 
 /*
-    Take in a string of the form "[#, #, #, ..., #]" and return a vector of int64s.
+    Take in a string of the form "[#, #, #, ..., #]" and return a vector of int64s. Returns empty vector if a bad format is given.
 
     - Returns: A parsed vector of int64_ts.
 */
@@ -64,7 +64,6 @@ std::vector<int64_t> StringUtils::parseI64Array(std::string s)
     std::string s1 = ss1.str();
     //Check for left and right bracket. If nonexistent, stop.
     if(s1[0]!='[' || s1[s1.size()-1]!=']') {
-        Log::warnv(__PRETTY_FUNCTION__, "returning empty vector", "Failed to parse array from string \"%s\"", s1.c_str());
         return res;
     }
     //Remove brackets
@@ -151,8 +150,8 @@ std::string StringUtils::fromByteStream(std::vector<char>& byteStream)
 {
     std::stringstream res("");
     for(int i = 0; i<byteStream.size(); i++) {
-        if(byteStream[i]=='\0') return res.str();
-        res << byteStream[i];
+        if(byteStream[i]!='\0')
+            res << byteStream[i];
     }
     return res.str();
 }
@@ -181,6 +180,57 @@ bool StringUtils::aContainsAllMembersOfB(const std::string& a, const std::vector
     return true;
 }
 
+int StringUtils::parseCmdArg(const std::vector<std::string>& args, std::string argLabel, int defaultValue, int errorValue)
+{
+    if(!validateCmdArgLabel(argLabel)) { return errorValue; }
+
+    int res = defaultValue;
+    for(int i = 0; i<args.size(); i++) {
+        if(StringUtils::aHasPrefixB(args[i], argLabel+"=")) {
+            try        { res = std::stoi(args[i].substr(argLabel.size()+1)); }
+            catch(...) { res = errorValue; }
+            break;
+        }
+        if(args[i]==argLabel && i<args.size()-1) {
+            try        { res = std::stoi(args[i+1]); }
+            catch(...) { res = errorValue; }
+            break;
+        }
+    }
+
+    return res;
+}
+
+std::string StringUtils::parseCmdArg(const std::vector<std::string>& args, std::string argLabel, std::string defaultValue, std::string errorValue)
+{
+    if(!validateCmdArgLabel(argLabel)) return errorValue;
+
+    std::string res = defaultValue;
+    for(int i = 0; i<args.size(); i++) {
+        if(StringUtils::aHasPrefixB(args[i], argLabel+"=")) {
+            try        { res = args[i].substr(argLabel.size()+1); }
+            catch(...) { res = errorValue; }
+            if(res=="") res = errorValue;
+            break;
+        }
+        if(args[i]==argLabel && i<args.size()-1) {
+            try        { res = args[i+1]; }
+            catch(...) { res = errorValue; }
+            if(res=="") res = errorValue;
+            break;
+        }
+    }
+
+    return res;
+}
+
+bool StringUtils::cmdArgExists(const std::vector<std::string>& args, std::string arg)
+{
+    for(int i = 0; i<args.size(); i++) {
+        if(args[i]==arg) return true;
+    }
+    return false;
+}
 
 bool StringUtils::validateString(std::string s, std::string charSet)
 {
@@ -198,9 +248,16 @@ bool StringUtils::validateAlphanumeric(std::string s) {
 bool StringUtils::validateInjectionless(std::string s) {
     return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
 }
+bool StringUtils::validateCmdArgLabel(std::string s) {
+    return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-");
+}
 bool StringUtils::validateSpaceless(std::string s) {
     return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.?=&#_-~%+");
 }
 bool StringUtils::validateSafeString(std::string s) {
     return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_ ()[]{}'");
+}
+
+bool StringUtils::validateIP(std::string s) {
+    return validateString(s, "0123456789.");
 }

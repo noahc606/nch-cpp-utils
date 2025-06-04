@@ -16,11 +16,17 @@ public:
     static bool aContainsB(const std::string& a, const std::string& b);
     static bool aContainsAllMembersOfB(const std::string& a, const std::vector<std::string>& b);
 
+    static int parseCmdArg(const std::vector<std::string>& args, std::string argLabel, int defaultValue, int errorValue);
+    static std::string parseCmdArg(const std::vector<std::string>& args, std::string argLabel, std::string defaultValue, std::string errorValue);
+    static bool cmdArgExists(const std::vector<std::string>& args, std::string arg);
+
     static bool validateString(std::string s, std::string charSet);
     static bool validateAlphanumeric(std::string s);
     static bool validateInjectionless(std::string s);
     static bool validateSpaceless(std::string s);
+    static bool validateCmdArgLabel(std::string s);
     static bool validateSafeString(std::string s);
+    static bool validateIP(std::string s);
 private:
 
 }; }
