@@ -39,6 +39,7 @@ public:
         logString(getFormattedString(format+"\n", args ... ));
         if(enabledColors) logString("\033[1;0m");
     }
+    template<typename ... T> static void log(std::string str) { log("%s", str.c_str()); }
     template<typename ... T> static void log() { log(""); }
     
     /* Debug (log only if debugging on) */

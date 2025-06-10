@@ -146,14 +146,33 @@ std::string StringUtils::trimmed(std::string s)
     return s.substr(start, end-start);
 }
 
-std::string StringUtils::fromByteStream(std::vector<char>& byteStream)
+std::string StringUtils::stringFromBytestream(const std::vector<unsigned char>& byteStream, bool keepZeros)
 {
-    std::stringstream res("");
-    for(int i = 0; i<byteStream.size(); i++) {
-        if(byteStream[i]!='\0')
-            res << byteStream[i];
+    std::stringstream ret("");
+    if(keepZeros) {
+        for(int i = 0; i<byteStream.size(); i++) {
+            ret << (char)byteStream[i];
+        }
+    } else {
+        for(int i = 0; i<byteStream.size(); i++) {
+            if(byteStream[i]!='\0')
+                ret << (char)byteStream[i];
+        }
     }
-    return res.str();
+    return ret.str();
+}
+std::string StringUtils::stringFromBytestream(const std::vector<unsigned char>& byteStream)
+{
+    return stringFromBytestream(byteStream, false);
+}
+std::vector<unsigned char> StringUtils::bytestreamFromString(const std::string& str)
+{
+    std::vector<unsigned char> ret;
+    ret.reserve(str.size());
+    for(int i = 0; i<str.size(); i++) {
+        ret.push_back((unsigned char)str[i]);
+    }
+    return ret;
 }
 
 /*

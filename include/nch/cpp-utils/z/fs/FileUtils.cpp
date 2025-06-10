@@ -56,6 +56,40 @@ std::string FileUtils::getFileContent(FILE* pFile)
     }
     return res.str();
 }
+std::string FileUtils::readFileContent(std::string path)
+{
+    FILE* pFile = fopen(path.c_str(), "r");    
+    std::string res = FileUtils::getFileContent(pFile);
+    fclose(pFile);
+    return res;
+}
+
+std::vector<unsigned char> FileUtils::getFileBytes(FILE* pFile)
+{
+    //Find file size
+    long fileSize; {
+        fseek(pFile, 0, SEEK_END);
+        fileSize = ftell(pFile);
+        fseek(pFile, 0, 0);    
+    }
+
+    //Build the 'ret'urn object
+    std::vector<unsigned char> ret;
+    ret.reserve(fileSize*sizeof(unsigned char));
+    for(int i = 0; i<fileSize; i++) {
+        ret[i] = fgetc(pFile);
+    }
+    return ret;
+}
+
+std::vector<unsigned char> FileUtils::readFileBytes(std::string path)
+{
+    //Open file to be encrypted (read+binary)
+    FILE* pFile = fopen(path.c_str(), "rb");
+    auto res = getFileBytes(pFile);
+    fclose(pFile);
+    return res;
+}
 
 /*
     Returns a list of the lines within a file. A line break is defined as any occurrence of '\n' or '\r'. There is no trimming or processing of the lines, including empty lines.

@@ -10,7 +10,9 @@ public:
     static std::vector<int64_t> parseI64ArraySimple(std::string s);
     static std::string extractBracketedStr(std::string s);
     static std::string trimmed(std::string s);
-    static std::string fromByteStream(std::vector<char>& byteStream);
+    static std::string stringFromBytestream(const std::vector<unsigned char>& byteStream, bool keepZeros);
+    static std::string stringFromBytestream(const std::vector<unsigned char>& byteStream);
+    static std::vector<unsigned char> bytestreamFromString(const std::string& str);
     static bool aHasPrefixB(const std::string& a, const std::string& b);
     static bool aHasSuffixB(const std::string& a, const std::string& b);
     static bool aContainsB(const std::string& a, const std::string& b);
