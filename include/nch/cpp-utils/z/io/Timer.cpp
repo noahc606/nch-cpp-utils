@@ -61,6 +61,8 @@ void Timer::debugElapsedTimeMS()
 /// @param ms Number of milliseconds to sleep for.
 void Timer::sleep(int ms)
 {
+    if(ms<0) ms = 0;
+
     #if (defined(_WIN32) || defined(WIN32))
         Sleep(ms);
     #elif (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))

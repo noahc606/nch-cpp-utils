@@ -204,6 +204,7 @@ void MainLoopDriver::ticker()
 		}
 
 		tickOnce = false;
+		Timer::sleep(1);
 	}
 }
 
