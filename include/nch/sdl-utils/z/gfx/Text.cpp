@@ -95,6 +95,7 @@ void Text::stream(SDL_Renderer* rend, TTF_Font* font, std::string text, Color c,
 }
 
 double Text::getWidth() { return width*scale; }
+double Text::getUnscaledWidth() { return width; }
 double Text::getHeight() { return height*scale; }
 double Text::getUnscaledHeight() { return height; }
 std::u16string Text::getText() { return text; }
