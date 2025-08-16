@@ -16,13 +16,12 @@ public:
 
     Text();
     ~Text();
-    void init(SDL_Renderer* rend, TTF_Font* font, bool darkenBackground);
-    void init(SDL_Renderer* rend, TTF_Font* font);
-    void reinit(SDL_Renderer* rend, TTF_Font* font);
+    void init(SDL_Renderer* rend, TTF_Font* font, bool darkenBackground = false);
     void destroy();
     void draw(int x, int y);
     static void stream(SDL_Renderer* rend, TTF_Font* font, std::string text, const nch::Color& c, int x, int y, double scale);
     
+    bool isInitialized();
     double getWidth(); double getHeight();
     double getUnscaledWidth(); double getUnscaledHeight();
     std::u16string getText();

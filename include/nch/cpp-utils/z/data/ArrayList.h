@@ -25,10 +25,15 @@ public:
     std::vector<T*> vecCopy() { return arrlist; }
     unsigned int size() { return arrlist.size(); }
 
+    T* pt(unsigned int dex) {
+        return arrlist.at(dex);
+    }
     T& at(unsigned int dex) {
         return (*arrlist.at(dex));
     }
     T& operator[](unsigned int dex) { return at(dex); }
+    
+    /// @deprecated Use pt() instead
     T* ref(unsigned int dex) {
         return arrlist.at(dex);
     }

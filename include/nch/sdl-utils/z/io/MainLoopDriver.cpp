@@ -106,6 +106,8 @@ void MainLoopDriver::start(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targ
 		nextFrameNS = 0;
 		//Events
 		MainLoopDriver::eventFunc = eventFunc;
+		//Input init
+		Input::tick();
 	}
 
 	/* Run main loop */

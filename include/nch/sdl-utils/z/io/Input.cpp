@@ -5,16 +5,16 @@
 
 using namespace nch;
 
-SDL_Event Input::lastKnownEvent;
-int32_t Input::lastKnownEventID = -1;
-std::vector<std::map<int32_t, int>> Input::inputStates;
-std::map<int, int> Input::joyHatStates;
-int Input::currMouseWheelDelta;
-int Input::mouseWheelDelta;
-uint16_t Input::currentModKeys = 0;
-SDL_Joystick* Input::mainJoystick = nullptr;
-
-bool Input::initialized = false;
+SDL_Event lastKnownEvent;
+int32_t lastKnownEventID = -1;
+std::vector<std::map<int32_t, int>> inputStates;	//<int32_t, int> = <event ID, time held down>
+std::map<int, int> joyHatStates; //<int, int> = <joyhat index, position>
+int currMouseWheelDelta;
+int mouseWheelDelta;
+uint16_t currentModKeys = 0;
+SDL_Joystick* mainJoystick = nullptr;
+bool initialized = false;
+SDL_Rect mouseViewport;
 
 void Input::tick()
 {
@@ -96,8 +96,21 @@ void Input::inputEvents(SDL_Event& e)
 
 SDL_Event Input::getLastKnownSDLEvent() { return lastKnownEvent; }
 int32_t Input::getLastKnownSDLEventID() { return lastKnownEventID; }
-int Input::getMouseX() { int x; SDL_GetMouseState(&x, NULL); return x; }
-int Input::getMouseY() { int y; SDL_GetMouseState(NULL, &y); return y; }
+int Input::getMouseXAbs() { int x; SDL_GetMouseState(&x, NULL); return x; }
+int Input::getMouseYAbs() { int y; SDL_GetMouseState(NULL, &y); return y; }
+int Input::getMouseX() {
+	if(mouseViewport.w<0 || mouseViewport.h<0) {
+		return getMouseXAbs();
+	}
+	return getMouseXAbs()-mouseViewport.x;
+}
+int Input::getMouseY() {
+	if(mouseViewport.w<0 || mouseViewport.h<0) {
+		return getMouseYAbs();
+	}
+	return getMouseYAbs()-mouseViewport.y;
+}
+
 int Input::getMouseWheelDelta() { return mouseWheelDelta; }
 
 int Input::keyDownTime(SDL_Keycode kc) { return inputDownTime(InputTypeID::KEY, kc); }
@@ -137,10 +150,22 @@ bool Input::isMouseDown(int mouseButton) { return mouseDownTime(mouseButton)>0; 
 bool Input::isJoystickButtonDown(int joyButton) { return joystickButtonDownTime(joyButton)>0; }
 bool Input::isJoystickHatDir(int dir) { return joystickHatDirTime(dir)>0; }
 
+void Input::setMouseViewport(const SDL_Rect& mvp) {
+	mouseViewport = mvp;
+}
+void Input::resetMouseViewport()
+{
+	mouseViewport.x = 0;
+	mouseViewport.y = 0;
+	mouseViewport.w = -1;
+	mouseViewport.h = -1;
+}
+
 void Input::init()
 {
 	if(initialized) return;
-	
+	resetMouseViewport();
+
 	//Setup inputStates
 	for(int i = 0; i<INVALID_1; i++) {
 		inputStates.push_back(std::map<int32_t, int>());

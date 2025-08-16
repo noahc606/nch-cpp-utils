@@ -11,5 +11,6 @@ public:
     static std::vector<unsigned char> getFileBytes(FILE* pFile);
     static std::vector<unsigned char> readFileBytes(std::string path);
     static std::vector<std::string> getFileLines(FILE* pFile);
+    static std::vector<std::string> readFileLines(std::string path);
 private:
 };}

@@ -19,7 +19,6 @@ void Text::init(SDL_Renderer* rend, TTF_Font* font, bool darkenBackground)
     Text::font = font;
     Text::darkenBackground = darkenBackground;
 }
-void Text::init(SDL_Renderer* rend, TTF_Font* font) { init(rend, font, false); }
 
 void Text::destroy()
 {
@@ -94,6 +93,7 @@ void Text::stream(SDL_Renderer* rend, TTF_Font* font, std::string text, const Co
     SDL_DestroyTexture(txtTex);
 }
 
+bool Text::isInitialized() { return initted; }
 double Text::getWidth() { return width*scale; }
 double Text::getUnscaledWidth() { return width; }
 double Text::getHeight() { return height*scale; }

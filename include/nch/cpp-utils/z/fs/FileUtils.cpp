@@ -49,19 +49,19 @@ std::string FileUtils::getFileContent(FILE* pFile)
         return "";
     }
 
-    std::stringstream res;
+    std::stringstream ret;
 	char c = '\0';
 	while( (c = std::fgetc(pFile))!=EOF ) {
-        res << c;
+        ret << c;
     }
-    return res.str();
+    return ret.str();
 }
 std::string FileUtils::readFileContent(std::string path)
 {
     FILE* pFile = fopen(path.c_str(), "r");    
-    std::string res = FileUtils::getFileContent(pFile);
+    std::string ret = FileUtils::getFileContent(pFile);
     fclose(pFile);
-    return res;
+    return ret;
 }
 
 std::vector<unsigned char> FileUtils::getFileBytes(FILE* pFile)
@@ -86,9 +86,9 @@ std::vector<unsigned char> FileUtils::readFileBytes(std::string path)
 {
     //Open file to be encrypted (read+binary)
     FILE* pFile = fopen(path.c_str(), "rb");
-    auto res = getFileBytes(pFile);
+    auto ret = getFileBytes(pFile);
     fclose(pFile);
-    return res;
+    return ret;
 }
 
 /*
@@ -98,11 +98,11 @@ std::vector<unsigned char> FileUtils::readFileBytes(std::string path)
     Note: Does not check pFile==NULL.
 */
 std::vector<std::string> FileUtils::getFileLines(FILE* pFile)
-{    
-    std::vector<std::string> res;
+{
+    std::vector<std::string> ret;
     if(pFile==NULL) {
         Log::error(__PRETTY_FUNCTION__, "pFile is null (returned empty vector)");
-        return res;
+        return ret;
     }
 
     bool foundNewLine = false;
@@ -113,7 +113,7 @@ std::vector<std::string> FileUtils::getFileLines(FILE* pFile)
         if( !foundNewLine && (c=='\n' || c=='\r') ) {  /* Found newline character */
             foundNewLine = true;
 
-            res.push_back(currentLine.str());
+            ret.push_back(currentLine.str());
             currentLine.str(std::string());
             currentLine.clear();
         } else {                                        /* Found any other character */
@@ -123,8 +123,16 @@ std::vector<std::string> FileUtils::getFileLines(FILE* pFile)
     }
 
     //Add last currentLine
-    res.push_back(currentLine.str());
+    ret.push_back(currentLine.str());
 
-    //Return result
-    return res;
+    //Return
+    return ret;
+}
+
+std::vector<std::string> FileUtils::readFileLines(std::string path)
+{
+    FILE* pFile = fopen(path.c_str(), "r");    
+    std::vector<std::string> ret = FileUtils::getFileLines(pFile);
+    fclose(pFile);
+    return ret;
 }

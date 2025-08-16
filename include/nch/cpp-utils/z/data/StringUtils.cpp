@@ -1,18 +1,11 @@
 #include "StringUtils.h"
-#include "log.h"
+#include "nch/cpp-utils/log.h"
 #include <sstream>
 
 
 using namespace nch;
 
-/*
-    Similar to Java's String.split(regex), but instead of a regex, 'delim' is a char to split by.
-    Size-0 strings will not appear in the resulting vec.
-    
-    - Returns: a vector of strings where each element is a substring within 'toSplit', split by 'delim'.
-    - Example: split("this,is,a,test", ',') => {"this", "is", "a", "test"}.
-*/
-std::vector<std::string> StringUtils::split(std::string toSplit, char delim)
+std::vector<std::string> StringUtils::split(const std::string& toSplit, char delim)
 {
     std::string delims(1, delim);
     std::vector<std::string> res;
@@ -43,11 +36,6 @@ std::vector<std::string> StringUtils::split(std::string toSplit, char delim)
     return res;
 }
 
-/*
-    Take in a string of the form "[#, #, #, ..., #]" and return a vector of int64s. Returns empty vector if a bad format is given.
-
-    - Returns: A parsed vector of int64_ts.
-*/
 std::vector<int64_t> StringUtils::parseI64Array(std::string s)
 {
     /* 2BReturned */
@@ -55,22 +43,16 @@ std::vector<int64_t> StringUtils::parseI64Array(std::string s)
 
     /* Cleanup */
     //Clear whitespace
-    std::stringstream ss1;
-    for(int i = 0; i<s.size(); i++) {
-        if(s[i]!=' ') {
-            ss1 << s[i];
-        }
-    }
-    std::string s1 = ss1.str();
+    s = replacedAllAWithB(s, " ", "");
     //Check for left and right bracket. If nonexistent, stop.
-    if(s1[0]!='[' || s1[s1.size()-1]!=']') {
+    if(s[0]!='[' || s[s.size()-1]!=']') {
         return res;
     }
     //Remove brackets
-    s1 = s1.substr(1, s1.size()-2);
+    s = s.substr(1, s.size()-2);
 
     /* Splitting + Parse #s */
-    auto spl = split(s1, ',');
+    auto spl = split(s, ',');
     for(int i = 0; i<spl.size(); i++) {
         try {
             res.push_back(std::atoll(spl[i].c_str()));
@@ -84,10 +66,37 @@ std::vector<int64_t> StringUtils::parseI64Array(std::string s)
     return res;
 }
 
-/*
-    Same as parseI64Array, but uses strings of the form "# # # ... #". Add 0 for every non-integer found.
-*/
-std::vector<int64_t> StringUtils::parseI64ArraySimple(std::string s)
+std::vector<double> StringUtils::parseDoubleArray(std::string s)
+{
+    /* 2B'Ret'urned */
+    std::vector<double> ret;
+
+    /* Cleanup */
+    //Clear whitespace
+    s = replacedAllAWithB(s, " ", "");
+    //Check for left and right bracket. If nonexistent, stop.
+    if(s[0]!='[' || s[s.size()-1]!=']') {
+        return ret;
+    }
+    //Remove brackets
+    s = s.substr(1, s.size()-2);
+
+    /* Splitting + Parse #s */
+    auto spl = split(s, ',');
+    for(int i = 0; i<spl.size(); i++) {
+        try {
+            ret.push_back(std::stod(spl[i].c_str()));
+        } catch(...) {
+            ret.push_back(0);
+            Log::warnv(__PRETTY_FUNCTION__, "inserting 0 into 'res'", "Failed to parse int64_t from split string element \"%s\"", spl[i].c_str());
+        }
+    }
+
+    /* Return */
+    return ret;
+}
+
+std::vector<int64_t> StringUtils::parseI64ArraySimple(const std::string& s)
 {
     /* 2BReturned */
     std::vector<int64_t> res;
@@ -106,11 +115,19 @@ std::vector<int64_t> StringUtils::parseI64ArraySimple(std::string s)
     return res;
 }
 
-/*
-    Search from either end of 's' until we find '[' from the left and ']' from the right.
-    Returns: a string of the form "[...]" or "" if we couldn't find a proper bracketed string.
-*/
-std::string StringUtils::extractBracketedStr(std::string s)
+std::string StringUtils::vecToArrayString(const std::vector<std::string>& v)
+{
+    std::stringstream ret;
+    ret << "[";
+    for(int i = 0; i<v.size(); i++) {
+        ret << v[i];
+        if(i<v.size()-1) ret << ", ";
+    }
+    ret << "]";
+    return ret.str();
+}
+
+std::string StringUtils::extractBracketedStr(const std::string& s)
 {
     int lBktPos = -1; for(int i = 0; i<s.size(); i++)    if(s[i]=='[') lBktPos = i;
     int rBktPos = -1; for(int i = s.size()-1; i>=0; i--) if(s[i]==']') rBktPos = i;
@@ -122,7 +139,7 @@ std::string StringUtils::extractBracketedStr(std::string s)
     }
 }
 
-std::string StringUtils::trimmed(std::string s)
+std::string StringUtils::trimmed(const std::string& s)
 {
     //Whitespace characters to be trimmed at beginning or end
     std::string ws = " \t\n";
@@ -144,6 +161,15 @@ std::string StringUtils::trimmed(std::string s)
 
     //Return final substring
     return s.substr(start, end-start);
+}
+std::string StringUtils::removedNonASCII(const std::string& s)
+{
+    std::stringstream ret;
+    for(int i = 0; i<s.size(); i++) {
+        if(s[i]>=32 && s[i]<=126)
+            ret << s[i];
+    }
+    return ret.str();
 }
 
 std::string StringUtils::stringFromBytestream(const std::vector<unsigned char>& byteStream, bool keepZeros)
@@ -180,12 +206,15 @@ std::vector<unsigned char> StringUtils::bytestreamFromString(const std::string& 
 */
 bool StringUtils::aHasPrefixB(const std::string& a, const std::string& b)
 {
-    return (a.substr(0, b.size())==b);
+    try        { return (a.substr(0, b.size())==b); }
+    catch(...) { return false; }
+    
 }
 
 bool StringUtils::aHasSuffixB(const std::string& a, const std::string& b)
 {
-    return(a.substr(a.size()-b.size())==b);
+    try        { return (a.substr(a.size()-b.size())==b); }
+    catch(...) { return false; }
 }
 
 bool StringUtils::aContainsB(const std::string& a, const std::string& b) {
@@ -197,6 +226,15 @@ bool StringUtils::aContainsAllMembersOfB(const std::string& a, const std::vector
         if(!aContainsB(a, b[i])) return false;
     }
     return true;
+}
+std::string StringUtils::replacedAllAWithB(std::string str, const std::string& a, const std::string& b)
+{
+    size_t pos = str.find(a);
+    while(pos!=std::string::npos) {
+        str.replace(pos, a.size(), b);
+        pos = str.find(a, pos + b.size());
+    }
+    return str;
 }
 
 int StringUtils::parseCmdArg(const std::vector<std::string>& args, std::string argLabel, int defaultValue, int errorValue)
