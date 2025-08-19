@@ -45,13 +45,14 @@ public:
     static std::string parseCmdArg(const std::vector<std::string>& args, std::string argLabel, std::string defaultValue, std::string errorValue);
     static bool cmdArgExists(const std::vector<std::string>& args, std::string arg);
 
-    static bool validateString(std::string s, std::string charSet);
-    static bool validateAlphanumeric(std::string s);
-    static bool validateInjectionless(std::string s);
-    static bool validateSpaceless(std::string s);
-    static bool validateCmdArgLabel(std::string s);
-    static bool validateSafeString(std::string s);
-    static bool validateIP(std::string s);
+    static std::string validatedString(const std::string& s, const std::string& charSet);
+    static bool validateString(const std::string& s, const std::string& charSet);
+    static bool validateAlphanumeric(const std::string& s);
+    static bool validateInjectionless(const std::string& s);
+    static bool validateSpaceless(const std::string& s);
+    static bool validateCmdArgLabel(const std::string& s);
+    static bool validateSafeString(const std::string& s);
+    static bool validateIP(const std::string& s);
 private:
 
 }; }

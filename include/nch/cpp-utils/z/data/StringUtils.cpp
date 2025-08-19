@@ -288,8 +288,17 @@ bool StringUtils::cmdArgExists(const std::vector<std::string>& args, std::string
     }
     return false;
 }
+std::string StringUtils::validatedString(const std::string& s, const std::string& charSet)
+{
+    std::stringstream ret;
+    for(int i = 0; i<s.size(); i++)
+        if(charSet.find(s[i])!=std::string::npos) {
+            ret << s[i];
+        }
+    return ret.str();
+}
 
-bool StringUtils::validateString(std::string s, std::string charSet)
+bool StringUtils::validateString(const std::string& s, const std::string& charSet)
 {
     for(int i = 0; i<s.size(); i++)
         if(charSet.find(s[i])==std::string::npos) {
@@ -299,22 +308,22 @@ bool StringUtils::validateString(std::string s, std::string charSet)
     return true;
 }
 
-bool StringUtils::validateAlphanumeric(std::string s) {
+bool StringUtils::validateAlphanumeric(const std::string& s) {
     return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
 }
-bool StringUtils::validateInjectionless(std::string s) {
+bool StringUtils::validateInjectionless(const std::string& s) {
     return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
 }
-bool StringUtils::validateCmdArgLabel(std::string s) {
+bool StringUtils::validateCmdArgLabel(const std::string& s) {
     return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-");
 }
-bool StringUtils::validateSpaceless(std::string s) {
+bool StringUtils::validateSpaceless(const std::string& s) {
     return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.?=&#_-~%+");
 }
-bool StringUtils::validateSafeString(std::string s) {
+bool StringUtils::validateSafeString(const std::string& s) {
     return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_ ()[]{}'");
 }
 
-bool StringUtils::validateIP(std::string s) {
+bool StringUtils::validateIP(const std::string& s) {
     return validateString(s, "0123456789.");
 }
