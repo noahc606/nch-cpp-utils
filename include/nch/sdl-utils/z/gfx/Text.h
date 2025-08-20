@@ -19,8 +19,10 @@ public:
     void init(SDL_Renderer* rend, TTF_Font* font, bool darkenBackground = false);
     void destroy();
     void draw(int x, int y);
+    void drawCentered(int x, int y, int w, int h);
+    void drawRightAligned(int x, int y, int w, int h);
     static void stream(SDL_Renderer* rend, TTF_Font* font, std::string text, const nch::Color& c, int x, int y, double scale);
-    
+
     bool isInitialized();
     double getWidth(); double getHeight();
     double getUnscaledWidth(); double getUnscaledHeight();
@@ -45,7 +47,7 @@ private:
     SDL_Texture* txtTex = nullptr;
     bool initted = false;
     bool darkenBackground = false;
-    
+
     bool forceNearestScaling = false;
     TextShadow shadow;
 
