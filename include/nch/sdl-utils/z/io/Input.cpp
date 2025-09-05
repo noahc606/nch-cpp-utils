@@ -1,20 +1,19 @@
 #include "Input.h"
 #include "nch/cpp-utils/log.h"
 #include "nch/sdl-utils/z/debug/SDLEventDebugger.h"
-
-
+#include <SDL2/SDL_events.h>
 using namespace nch;
 
-SDL_Event lastKnownEvent;
-int32_t lastKnownEventID = -1;
-std::vector<std::map<int32_t, int>> inputStates;	//<int32_t, int> = <event ID, time held down>
-std::map<int, int> joyHatStates; //<int, int> = <joyhat index, position>
-int currMouseWheelDelta;
-int mouseWheelDelta;
-uint16_t currentModKeys = 0;
-SDL_Joystick* mainJoystick = nullptr;
-bool initialized = false;
-SDL_Rect mouseViewport;
+SDL_Event Input::lastKnownEvent;
+int64_t Input::lastKnownEventID = -1;
+std::vector<std::map<int64_t, int>> Input::inputStates;	//<int64_t, int> = <event ID, time held down>
+std::map<int, int> Input::joyHatStates; //<int, int> = <joyhat index, position>
+SDL_Joystick* Input::mainJoystick = nullptr;
+int Input::lastMouseWheelDelta = 0;
+int Input::mouseWheelDelta = 0;
+uint16_t Input::currentModKeys = 0;
+bool Input::initialized = false;
+SDL_Rect Input::mouseViewport;
 
 void Input::tick()
 {
@@ -26,7 +25,7 @@ void Input::tick()
 	//Update input hold times
 	for(int i = 0; i<InputTypeID::INVALID_1; i++) {
 		//Get ptr to inputStates[i], call it 'inmap'
-		std::map<int32_t, int>* inmap = &inputStates[i];
+		std::map<int64_t, int>* inmap = &inputStates[i];
 		//Go thru 'inmap' and manage their itr->second value (represents # of ticks held down)
 		for(auto itr = inmap->begin(); itr!=inmap->end(); itr++) {
 			//printf("Currently inputting ID #%d for %d ticks\n", itr->first, itr->second);
@@ -39,8 +38,8 @@ void Input::tick()
 	}
 
 	//Update mouse wheel delta
-	mouseWheelDelta = currMouseWheelDelta;
-	currMouseWheelDelta = 0;
+	mouseWheelDelta = lastMouseWheelDelta;
+	lastMouseWheelDelta = 0;
 }
 void Input::allEvents(SDL_Event& e)
 {
@@ -58,7 +57,7 @@ void Input::inputEvents(SDL_Event& e)
 		case SDL_MOUSEBUTTONDOWN: 	{ updInputState(InputTypeID::MOUSE, e.button.button, true); } break;
 		case SDL_MOUSEBUTTONUP:		{ updInputState(InputTypeID::MOUSE, e.button.button, false); } break;
 		case SDL_MOUSEWHEEL: {
-			currMouseWheelDelta += e.wheel.y;
+			lastMouseWheelDelta += e.wheel.y;
 		} break;
 		case SDL_JOYBUTTONDOWN:		{ updInputState(InputTypeID::JOYBUTTON, e.jbutton.button, true); } break;
 		case SDL_JOYBUTTONUP:		{ updInputState(InputTypeID::JOYBUTTON, e.jbutton.button, false); } break;
@@ -168,7 +167,7 @@ void Input::init()
 
 	//Setup inputStates
 	for(int i = 0; i<INVALID_1; i++) {
-		inputStates.push_back(std::map<int32_t, int>());
+		inputStates.push_back(std::map<int64_t, int>());
 	}
 
 	//Open joystick(s)
@@ -183,11 +182,11 @@ void Input::init()
 	}
 }
 
-void Input::updInputState(InputTypeID inputType, int32_t sdlInputID, bool holdingDown)
+void Input::updInputState(InputTypeID inputType, int64_t sdlInputID, bool holdingDown)
 {
 	lastKnownEventID = sdlInputID;
 
-	//Try to get current key ID
+	//Try to get current input ID
 	int iid = inputType;
 	int32_t sid = sdlInputID;
 	auto ksItr = inputStates[iid].find(sid);
@@ -198,8 +197,7 @@ void Input::updInputState(InputTypeID inputType, int32_t sdlInputID, bool holdin
 			inputStates[iid].erase(ksItr);
 		return;
 	}
-
-	//If we are holding down, continue...
+	//If holding down, continue...
 
 	//If the ID doesn't doesn't exist, add new state value (-1)
 	if( ksItr==inputStates[iid].end() ) {
@@ -207,7 +205,7 @@ void Input::updInputState(InputTypeID inputType, int32_t sdlInputID, bool holdin
 	}
 }
 
-int Input::inputDownTime(InputTypeID inputType, int32_t sdlInputID)
+int Input::inputDownTime(InputTypeID inputType, int64_t sdlInputID)
 {
 	if(!initialized) {
 		nch::Log::warnv(__PRETTY_FUNCTION__, "returning 0", "Input not initialized (it seems a MainLoopDriver() was not created)");
