@@ -14,10 +14,10 @@ public:
     ~FRect(){}
 
     /* Getters */
-    int x1() const { return r.x; }
-    int y1() const { return r.y; }
-    int x2() const { return r.x+r.w; }
-    int y2() const { return r.y+r.h; }
+    float x1() const { return r.x; }
+    float y1() const { return r.y; }
+    float x2() const { return r.x+r.w; }
+    float y2() const { return r.y+r.h; }
     static FRect createFromTwoPts(float x1, float y1, float x2, float y2) { return FRect(x1, y1, x2-x1, y2-y1); }
     bool intersects(const FRect& b) const {
         return (
