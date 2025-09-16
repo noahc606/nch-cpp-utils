@@ -101,12 +101,9 @@ std::string FilePath::getWithoutExtension()
     if(!FsUtils::fileExists(get())) return get();
 
 
-    std::string s = getExtension();
-    int i = cleanpath.find(s);
-    if(i!=std::string::npos) {
-        return cleanpath.substr(0, i-1);
-    } else {
-        printf("Error: Could not get file extension of file \"%s\"\n", get().c_str());
-        return "?null?";
+    std::string s = "."+getExtension();
+    if(cleanpath.substr(cleanpath.size()-s.size())==s) {
+        return cleanpath.substr(0, cleanpath.size()-s.size());
     }
+    return cleanpath;
 }

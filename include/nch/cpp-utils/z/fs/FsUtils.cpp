@@ -271,16 +271,10 @@ std::string FsUtils::getPathWithInferredExtension(std::string path) {
     }
 
     std::vector<std::string> dirFileList;
-    ListSettings lise;
-    lise.includeDirs = false;
-    RecursionSettings rese;
-    rese.recursiveSearch = false;
-    if(i==-1) {
-        dirFileList = getDirContents("", lise, rese);
-    } else {
-        dirFileList = getDirContents(path.substr(0, i), lise, rese);
-    }
-
+    ListSettings lise;      lise.includeDirs = false;
+    RecursionSettings rese; rese.recursiveSearch = false;
+    if(i==-1) { dirFileList = getDirContents("", lise, rese); }
+    else      { dirFileList = getDirContents(path.substr(0, i), lise, rese);}
 
     std::string res = "?null?";
     int count = 0;

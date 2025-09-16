@@ -98,6 +98,7 @@ void Text::stream(SDL_Renderer* rend, TTF_Font* font, std::string text, const Co
 }
 
 bool Text::isInitialized() { return initted; }
+double Text::getScale() { return scale; }
 double Text::getWidth() { return width*scale; }
 double Text::getUnscaledWidth() { return width; }
 double Text::getHeight() { return height*scale; }

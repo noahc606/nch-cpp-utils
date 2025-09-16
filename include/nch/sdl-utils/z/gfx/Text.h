@@ -24,6 +24,7 @@ public:
     static void stream(SDL_Renderer* rend, TTF_Font* font, std::string text, const nch::Color& c, int x, int y, double scale);
 
     bool isInitialized();
+    double getScale();
     double getWidth(); double getHeight();
     double getUnscaledWidth(); double getUnscaledHeight();
     std::u16string getText();
