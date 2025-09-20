@@ -1,4 +1,5 @@
 #include "TexUtils.h"
+#include <stdexcept>
 
 using namespace nch;
 
@@ -18,6 +19,10 @@ Color TexUtils::getPixelColor(void* pixels, SDL_PixelFormat* pxFmt, int pitch, i
 
 Color TexUtils::getPixelColor(SDL_Surface* pSurface, int x, int y)
 {
+    if(x<0 || x>=pSurface->w || y<0 || y>=pSurface->h) {
+        throw std::out_of_range("Specified pixel (x, y) is outside of the surface.");
+    }
+
 	//Bytes per pixel
 	uint8_t bpp = pSurface->format->BytesPerPixel;
     //Ptr to pixel @ (x, y)
@@ -34,6 +39,10 @@ Color TexUtils::getPixelColor(SDL_Surface* pSurface, int x, int y)
 
 void TexUtils::setPixelColor(SDL_Surface* pSurface, int x, int y, uint32_t rgba)
 {
+    if(x<0 || x>=pSurface->w || y<0 || y>=pSurface->h) {
+        throw std::out_of_range("Specified pixel (x, y) is outside of the surface.");
+    }
+    
     uint32_t* const targetPixel = (uint32_t*)
         ((uint8_t*)pSurface->pixels + y*pSurface->pitch + x*pSurface->format->BytesPerPixel);
     *targetPixel = rgba;

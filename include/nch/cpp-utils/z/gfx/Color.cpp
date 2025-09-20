@@ -24,10 +24,10 @@ Color::~Color(){}
 
 uint32_t Color::getRGBA(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a) { return 16777216*p_r+65536*p_g+256*p_b+p_a; }
 uint32_t Color::getRGBA(uint8_t p_r, uint8_t p_g, uint8_t p_b) { return getRGBA(p_r, p_g, p_b, 255); }
-uint32_t Color::getRGBA() { return getRGBA(r, g, b, a); }
+uint32_t Color::getRGBA() const { return getRGBA(r, g, b, a); }
 uint32_t Color::getRGB(uint8_t p_r, uint8_t p_g, uint8_t p_b) { return 65536*p_r+256*p_g+p_b; }
 uint32_t Color::getRGB(uint32_t p_rgba) { return p_rgba>>8; }
-uint32_t Color::getRGB() { return getRGB(r, g, b); }
+uint32_t Color::getRGB() const { return getRGB(r, g, b); }
 uint32_t Color::getA(uint32_t p_rgba) { return p_rgba&0xFF; }
 
 /**
@@ -35,7 +35,7 @@ uint32_t Color::getA(uint32_t p_rgba) { return p_rgba&0xFF; }
  * S = [0-100]
  * V = [0-100]
  */
-std::vector<double> Color::getHSV()
+std::vector<double> Color::getHSV() const
 {
 	double rp = ((double)r)/255.0;
 	double gp = ((double)g)/255.0;
@@ -74,7 +74,7 @@ std::vector<double> Color::getHSV()
 	return res;
 }
 
-std::vector<uint8_t> Color::getRGBTriple()
+std::vector<uint8_t> Color::getRGBTriple() const
 {
 	std::vector<uint8_t> res;
 	res.push_back(r);
@@ -86,7 +86,7 @@ std::vector<uint8_t> Color::getRGBTriple()
 /**
  * Get the V in the HSV value
 */
-double Color::getHSV2()
+double Color::getHSV2() const
 {
 	double rp = ((double)r)/255.0;
 	double gp = ((double)g)/255.0;
@@ -101,13 +101,13 @@ double Color::getHSV2()
 /**
  * Return the 32bit RGBA value, interpreted as a base 10 number, as a string.
  */
-std::string Color::toStringB10()
+std::string Color::toStringB10() const
 {
 	std::stringstream ss; ss << getRGBA();
 	return ss.str();
 }
 
-std::string Color::toStringB16(bool transparency)
+std::string Color::toStringB16(bool transparency) const
 {
 	std::stringstream ss;
 	ss << "#";
@@ -126,7 +126,7 @@ std::string Color::toStringB16(bool transparency)
 	return res.str();
 }
 
-std::string Color::toStringReadable(bool transparency)
+std::string Color::toStringReadable(bool transparency) const
 {
 	std::stringstream ss;
 	ss << "(" << (int)r << ", " << (int)g << ", " << (int)b;
@@ -143,7 +143,7 @@ std::string Color::toStringReadable(bool transparency)
  * A weight close to 0.0 would return a color "closer to" this object.
  * A weight close to 1.0 would return a color "closer to" the specified color (within the parameters).
  */ 
-Color Color::getInterpolColor(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a, double weight)
+Color Color::getInterpolColor(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a, double weight) const
 {
 	uint8_t r1 = r; 	uint8_t g1 = g; 	uint8_t b1 = b;		uint8_t a1 = a;
 	uint8_t r2 = p_r; 	uint8_t g2 = p_g; 	uint8_t b2 = p_b;	uint8_t a2 = p_a;
@@ -157,7 +157,7 @@ Color Color::getInterpolColor(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a
 	
 	return Color(r1-dR, g1-dG, b1-dB, a1-dA);
 }
-Color Color::getInterpolColor(const Color& c, double weight)
+Color Color::getInterpolColor(const Color& c, double weight) const
 {
 	return getInterpolColor(c.r, c.g, c.b, c.a, weight);
 }

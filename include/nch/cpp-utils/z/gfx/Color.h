@@ -19,19 +19,19 @@ public:
     static uint32_t getRGB(uint8_t r, uint8_t g, uint8_t b);
     static uint32_t getRGB(uint32_t rgba);
     static uint32_t getA(uint32_t rgba);
-    uint32_t getRGBA();
-    uint32_t getRGB();
-    std::vector<double> getHSV();
-    std::vector<uint8_t> getRGBTriple();
-    double getHSV2();
-	Color getInterpolColor(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a, double weight);
-	Color getInterpolColor(const Color& c, double weight);
+    uint32_t getRGBA() const;
+    uint32_t getRGB() const;
+    std::vector<double> getHSV() const;
+    std::vector<uint8_t> getRGBTriple() const;
+    double getHSV2() const;
+	Color getInterpolColor(uint8_t p_r, uint8_t p_g, uint8_t p_b, uint8_t p_a, double weight) const;
+	Color getInterpolColor(const Color& c, double weight) const;
 
-	std::string toStringB10();
-	std::string toStringB16(bool transparency);
-    std::string toStringReadable(bool transparency);
+	std::string toStringB10() const;
+	std::string toStringB16(bool transparency) const;
+    std::string toStringReadable(bool transparency) const;
 
-    bool operator==(const Color& other) {
+    bool operator==(const Color& other) const {
         return (
             r==other.r &&
             g==other.g &&
@@ -39,7 +39,7 @@ public:
             a==other.a
         );
     }
-    bool operator!=(const Color& other) {
+    bool operator!=(const Color& other) const {
         return !((*this)==other);
     }
 

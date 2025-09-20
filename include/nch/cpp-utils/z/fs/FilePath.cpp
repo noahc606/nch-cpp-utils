@@ -1,5 +1,7 @@
 #include "FilePath.h"
+#include <exception>
 #include <sstream>
+#include <stdexcept>
 #include <vector>
 #include "FsUtils.h"
 
@@ -37,9 +39,10 @@ std::string FilePath::getObjectName(bool includeExtension)
     return filename;
 }
 std::string FilePath::getObjectName() { return getObjectName(true); }
-std::string FilePath::getGrandparentDir(int numUpDirs)
+std::string FilePath::getGrandparentDirName(int numUpDirs)
 {
-    if(numUpDirs<1) return "?invalid-numUpDirs?";
+    if(numUpDirs<1)
+        throw std::exception(std::invalid_argument("numUpDirs must be >=1"));
 
     std::string grandparentDir = "";
     int slashesFound = 0;
@@ -61,11 +64,24 @@ std::string FilePath::getGrandparentDir(int numUpDirs)
     }
 
     if(grandparentDir=="") {
-        return "?root?";
+        throw std::exception(std::invalid_argument("Arrived at root directory"));
     }
     return grandparentDir;
 }
-std::string FilePath::getParentDir() { return getGrandparentDir(1); }
+std::string FilePath::getParentDirName() { return getGrandparentDirName(1); }
+
+std::string FilePath::getParentDirPath()
+{
+    if(!FsUtils::dirExists(get()) && !FsUtils::fileExists(get())) {
+        throw std::exception(std::out_of_range("The file pointed to by this object does not exist"));
+    }
+
+    std::string s = "/"+getObjectName(true);
+    if(cleanpath.substr(cleanpath.size()-s.size())==s) {
+        return cleanpath.substr(0, cleanpath.size()-s.size());
+    }
+    return cleanpath;
+}
 
 int FilePath::getNumDirsDown()
 {
