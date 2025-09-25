@@ -31,9 +31,10 @@ public:
 
     void setScale(double scale);
     void forcedNearestScaling(bool fns);
-    void setText(std::u16string text);
-    void setText(std::string text);
+    void setText(std::u16string text); void setText(std::string text);
     void setWrapLength(int wl);
+    void setMaxLines(int ml);
+    void setEveryLineCentered(bool elc);
     void setDarkBackground(bool db);
     void setTextColor(Color tc);
     void setShadowing(bool hasShadow);
@@ -43,21 +44,27 @@ public:
     void setShadowCustomColor(nch::Color shadowCustomColor);
     void updateTextTexture();
 
+    
 private:
+    static int measureTextWidth(TTF_Font* font, const std::u16string& text);
+    static std::vector<std::pair<int, std::u16string>> getProcessedText(const std::u16string& text, TTF_Font* font, int maxWidth, int maxLines);
+
     SDL_Renderer* rend = nullptr;
     SDL_Texture* txtTex = nullptr;
     bool initted = false;
     bool darkenBackground = false;
+    double width = 0;
+    double height = 0;
+
 
     bool forceNearestScaling = false;
     TextShadow shadow;
-
     double scale = 1;
-    double width = 0;
-    double height = 0;
-    std::u16string text = u"Unset";
+    std::u16string text = u"";
     TTF_Font* font = nullptr;
     Color textColor = Color(255, 255, 255);
     int wrapLength = 9999;
+    int maxLines = -1;
+    bool everyLineCentered = false;
 };
 }

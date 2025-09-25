@@ -1,6 +1,16 @@
 #include "Text.h"
+#include "TexUtils.h"
+#include <SDL2/SDL_blendmode.h>
+#include <SDL2/SDL_pixels.h>
+#include <SDL2/SDL_render.h>
+#include <SDL2/SDL_surface.h>
+#include <SDL2/SDL_ttf.h>
 #include <codecvt>
+#include <cstddef>
 #include <locale>
+#include <nch/cpp-utils/log.h>
+#include <nch/cpp-utils/string-utils.h>
+#include <string>
 using namespace nch;
 
 Text::Text(){}
@@ -138,11 +148,30 @@ void Text::setText(std::string text)
 
 void Text::setWrapLength(int wl)
 {
-    if(wl==Text::wrapLength) return;
-
+    if(wl==wrapLength) return;
     wrapLength = wl;
+
+    if(text==u"") return;
     updateTextTexture();
 }
+void Text::setMaxLines(int ml)
+{
+    if(ml<1) ml = -1;
+    if(ml==maxLines) return;
+    maxLines = ml;
+
+    if(text==u"") return;
+    updateTextTexture();
+}
+void Text::setEveryLineCentered(bool elc)
+{
+    if(elc==everyLineCentered) return;
+    everyLineCentered = elc;
+
+    if(text==u"") return;
+    updateTextTexture();
+}
+
 
 void Text::setDarkBackground(bool db) { darkenBackground = db; }
 void Text::setTextColor(Color tc) { textColor = tc; }
@@ -161,19 +190,167 @@ void Text::setShadowCustomColor(nch::Color shadowCustomColor)
 
 void Text::updateTextTexture()
 {
-    //Create surface representing the current text
-    SDL_Surface* txtSurf = TTF_RenderUNICODE_Blended_Wrapped(font, (const Uint16*)text.c_str(), SDL_Color{255, 255, 255, 255}, wrapLength);
-    if(txtSurf==NULL) {
-        //Width will be zero so don't do anything
-    } else {
-        //Destroy the last texture if it exists and create a new one based on the txtSurf.
-        if(txtTex!=nullptr) SDL_DestroyTexture(txtTex);
-        txtTex = SDL_CreateTextureFromSurface(rend, txtSurf);
+    //Destroy the last texture if it exists and re-create it from the 'txtSurf'
+    if(txtTex!=nullptr) SDL_DestroyTexture(txtTex);
+    txtTex = nullptr;
 
-        //Set width and height, destroy the txtSurf.
-        width = txtSurf->w;
-        height = txtSurf->h;
+    /* Use text width processing on some occassions */
+    if(maxLines>0 || everyLineCentered) {
+        int fontHeight = TTF_FontHeight(font);
+        auto processed = getProcessedText(text, font, wrapLength, maxLines);
+        txtTex = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, wrapLength, processed.size()*fontHeight);
+        TexUtils::clearTexture(rend, txtTex);
+        
+        for(int i = 0; i<processed.size(); i++) {
+            auto elem = processed[i];
+            SDL_Surface* lineSurf = TTF_RenderUNICODE_Blended(font, reinterpret_cast<const Uint16*>(elem.second.c_str()), {255, 255, 255, 255});
+            if(lineSurf==NULL) continue;
+            SDL_Texture* lineTex = SDL_CreateTextureFromSurface(rend, lineSurf);
+            if(lineTex==NULL) continue;
+
+            SDL_SetRenderTarget(rend, txtTex); {
+                SDL_Rect dst;
+                dst.y = (fontHeight)*i+1;
+                dst.h = lineSurf->h;
+                dst.w = lineSurf->w;
+                if(everyLineCentered) {
+                    dst.x = (wrapLength/2-elem.first/2)+1;
+                } else {
+                    dst.x = 0;
+                }
+                SDL_RenderCopy(rend, lineTex, NULL, &dst);
+            } SDL_SetRenderTarget(rend, NULL);
+
+            SDL_DestroyTexture(lineTex);
+            SDL_FreeSurface(lineSurf);
+        }
+    } else {
+        //Create surface representing the current text
+        SDL_Surface* txtSurf = TTF_RenderUNICODE_Blended_Wrapped(font, reinterpret_cast<const Uint16*>(text.c_str()), {255, 255, 255, 255}, wrapLength);
+        if(txtSurf==NULL) return;
+        txtTex = SDL_CreateTextureFromSurface(rend, txtSurf);
+        SDL_FreeSurface(txtSurf);
     }
 
-    SDL_FreeSurface(txtSurf);
+    
+    
+    //Set width and height, destroy the txtSurf.
+    int w, h;
+    SDL_QueryTexture(txtTex, NULL, NULL, &w, &h);
+    width = w;
+    height = h;
+}
+
+int Text::measureTextWidth(TTF_Font* font, const std::u16string& text) {
+    int w = 0, h = 0;
+    TTF_SizeUNICODE(font, reinterpret_cast<const Uint16*>(text.c_str()), &w, &h);
+    return w;
+}
+
+std::vector<std::pair<int, std::u16string>> Text::getProcessedText(const std::u16string& text, TTF_Font* font, int maxWidth, int maxLines) {
+    auto isHighSurrogate = [](char16_t c){ return c>=0xD800 && c<=0xDBFF; };
+    auto isLowSurrogate  = [](char16_t c){ return c>=0xDC00 && c<=0xDFFF; };
+
+    std::vector<std::pair<int, std::u16string>> lines;
+    std::u16string currentLine;
+    std::u16string currentWord;
+
+    auto pushLine = [&](const std::u16string& l){
+        lines.emplace_back(measureTextWidth(font, l), l);
+    };
+
+    //Append one word into lines/currentLine. Splits a very long word into fragments.
+    auto appendWordToBuffer = [&](std::u16string word) {
+        //First, try to append to existing currentLine with a space
+        if(!currentLine.empty()) {
+            std::u16string test = currentLine + u' '+word;
+            if(measureTextWidth(font, test)<=maxWidth) {
+                currentLine = std::move(test);
+                return;
+            }
+            //else push currentLine and continue with empty currentLine
+            pushLine(currentLine);
+            currentLine.clear();
+        }
+
+        //Now currentLine is empty. Split 'word' into fragments that fit maxWidth.
+        while(!word.empty()) {
+            // Binary search for the longest prefix that fits
+            int lo = 1;
+            int hi = static_cast<int>(word.size());
+            int best = 0;
+            while(lo<=hi) {
+                int mid = (lo + hi) / 2;
+
+                //Avoid splitting a surrogate pair: if prefix ends on a high surrogate, back it up.
+                if (mid>0 && isHighSurrogate(word[mid-1])) mid--;
+                if (mid<=0) { hi = mid-1; continue; }
+
+                std::u16string prefix = word.substr(0, mid);
+                if (measureTextWidth(font, prefix) <= maxWidth) {
+                    best = mid;
+                    lo = mid+1;
+                } else {
+                    hi = mid-1;
+                }
+            }
+
+            if(best == 0) {
+                //No prefix fits: take the smallest valid unit (1 or 2 code units if surrogate pair)
+                int take = 1;
+                if(isHighSurrogate(word[0]) && word.size()>1) take = 2;
+                std::u16string part = word.substr(0, take);
+                pushLine(part);
+                word.erase(0, take);
+                continue;
+            }
+
+            if(best >= static_cast<int>(word.size())) {
+                currentLine = std::move(word); //whole remainder fits so keep it in currentLine
+                break;
+            } else {
+                //push this fragment as a full line and continue
+                std::u16string part = word.substr(0, best);
+                pushLine(part);
+                word.erase(0, best);
+            }
+        }
+    };
+
+    //Parse input text into words (split on spaces/newlines). Respect explicit newlines.
+    for(char16_t c : text) {
+        if(c==u' ' || c==u'\n') {
+            if(!currentWord.empty()) {
+                appendWordToBuffer(std::move(currentWord));
+                currentWord.clear();
+            }
+            if(c==u'\n') {
+                if (!currentLine.empty()) {
+                    pushLine(currentLine);
+                    currentLine.clear();
+                }
+            }
+        } else {
+            currentWord.push_back(c);
+        }
+    }
+    if(!currentWord.empty()) appendWordToBuffer(std::move(currentWord));
+    if(!currentLine.empty()) pushLine(currentLine);
+
+    //If too many lines, truncate and append ellipsis "..."
+    if(static_cast<int>(lines.size())>maxLines) {
+        lines.resize(maxLines);
+        const std::u16string ellipsis = u"...";
+        std::u16string& last = lines.back().second;
+        int ellW = measureTextWidth(font, ellipsis);
+        int w = measureTextWidth(font, last);
+        while (!last.empty() && w+ellW>maxWidth) {
+            last.pop_back();
+            w = measureTextWidth(font, last);
+        }
+        last += ellipsis;
+        lines.back().first = measureTextWidth(font, last);
+    }
+
+    return lines;
 }

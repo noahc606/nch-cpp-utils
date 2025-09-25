@@ -24,8 +24,10 @@ public:
     T distance2To(const Vec2<T>& v) { return (v.x-x)*(v.x-x) + (v.y-y)*(v.y-y); }
     T distanceTo(const Vec2<T>& v) { return std::sqrt(distance2To(v)); }
     Vec2<int> toInt() { return Vec2<int>(x, y); }
-    Vec2<double> toDouble() { return Vec2<double>(x, y); }
     Vec2<int64_t> toInt64() { return Vec2<int64_t>(x, y); }
+    Vec2<uint64_t> toUint64() { return Vec2<uint64_t>(x, y); }
+    Vec2<float> toFloat() { return Vec2<float>(x, y); }
+    Vec2<double> toDouble() { return Vec2<double>(x, y); }
     std::string toString() { std::stringstream ss; ss << "(" << x << ", " << y << ")"; return ss.str(); }
     std::string toArrayString() { std::stringstream ss; ss << "[" << x << "," << y << "]"; return ss.str(); }
 
