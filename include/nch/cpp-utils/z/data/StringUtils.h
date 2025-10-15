@@ -30,10 +30,9 @@ public:
     static std::string extractBracketedStr(const std::string& s);
     static std::string trimmed(const std::string& s);
     static std::string removedNonASCII(const std::string& s);
+    static std::string unicodeEscaped(const std::wstring& ws);
 
-
-    static std::string stringFromBytestream(const std::vector<unsigned char>& byteStream, bool keepZeros);
-    static std::string stringFromBytestream(const std::vector<unsigned char>& byteStream);
+    static std::string stringFromBytestream(const std::vector<unsigned char>& byteStream, bool keepZeros = false);
     static std::vector<unsigned char> bytestreamFromString(const std::string& str);
     static bool aHasPrefixB(const std::string& a, const std::string& b);
     static bool aHasSuffixB(const std::string& a, const std::string& b);

@@ -1,7 +1,10 @@
 #include "StringUtils.h"
 #include "nch/cpp-utils/log.h"
+#include <codecvt>
+#include <cstring>
+#include <iomanip>
+#include <locale>
 #include <sstream>
-
 
 using namespace nch;
 
@@ -65,7 +68,6 @@ std::vector<int64_t> StringUtils::parseI64Array(std::string s)
     /* Return */
     return res;
 }
-
 std::vector<double> StringUtils::parseDoubleArray(std::string s)
 {
     /* 2B'Ret'urned */
@@ -95,7 +97,6 @@ std::vector<double> StringUtils::parseDoubleArray(std::string s)
     /* Return */
     return ret;
 }
-
 std::vector<int64_t> StringUtils::parseI64ArraySimple(const std::string& s)
 {
     /* 2BReturned */
@@ -114,7 +115,6 @@ std::vector<int64_t> StringUtils::parseI64ArraySimple(const std::string& s)
     /* Return */
     return res;
 }
-
 std::string StringUtils::vecToArrayString(const std::vector<std::string>& v)
 {
     std::stringstream ret;
@@ -126,7 +126,6 @@ std::string StringUtils::vecToArrayString(const std::vector<std::string>& v)
     ret << "]";
     return ret.str();
 }
-
 std::string StringUtils::extractBracketedStr(const std::string& s)
 {
     int lBktPos = -1; for(int i = 0; i<s.size(); i++)    if(s[i]=='[') lBktPos = i;
@@ -171,6 +170,31 @@ std::string StringUtils::removedNonASCII(const std::string& s)
     }
     return ret.str();
 }
+std::string StringUtils::unicodeEscaped(const std::wstring& ws)
+{
+    std::ostringstream ret;
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+
+    for(wchar_t wc : ws) {
+        //Treat line feed wchar as ASCII newline
+        if(wc==0xa) {
+            ret << "\n";
+            continue;
+        }
+        //Check if wchar is printable and in BMP or valid UTF-8 range
+        if(wc>=0x20 && wc<=0x7E) {
+            //ASCII printable characters: convert directly
+            ret << static_cast<char>(wc);
+        } else {
+            ret << "[U+"
+                << std::uppercase << std::hex << std::setfill('0')
+                << static_cast<int>(wc)
+                << "]";
+        }
+    }
+
+    return ret.str();
+}
 
 std::string StringUtils::stringFromBytestream(const std::vector<unsigned char>& byteStream, bool keepZeros)
 {
@@ -186,10 +210,6 @@ std::string StringUtils::stringFromBytestream(const std::vector<unsigned char>& 
         }
     }
     return ret.str();
-}
-std::string StringUtils::stringFromBytestream(const std::vector<unsigned char>& byteStream)
-{
-    return stringFromBytestream(byteStream, false);
 }
 std::vector<unsigned char> StringUtils::bytestreamFromString(const std::string& str)
 {
