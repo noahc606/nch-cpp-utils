@@ -64,5 +64,6 @@ message("[NCH] Linked libraries: ${TARGET_LIBS}")
 # Add include directories (everywhere there is a header file: libraries and PROJ src dirs)
 target_include_directories(${PROJ_OUT} PRIVATE ${PROJ_SRC_DIRS})
 target_include_directories(${PROJ_OUT} PRIVATE "include")
+target_include_directories(${PROJ_OUT} PRIVATE "/usr/include/libxml2")
 
 message("[NCH] Finished config for ${PROJ_OUT}")
