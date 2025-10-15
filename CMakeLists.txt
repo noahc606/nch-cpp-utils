@@ -1,6 +1,6 @@
 ### Project Settings ###
 # Set min cmake version
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 set(PROJ_NAME "NCH-CPP-Utils")
 
 # Set executable target depending on OS...
