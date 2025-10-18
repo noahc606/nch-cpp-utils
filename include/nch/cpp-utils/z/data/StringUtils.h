@@ -7,14 +7,17 @@
 namespace nch { class StringUtils {
 public:
 
-    template<typename T> static std::string cat(T t) {
-        std::stringstream ss;
+    template<typename T> static void cat(std::stringstream& ss, T t) {
         ss << t;
-        return ss.str();
+    }
+
+    template<typename T, typename... Args>static void cat(std::stringstream& ss, T first, Args... args) {
+        ss << first;
+        cat(ss, args...);
     }
     template<typename T, typename... Args>static std::string cat(T first, Args... args) {
         std::stringstream ss;
-        ss << first << cat(args...);
+        cat(ss, first, args...);
         return ss.str();
     }
 
