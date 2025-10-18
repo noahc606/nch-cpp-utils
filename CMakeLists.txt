@@ -23,9 +23,9 @@ endif()
 
 # Project languages and flags
 project(${PROJ_OUT} VERSION 0.1.1.0 LANGUAGES C CXX)
-set(CMAKE_CXX_FLAGS "-std=c++11")
+set(CMAKE_CXX_FLAGS "-std=c++14")
 if(EMSCRIPTEN)
-    set(CMAKE_CXX_FLAGS "-std=c++11 -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -sUSE_SDL_MIXER=2")
+    set(CMAKE_CXX_FLAGS "-std=c++14 -sUSE_SDL=2 -sUSE_SDL_TTF=2 -sUSE_SDL_IMAGE=2 -sUSE_SDL_MIXER=2")
 endif()
 
 

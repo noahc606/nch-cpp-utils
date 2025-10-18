@@ -1,10 +1,22 @@
 #pragma once
 #include <cstdint>
+#include <sstream>
 #include <string>
 #include <vector>
 
 namespace nch { class StringUtils {
 public:
+
+    template<typename T> static std::string cat(T t) {
+        std::stringstream ss;
+        ss << t;
+        return ss.str();
+    }
+    template<typename T, typename... Args>static std::string cat(T first, Args... args) {
+        std::stringstream ss;
+        ss << first << cat(args...);
+        return ss.str();
+    }
 
     /// @brief Similar to Java's String.split(regex), but instead of a regex, 'delim' is a char to split by.
     /// @brief Size-0 strings will not appear in the resulting vec.
