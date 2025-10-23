@@ -322,7 +322,7 @@ bool StringUtils::validateString(const std::string& s, const std::string& charSe
 {
     for(int i = 0; i<s.size(); i++)
         if(charSet.find(s[i])==std::string::npos) {
-            Log::warnv(__PRETTY_FUNCTION__, "returning false", "String validation failed");
+            Log::warnv(__PRETTY_FUNCTION__, "returning false", "String validation failed (\"%s\" must only contain characters from \"%s\")", s.c_str(), charSet.c_str());
             return false;
         }
     return true;
