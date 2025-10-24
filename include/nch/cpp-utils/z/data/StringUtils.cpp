@@ -176,11 +176,9 @@ std::string StringUtils::unicodeEscaped(const std::wstring& ws)
     std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
 
     for(wchar_t wc : ws) {
-        //Treat line feed wchar as ASCII newline
-        if(wc==0xa) {
-            ret << "\n";
-            continue;
-        }
+        //Transform certain wchars into ASCII versions
+        if(wc==0x9) { ret << "\t"; continue; } //Horizontal Tabulation -> ascii tab
+        if(wc==0xa) { ret << "\n"; continue; } //Line feed -> ascii newline
         //Check if wchar is printable and in BMP or valid UTF-8 range
         if(wc>=0x20 && wc<=0x7E) {
             //ASCII printable characters: convert directly
