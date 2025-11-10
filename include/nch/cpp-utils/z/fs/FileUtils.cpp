@@ -113,7 +113,6 @@ std::vector<std::string> FileUtils::getFileLines(FILE* pFile, bool includeEmptyL
             foundNewLine = true;
 
             if(includeEmptyLines || currentLine.str().size()>0) {
-                Log::log("%s", currentLine.str().c_str());
                 ret.push_back(currentLine.str());
             }
             currentLine.str(std::string());
