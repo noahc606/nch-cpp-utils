@@ -97,7 +97,7 @@ std::vector<unsigned char> FileUtils::readFileBytes(std::string path)
     Returns: A vector<string> of each line of an entire file.
     Note: Does not check pFile==NULL.
 */
-std::vector<std::string> FileUtils::getFileLines(FILE* pFile)
+std::vector<std::string> FileUtils::getFileLines(FILE* pFile, bool includeEmptyLines)
 {
     std::vector<std::string> ret;
     if(pFile==NULL) {
@@ -113,7 +113,9 @@ std::vector<std::string> FileUtils::getFileLines(FILE* pFile)
         if( !foundNewLine && (c=='\n' || c=='\r') ) {  /* Found newline character */
             foundNewLine = true;
 
-            ret.push_back(currentLine.str());
+            if(includeEmptyLines || currentLine.str().size()>0) {
+                ret.push_back(currentLine.str());
+            }
             currentLine.str(std::string());
             currentLine.clear();
         } else {                                        /* Found any other character */
@@ -123,13 +125,15 @@ std::vector<std::string> FileUtils::getFileLines(FILE* pFile)
     }
 
     //Add last currentLine
-    ret.push_back(currentLine.str());
+    if(includeEmptyLines || currentLine.str().size()>0) {
+        ret.push_back(currentLine.str());
+    }
 
     //Return
     return ret;
 }
 
-std::vector<std::string> FileUtils::readFileLines(std::string path)
+std::vector<std::string> FileUtils::readFileLines(std::string path, bool includeEmptyLines)
 {
     FILE* pFile = fopen(path.c_str(), "r");    
     std::vector<std::string> ret = FileUtils::getFileLines(pFile);

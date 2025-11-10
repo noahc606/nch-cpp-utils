@@ -43,6 +43,7 @@ public:
     /// @param s The bracketed string to extract the contents of.
     /// @return a string of the form "[...]" or "" if we couldn't find a proper bracketed string.
     static std::string extractBracketedStr(const std::string& s);
+    static std::string trimmed(const std::string& s, const std::string& charsToTrim);
     static std::string trimmed(const std::string& s);
     static std::string removedNonASCII(const std::string& s);
     static std::string unicodeEscaped(const std::wstring& ws);

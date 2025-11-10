@@ -138,15 +138,15 @@ std::string StringUtils::extractBracketedStr(const std::string& s)
     }
 }
 
-std::string StringUtils::trimmed(const std::string& s)
+std::string StringUtils::trimmed(const std::string& s, const std::string& charsToTrim)
 {
-    //Whitespace characters to be trimmed at beginning or end
-    std::string ws = " \t\n";
+    //Characters to be trimmed at beginning or end
+    std::string ctt = charsToTrim;
 
     //Find first non-whitespace character from beginning
     int start = 0;
     for(int i = start; i<s.size(); i++) {
-        if(ws.find(s[i])==std::string::npos) { start = i; break; }
+        if(ctt.find(s[i])==std::string::npos) { start = i; break; }
         //Special case: All characters found to be whitespace -> return "".
         if(i==s.size()-1) {
             return "";
@@ -155,11 +155,16 @@ std::string StringUtils::trimmed(const std::string& s)
     //Find first non-whitespace character from end
     int end = s.size()-1;
     for(int i = end; i>=0; i--) {
-        if(ws.find(s[i])==std::string::npos) { end = i+1; break; }
+        if(ctt.find(s[i])==std::string::npos) { end = i+1; break; }
     }
 
     //Return final substring
     return s.substr(start, end-start);
+}
+std::string StringUtils::trimmed(const std::string& s)
+{
+    //Trim whitespace characters
+    return trimmed(s, " \t\n");
 }
 std::string StringUtils::removedNonASCII(const std::string& s)
 {

@@ -37,6 +37,7 @@ public:
 	static bool isJoystickButtonDown(int joyButton);
 	static bool isJoystickHatDir(int dir);
 	
+	static SDL_Rect getMouseViewport();
 	static void setMouseViewport(const SDL_Rect& mvp);
 	static void resetMouseViewport();
 

@@ -4,7 +4,6 @@ TimerInit::TimerInit()
 {
     clock_gettime(CLOCK_MONOTONIC, &ts);
     startupNS = (int64_t)ts.tv_sec * (int64_t)1000000000 + (int64_t)ts.tv_nsec;
-    
 }
 TimerInit::~TimerInit(){}
 

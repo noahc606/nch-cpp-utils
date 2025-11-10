@@ -42,8 +42,7 @@ bool FsUtils::pathExists(std::string path)
             // ...If POSIX supported (unistd.h)
             struct stat sb;
             if(stat(path.c_str(), &sb)==0) {
-                if( !(sb.st_mode&S_IFDIR) && !(sb.st_mode&S_IFREG) ) {
-	                Log::error(__PRETTY_FUNCTION__, "Object @ \"%s\" doesn't seem to be a dir or a normal file, returning false", path.c_str());
+                if( !((sb.st_mode&S_IFMT)==S_IFDIR) && !(sb.st_mode&S_IFREG) ) {
                     return false;
                 }
                 return true;
@@ -74,7 +73,7 @@ bool FsUtils::fileExists(std::string path)
     #elif ( defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)) )
         struct stat sb;
         if((stat(path.c_str(), &sb)==0)) {
-            return (sb.st_mode & S_IFREG);
+            return (sb.st_mode&S_IFREG);
         }
     #endif
 
@@ -93,8 +92,9 @@ bool FsUtils::dirExists(std::string path)
         return attrs&FILE_ATTRIBUTE_DIRECTORY;
     #elif ( defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)) )
         struct stat sb;
-        if((stat(path.c_str(), &sb)==0)) {
-            return (sb.st_mode & S_IFDIR);
+        if(stat(path.c_str(), &sb)==0) {
+            if((sb.st_mode&S_IFMT)==S_IFDIR)
+                return true;
         }
     #endif
 
@@ -166,7 +166,7 @@ std::vector<std::string> FsUtils::lsx(std::string dirPath, ListSettings& lise)
                 if(logWarnings) Log::warn(__PRETTY_FUNCTION__, "Failed to close directory \"%s\" after operation", dirPath.c_str());
             }
         } else {
-            Log::error(__PRETTY_FUNCTION__, "Could not open directory \"%s\", returning empty vector.", dirPath.c_str());
+            Log::error(__PRETTY_FUNCTION__, "Could not open directory \"%s\", returning empty vector", dirPath.c_str());
         }
     #endif
 
@@ -263,11 +263,12 @@ std::vector<std::string> FsUtils::getManyDirContents(std::vector<std::string> di
 }
 
 std::string FsUtils::getPathWithInferredExtension(std::string path) {
+    FilePath pfp(path);
+    path = pfp.get();
+    
     int i = -1;
     for(i = path.size()-1; i>=0; i--) {
-        if(path[i]=='/' || path[i]=='\\') {
-            break;
-        }
+        if(path[i]=='/') { break; }
     }
 
     std::vector<std::string> dirFileList;
@@ -290,12 +291,14 @@ std::string FsUtils::getPathWithInferredExtension(std::string path) {
     }
 
     if(count==0) {
-        return "?null?";
-    } else if(count==1) {
-        return res;
+        res = "?null?";
     }
 
-    if(logWarnings) Log::warnv(__PRETTY_FUNCTION__, "returning "+res, "Found %d possible matches for \"%s\"", count, path.c_str());
+    if(logWarnings && count>1) Log::warnv(__PRETTY_FUNCTION__, "returning "+res, "Found %d possible matches for \"%s\"", count, path.c_str());
+    if(res=="?null?") {
+        Log::error(__PRETTY_FUNCTION__, "Found no files matching the provided path \"%s\"", path.c_str());
+        throw std::logic_error("");
+    }
     return res;
 }
 

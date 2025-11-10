@@ -29,6 +29,10 @@ std::string XML::cleanHTML(const std::string& htmlContent, const std::vector<std
     xmlBufferFree(buf);
     return ret;
 }
+std::string XML::cleanHTML(const std::string& htmlContent, bool removeComments)
+{
+    return cleanHTML(htmlContent, {"script", "style", "meta", "link"}, removeComments);
+}
 
 std::string XML::getAttributeValue(const std::string& nodeString, const std::string& attributeName) {
     xmlDocPtr doc = xmlReadMemory(nodeString.c_str(), nodeString.size(), "noname.xml", nullptr, XML_PARSE_RECOVER);

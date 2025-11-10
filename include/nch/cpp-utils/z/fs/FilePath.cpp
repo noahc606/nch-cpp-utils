@@ -1,5 +1,7 @@
 #include "FilePath.h"
+#include <bits/stl_algo.h>
 #include <exception>
+#include <nch/cpp-utils/string-utils.h>
 #include <sstream>
 #include <stdexcept>
 #include <vector>
@@ -10,9 +12,17 @@ using namespace nch;
 FilePath::FilePath(std::string path)
 {
     std::stringstream res;
+    char prev = ' ';
     for(int i = 0; i<path.size(); i++) {
-        if(path[i]=='\"') { continue; }             //Replace backslashes ('\') with forward slashes ('/')
-        res << path[i];                             //Normal characters
+        if(path[i]=='\\') path[i] = '/';
+
+        //If this character and previous were slashes, skip.
+        if(path[i]=='/' && prev=='/') {
+            continue;
+        }
+        
+        res << path[i]; //Normal characters
+        prev = path[i];
     }
 
     cleanpath = res.str();
@@ -25,8 +35,6 @@ std::string FilePath::getObjectName(bool includeExtension)
     if(!includeExtension) {
         wp = getWithoutExtension();
     }
-
-    if(!FsUtils::pathExists(get())) return "?null?";
     
     std::string filename = "";
     for(int i = wp.size()-1; i>=0; i--) {
@@ -94,29 +102,24 @@ int FilePath::getNumDirsDown()
 
 std::string FilePath::getExtension()
 {
-    if(FsUtils::dirExists(get()))   return "?directory?";
-    if(!FsUtils::fileExists(get())) return "?null?";
+    if(!StringUtils::aContainsB(cleanpath, ".")) return "";
 
-    std::string ext = "";
+    std::string ret = "";
     for(int i = cleanpath.size()-1; i>=0; i--) {
         if(cleanpath[i]=='.') {
             break;
         } else if(cleanpath[i]=='/') {
             break;
         } else {
-            ext = cleanpath[i]+ext;
+            ret = cleanpath[i]+ret;
         }
     }
-    std::string res = ext;
-    return res;
+    std::transform(ret.begin(), ret.end(), ret.begin(), ::tolower);
+    return ret;
 }
 
 std::string FilePath::getWithoutExtension()
 {
-    if(FsUtils::dirExists(get()))   return get();
-    if(!FsUtils::fileExists(get())) return get();
-
-
     std::string s = "."+getExtension();
     if(cleanpath.substr(cleanpath.size()-s.size())==s) {
         return cleanpath.substr(0, cleanpath.size()-s.size());

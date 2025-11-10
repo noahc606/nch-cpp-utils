@@ -149,6 +149,9 @@ bool Input::isMouseDown(int mouseButton) { return mouseDownTime(mouseButton)>0; 
 bool Input::isJoystickButtonDown(int joyButton) { return joystickButtonDownTime(joyButton)>0; }
 bool Input::isJoystickHatDir(int dir) { return joystickHatDirTime(dir)>0; }
 
+SDL_Rect Input::getMouseViewport() {
+	return mouseViewport;
+}
 void Input::setMouseViewport(const SDL_Rect& mvp) {
 	mouseViewport = mvp;
 }

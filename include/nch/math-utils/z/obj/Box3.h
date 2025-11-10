@@ -39,7 +39,6 @@ public:
             c2.z>=b.c2.z
         );
     }
-
     /* Does this box at all intersect box 'b' (vertices/edges/faces count)? */
     bool intersects(Box3<T> b) {
         return (
@@ -48,7 +47,6 @@ public:
             c1.z<=b.c2.z && b.c1.z<=c2.z
         );
     }
-
     /* Same as intersects(), but vertices/edges/faces DON'T count */
     bool collides(Box3<T> b) {
         return (
@@ -57,7 +55,6 @@ public:
             c1.z<b.c2.z && b.c1.z<c2.z
         );
     }
-    
     /* Get the intersection between this box and box 'b'. If no intersection, return Box(0, 0, 0, 0, 0, 0); */
     Box3<T> intersection(Box3<T> b) {
         if(!intersects(b)) {
