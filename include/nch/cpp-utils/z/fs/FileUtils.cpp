@@ -95,7 +95,6 @@ std::vector<unsigned char> FileUtils::readFileBytes(std::string path)
     Returns a list of the lines within a file. A line break is defined as any occurrence of '\n' or '\r'. There is no trimming or processing of the lines, including empty lines.
 
     Returns: A vector<string> of each line of an entire file.
-    Note: Does not check pFile==NULL.
 */
 std::vector<std::string> FileUtils::getFileLines(FILE* pFile, bool includeEmptyLines)
 {
@@ -114,6 +113,7 @@ std::vector<std::string> FileUtils::getFileLines(FILE* pFile, bool includeEmptyL
             foundNewLine = true;
 
             if(includeEmptyLines || currentLine.str().size()>0) {
+                Log::log("%s", currentLine.str().c_str());
                 ret.push_back(currentLine.str());
             }
             currentLine.str(std::string());
@@ -135,7 +135,7 @@ std::vector<std::string> FileUtils::getFileLines(FILE* pFile, bool includeEmptyL
 
 std::vector<std::string> FileUtils::readFileLines(std::string path, bool includeEmptyLines)
 {
-    FILE* pFile = fopen(path.c_str(), "r");    
+    FILE* pFile = fopen(path.c_str(), "r");
     std::vector<std::string> ret = FileUtils::getFileLines(pFile);
     fclose(pFile);
     return ret;
