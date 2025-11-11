@@ -50,8 +50,8 @@ std::string FileUtils::getFileContent(FILE* pFile)
     }
 
     std::stringstream ret;
-	char c = '\0';
-	while( (c = std::fgetc(pFile))!=EOF ) {
+	int c = '\0';
+	while((c = std::fgetc(pFile))!=EOF ) {
         ret << c;
     }
     return ret.str();
@@ -107,7 +107,7 @@ std::vector<std::string> FileUtils::getFileLines(FILE* pFile, bool includeEmptyL
     bool foundNewLine = false;
     std::stringstream currentLine;
 	
-	char c = '\0';
+	int c = '\0';
 	while( (c = std::fgetc(pFile))!=EOF ) {
         if( !foundNewLine && (c=='\n' || c=='\r') ) {  /* Found newline character */
             foundNewLine = true;
@@ -135,7 +135,7 @@ std::vector<std::string> FileUtils::getFileLines(FILE* pFile, bool includeEmptyL
 std::vector<std::string> FileUtils::readFileLines(std::string path, bool includeEmptyLines)
 {
     FILE* pFile = fopen(path.c_str(), "r");
-    std::vector<std::string> ret = FileUtils::getFileLines(pFile);
+    std::vector<std::string> ret = FileUtils::getFileLines(pFile, includeEmptyLines);
     fclose(pFile);
     return ret;
 }
