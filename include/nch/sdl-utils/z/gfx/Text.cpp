@@ -115,27 +115,29 @@ double Text::getHeight() { return height*scale; }
 double Text::getUnscaledHeight() { return height; }
 std::u16string Text::getText() { return text; }
 
-void Text::setScale(double scale)
+bool Text::setScale(double scale)
 {
-    if(scale==Text::scale) return;
+    if(scale==Text::scale) return false;
 
     Text::scale = scale;
     updateTextTexture();
+    return true;
 }
 void Text::forcedNearestScaling(bool fns)
 {
     forceNearestScaling = fns;
 }
 
-void Text::setText(std::u16string text)
+bool Text::setText(std::u16string text)
 {
-    if(text==Text::text) return;
+    if(text==Text::text) return false;
 
     //Update string and update unscaled width/height
     Text::text = text;
     updateTextTexture();
+    return true;
 }
-void Text::setText(std::string text)
+bool Text::setText(std::string text)
 {
     //Convert string to unicode and set text
     std::string utf8_string = text;
@@ -143,7 +145,7 @@ void Text::setText(std::string text)
     std::u16string utf16_string = convert.from_bytes(utf8_string);
     const char16_t* unicodeText = utf16_string.c_str();
 
-    setText(unicodeText);
+    return setText(unicodeText);
 }
 
 void Text::setWrapLength(int wl)

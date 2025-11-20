@@ -1,10 +1,13 @@
 #include "MainLoopDriver.h"
-#include <SDL2/SDL_timer.h>
+#include <assert.h>
 #include <thread>
+#include <SDL2/SDL_timer.h>
+#include "nch/cpp-utils/color.h"
 #include "nch/cpp-utils/log.h"
 #include "nch/cpp-utils/timer.h"
 #include "nch/sdl-utils/input.h"
 #include "nch/sdl-utils/input.h"
+
 
 
 /* Emscripten app support */
@@ -27,6 +30,8 @@ SDL_Renderer* MainLoopDriver::rend;
 bool MainLoopDriver::loggingPerformance = false;
 std::string MainLoopDriver::performanceInfo = "???null???";
 int MainLoopDriver::currentFPS = 0, MainLoopDriver::currentTPS = 0;
+std::vector<double> MainLoopDriver::frameTimes, MainLoopDriver::tickTimes;
+
 std::mutex MainLoopDriver::mtx;
 int MainLoopDriver::currentNumTicksLeft = 0;
 uint64_t MainLoopDriver::lastTickNS = 0;
@@ -74,6 +79,45 @@ bool MainLoopDriver::hasQuit() {
 	return !running;
 }
 
+void MainLoopDriver::drawPerformanceBenchmark(SDL_Renderer* sdlRend, int bmHeight, int windowWidth, int windowHeight)
+{
+	SDL_BlendMode oldBlendMode;
+	SDL_GetRenderDrawBlendMode(rend, &oldBlendMode);
+	SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
+
+	//Tick and frame rectangles
+	{
+		Color col1(255, 0, 255);
+		SDL_Rect tickRect = {windowWidth-targetTPS, windowHeight-bmHeight, targetTPS, bmHeight};
+		SDL_SetRenderDrawColor(rend, col1.r, col1.g, col1.b, 191);
+		SDL_RenderFillRect(sdlRend, &tickRect);
+
+		Color col0(0, 255, 255);
+		SDL_Rect frameRect = {0, windowHeight-bmHeight, targetFPS, bmHeight};
+		SDL_SetRenderDrawColor(rend, col0.r, col0.g, col0.b, 191);
+		SDL_RenderFillRect(sdlRend, &frameRect);
+	}
+
+
+	//Frame times
+	double idealMSPF = 1000.0/targetFPS;
+	for(int i = 0; i<frameTimes.size()&&i<targetFPS; i++) {
+		int lineHeight = (bmHeight*frameTimes[i]/idealMSPF)+1;
+
+		SDL_SetRenderDrawColor(sdlRend, 255, 0, 0, 255);
+		SDL_RenderDrawLine(sdlRend, i, windowHeight-lineHeight, i, windowHeight);
+	}
+	//Tick times
+	double idealMSPT = 1000.0/targetTPS;
+	for(int i = 0; i<tickTimes.size()&&i<targetTPS; i++) {
+		int lineHeight = (bmHeight*tickTimes[i]/idealMSPT)+1;
+
+		SDL_SetRenderDrawColor(sdlRend, 0, 255, 0, 255);
+		SDL_RenderDrawLine(sdlRend, windowWidth-targetTPS+i, windowHeight-lineHeight, windowWidth-targetTPS+i, windowHeight);
+	}
+
+	SDL_SetRenderDrawBlendMode(rend, oldBlendMode);
+}
 void MainLoopDriver::quit() {
 	running = false;
 }
@@ -97,6 +141,10 @@ void MainLoopDriver::start(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targ
 		MainLoopDriver::targetTPS = targetTPS;
 		tps = 0;
 		numTicksPassedThisSec = 0;
+		tickTimes.clear(); tickTimes.reserve(targetTPS);
+		for(int i = 0; i<targetTPS; i++) {
+			tickTimes.push_back(0);
+		}
 		//Draw
 		MainLoopDriver::drawFunc = drawFunc;
 		MainLoopDriver::altDrawFunc = altDrawFunc;
@@ -104,6 +152,10 @@ void MainLoopDriver::start(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targ
 		fps = 0;
 		nsPerFrame = 1000000000/(uint64_t)targetFPS;
 		nextFrameNS = 0;
+		frameTimes.clear(); frameTimes.reserve(targetFPS);
+		for(int i = 0; i<targetFPS; i++) {
+			frameTimes.push_back(0);
+		}
 		//Events
 		MainLoopDriver::eventFunc = eventFunc;
 		//Input init
@@ -126,7 +178,6 @@ void MainLoopDriver::start(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targ
 	//Quit once main loop has finished.
 	SDL_Quit();
 }
-
 void MainLoopDriver::mainLoop(void)
 {
 	#ifdef EMSCRIPTEN
@@ -140,23 +191,32 @@ void MainLoopDriver::mainLoop(void)
 
 	//Tick as many times as currently needed by the program (may be 0 or more)
 	while(currentNumTicksLeft>0) {
+		Timer tim("tick");
+		
 		const std::lock_guard<std::mutex> lock(mtx);
 		numTicksPassedThisSec++;
 		currentNumTicksLeft--;
-
 		lastTickNS = Timer::getCurrentTimeNS();
+		
 		Input::tick();
 		tickFunc();
-		tps++;
-		numTicksPassedTotal++;
+		if(tps==0) tickTimes.clear();
+
+		tps++; numTicksPassedTotal++;
+		tickTimes.push_back(tim.getElapsedTimeMS());
 	}
 
 	//Draw once if we should (never draw multiple times at once)
 	if(Timer::getCurrentTimeNS()>=nextFrameNS) {
+		Timer tim("draw");
+
 		nextFrameNS = Timer::getCurrentTimeNS()+nsPerFrame;
 		if(drawFunc!=nullptr) drawFunc(rend);
 		if(altDrawFunc!=nullptr) altDrawFunc();
+		if(fps==0) frameTimes.clear();
+
 		fps++;
+		frameTimes.push_back(tim.getElapsedTimeMS());
 	}
 	
 	//Events
@@ -175,8 +235,6 @@ void MainLoopDriver::mainLoop(void)
 	//This should not affect tickrate as 'currentNumTicksLeft' allows for ticks to "catch up"
 	Timer::sleep(1);
 }
-
-
 void MainLoopDriver::ticker()
 {
 	//Tick loop
@@ -209,7 +267,6 @@ void MainLoopDriver::ticker()
 		Timer::sleep(1);
 	}
 }
-
 void MainLoopDriver::events() {
 	SDL_Event e;
 	while( SDL_PollEvent(&e)!=0 ) {

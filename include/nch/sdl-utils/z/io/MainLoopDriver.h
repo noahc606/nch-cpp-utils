@@ -19,6 +19,7 @@ public:
     static uint64_t getNumTicksPassedTotal();
     static bool hasQuit();
     
+    static void drawPerformanceBenchmark(SDL_Renderer* sdlRend, int bmHeight, int windowWidth, int windowHeight);
     static void quit();
 private:
     void start(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), void (*altDrawFunc)(), uint64_t targetFPS, void (*eventFunc)(SDL_Event&));
@@ -42,6 +43,7 @@ private:
     static bool loggingPerformance;
     static std::string performanceInfo;
     static int currentTPS; static int currentFPS;
+    static std::vector<double> frameTimes, tickTimes;
     //Objects used by ticker
 	static std::mutex mtx;
 	static int currentNumTicksLeft;

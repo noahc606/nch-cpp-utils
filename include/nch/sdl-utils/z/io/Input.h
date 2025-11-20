@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_keycode.h>
 #include <map>
+#include <string>
 #include <vector>
 
 namespace nch { class Input {
@@ -22,7 +23,7 @@ public:
 	static void allEvents(SDL_Event& e);
 	static void inputEvents(SDL_Event& e);
 	
-    static SDL_Event getLastKnownSDLEvent();
+    static std::string getLastKnownSDLEventDesc();
     static int32_t getLastKnownSDLEventID();
 	static int getMouseXAbs(), getMouseYAbs();
 	static int getMouseX(), getMouseY();
@@ -46,7 +47,7 @@ private:
 	static void updInputState(InputTypeID inputType, int64_t sdlInputID, bool holdingDown);
 	static int inputDownTime(InputTypeID inputType, int64_t sdlInputID);
 
-	static SDL_Event lastKnownEvent;
+	static std::string lastKnownEventDesc;
 	static int64_t lastKnownEventID;
 	static std::vector<std::map<int64_t, int>> inputStates;	//<int64_t, int> = <event ID, time held down>
 	static std::map<int, int> joyHatStates; //<int, int> = <joyhat index, position>

@@ -3,6 +3,7 @@
 #include <nch/cpp-utils/fs-utils.h>
 #include <nch/cpp-utils/color.h>
 #include <nch/cpp-utils/log.h>
+#include <nch/cpp-utils/string-utils.h>
 #include <nch/cpp-utils/timer.h>
 #include <nch/sdl-utils/z/debug/SDLEventDebugger.h>
 #include <nch/sdl-utils/text.h>
@@ -15,6 +16,7 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
+using namespace nch;
 
 bool doBackground = true;
 bool firstDraw = true;
@@ -23,7 +25,7 @@ int64_t drawTimer = -10;
 SDL_Texture* tex = nullptr;
 SDL_Window* win = nullptr;
 uint32_t winPixFormat = 0;
-nch::ArrayList<nch::Text> dbgScreen;
+ArrayList<Text> dbgScreen;
 TTF_Font* dbgFont = nullptr;
 std::string basePath = "";
 
@@ -43,18 +45,15 @@ void drawInfo(SDL_Renderer* rend)
     int width = getWidth();
     int height = getHeight();
 
-    std::stringstream s1; s1 << "CurrentTimeNS=" << nch::Timer::getCurrentTimeNS();
-    dbgScreen[0].setText(s1.str());
-    
-    dbgScreen[1].setText(nch::MainLoopDriver::getPerformanceInfo());
 
-    std::stringstream s2; s2 << "Window dimensions (W x H) = " << width << " x " << height << ".";
-    dbgScreen[2].setText(s2.str());
-
-    std::stringstream s3; s3 << "Last Known Input Event ID: " << nch::Input::getLastKnownSDLEventID();
-    dbgScreen[3].setText(s3.str());
+    {
+        dbgScreen[0].setText(StringUtils::cat("CurrentTimeNS=", Timer::getCurrentTimeNS()));
+        dbgScreen[1].setText(MainLoopDriver::getPerformanceInfo());
+        dbgScreen[2].setText(StringUtils::cat("Window dimensions (W x H) = ", width, " x ", height, "."));
+        dbgScreen[3].setText(StringUtils::cat("Last Known Input Event ID: ", Input::getLastKnownSDLEventID()));
+        dbgScreen[4].setText(Input::getLastKnownSDLEventDesc());
+    }
     
-    dbgScreen[4].setText( nch::SDLEventDebugger::toString(nch::Input::getLastKnownSDLEvent()) );
 
     int secs = -1;
     int pct = -1;
@@ -66,10 +65,8 @@ void drawInfo(SDL_Renderer* rend)
         case SDL_PowerState::SDL_POWERSTATE_NO_BATTERY: { powerState = "No Battery"; } break;
         case SDL_PowerState::SDL_POWERSTATE_ON_BATTERY: { powerState = "On Battery"; } break;
         case SDL_PowerState::SDL_POWERSTATE_UNKNOWN: { powerState = "Unknown"; } break;
-    }
-    
-    std::stringstream s4; s4 << "Battery: " << pct << "% (~" << secs << "s left). Power State: " << powerState;
-    dbgScreen[4].setText(s4.str());
+    }    
+    dbgScreen[5].setText(StringUtils::cat("Battery: ", pct, "% (~", secs, "s left). Power State: ", powerState));
 
     double scale = 0.125*1;
     for(int i = 0; i<dbgScreen.size(); i++) {
@@ -121,6 +118,8 @@ void draw(SDL_Renderer* rend)
     }
 
     drawInfo(rend);
+
+    nch::MainLoopDriver::drawPerformanceBenchmark(rend, 100, getWidth(), getHeight());
 
     //Render all present objects
     SDL_RenderPresent(rend);

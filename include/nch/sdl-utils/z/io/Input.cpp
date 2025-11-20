@@ -4,7 +4,7 @@
 #include <SDL2/SDL_events.h>
 using namespace nch;
 
-SDL_Event Input::lastKnownEvent;
+std::string Input::lastKnownEventDesc;
 int64_t Input::lastKnownEventID = -1;
 std::vector<std::map<int64_t, int>> Input::inputStates;	//<int64_t, int> = <event ID, time held down>
 std::map<int, int> Input::joyHatStates; //<int, int> = <joyhat index, position>
@@ -44,10 +44,7 @@ void Input::tick()
 void Input::allEvents(SDL_Event& e)
 {
 	SDLEventDebugger sed;
-	std::string eventDesc = sed.toString(e);
-	if(eventDesc!="unknown") {
-		lastKnownEvent = e;
-	}
+	lastKnownEventDesc = sed.toString(e);
 }
 void Input::inputEvents(SDL_Event& e)
 {
@@ -93,7 +90,7 @@ void Input::inputEvents(SDL_Event& e)
 	currentModKeys = e.key.keysym.mod;
 }
 
-SDL_Event Input::getLastKnownSDLEvent() { return lastKnownEvent; }
+std::string Input::getLastKnownSDLEventDesc() { return lastKnownEventDesc; }
 int32_t Input::getLastKnownSDLEventID() { return lastKnownEventID; }
 int Input::getMouseXAbs() { int x; SDL_GetMouseState(&x, NULL); return x; }
 int Input::getMouseYAbs() { int y; SDL_GetMouseState(NULL, &y); return y; }

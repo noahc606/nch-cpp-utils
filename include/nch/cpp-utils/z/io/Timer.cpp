@@ -1,11 +1,7 @@
 #include "nch/cpp-utils/log.h"
 #include "nch/cpp-utils/timer.h"
-
-#if (defined(_WIN32) || defined(WIN32))
-    #include <windows.h>    
-#elif (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
-    #include <unistd.h>
-#endif
+#include <chrono>
+#include <thread>
 
 using namespace nch;
 
@@ -62,12 +58,5 @@ void Timer::debugElapsedTimeMS()
 void Timer::sleep(int ms)
 {
     if(ms<0) ms = 0;
-
-    #if (defined(_WIN32) || defined(WIN32))
-        Sleep(ms);
-    #elif (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
-        usleep(1000*ms);
-    #else
-        Log::throwException(__PRETTY_FUNCTION__, "Unknown operating system detected");
-    #endif
+    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 }

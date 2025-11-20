@@ -341,7 +341,7 @@ bool StringUtils::validateCmdArgLabel(const std::string& s) {
     return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-");
 }
 bool StringUtils::validateSpaceless(const std::string& s) {
-    return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.?=&#_-~%+");
+    return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.?!@#$%^&*=#_-~+");
 }
 bool StringUtils::validateSafeString(const std::string& s) {
     return validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_ ()[]{}'");

@@ -126,3 +126,9 @@ std::string FilePath::getWithoutExtension()
     }
     return cleanpath;
 }
+
+bool FilePath::isHidden()
+{
+    try { return getObjectName().at(0)=='.'; } catch(...) {}
+    return false;
+}

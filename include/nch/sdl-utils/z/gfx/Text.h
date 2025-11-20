@@ -29,9 +29,9 @@ public:
     double getUnscaledWidth(); double getUnscaledHeight();
     std::u16string getText();
 
-    void setScale(double scale);
+    bool setScale(double scale);
     void forcedNearestScaling(bool fns);
-    void setText(std::u16string text); void setText(std::string text);
+    bool setText(std::u16string text); bool setText(std::string text);
     void setWrapLength(int wl);
     void setMaxLines(int ml);
     void setEveryLineCentered(bool elc);
