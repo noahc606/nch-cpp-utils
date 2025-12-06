@@ -7,6 +7,8 @@
 namespace nch { class StringUtils {
 public:
 
+    static void logValidationWarnings(bool show);
+
     template<typename T> static void cat(std::stringstream& ss, T t) {
         ss << t;
     }
@@ -68,6 +70,7 @@ public:
     static bool validateCmdArgLabel(const std::string& s);
     static bool validateSafeString(const std::string& s);
     static bool validateIP(const std::string& s);
+    static bool validateEnv(const std::string& s);
 private:
-
+    static bool loggingValidationWarnings;
 }; }

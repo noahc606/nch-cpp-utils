@@ -5,8 +5,12 @@
 #include <iomanip>
 #include <locale>
 #include <sstream>
-
 using namespace nch;
+bool StringUtils::loggingValidationWarnings = true;
+
+void StringUtils::logValidationWarnings(bool show) {
+    loggingValidationWarnings = show;
+}
 
 std::vector<std::string> StringUtils::split(const std::string& toSplit, char delim)
 {
@@ -325,7 +329,8 @@ bool StringUtils::validateString(const std::string& s, const std::string& charSe
 {
     for(int i = 0; i<s.size(); i++)
         if(charSet.find(s[i])==std::string::npos) {
-            Log::warnv(__PRETTY_FUNCTION__, "returning false", "String validation failed (\"%s\" must only contain characters from \"%s\")", s.c_str(), charSet.c_str());
+            if(loggingValidationWarnings)
+                Log::warnv(__PRETTY_FUNCTION__, "returning false", "String validation failed (\"%s\" must only contain characters from \"%s\")", s.c_str(), charSet.c_str());
             return false;
         }
     return true;
@@ -349,4 +354,11 @@ bool StringUtils::validateSafeString(const std::string& s) {
 
 bool StringUtils::validateIP(const std::string& s) {
     return validateString(s, "0123456789.");
+}
+
+bool StringUtils::validateEnv(const std::string& s) {
+    if(s.size()==0 || s.size()>1024) return false;
+    if(!validateString(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")) return false;
+    if(s.at(0)>='0' && s.at(0)<='9') return false;
+    return true;
 }

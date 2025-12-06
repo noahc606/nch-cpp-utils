@@ -10,6 +10,8 @@ using namespace nch;
 
 std::vector<std::string> XPath::query(const std::string& siteHTML, const std::string& xpQuery)
 {
+    if(siteHTML=="" || xpQuery=="") { return {}; }
+
     /* Build HTML document, XPath context, and XPath object */
     htmlDocPtr doc;
     xmlXPathContextPtr xpathCtx;
@@ -38,6 +40,8 @@ std::vector<std::string> XPath::query(const std::string& siteHTML, const std::st
 }
 std::string XPath::queryFirst(const std::string& siteHTML, const std::string& xpQuery)
 {
+    if(siteHTML=="" || xpQuery=="") { return ""; }
+
     auto ret = query(siteHTML, xpQuery);
     if(ret.size()==0) return "";
     return ret[0];
@@ -45,6 +49,8 @@ std::string XPath::queryFirst(const std::string& siteHTML, const std::string& xp
 
 std::vector<std::string> XPath::queryContent(const std::string& siteHTML, const std::string& xpQuery, const std::string& delim)
 {
+    if(siteHTML=="" || xpQuery=="") { return {}; }
+
     /* Build HTML document, XPath context, and XPath object */
     htmlDocPtr doc;
     xmlXPathContextPtr xpathCtx;
@@ -86,6 +92,8 @@ std::vector<std::string> XPath::queryContent(const std::string& siteHTML, const 
 }
 std::string XPath::queryContentFirst(const std::string& siteHTML, const std::string& xpQuery, const std::string& delim)
 {
+    if(siteHTML=="" || xpQuery=="") { return ""; }
+
     std::stringstream ret;
     auto contentsList = queryContent(siteHTML, xpQuery);
     for(int i = 0; i<contentsList.size(); i++) {
