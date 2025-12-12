@@ -80,6 +80,7 @@ std::string FilePath::getParentDirName() { return getGrandparentDirName(1); }
 
 std::string FilePath::getParentDirPath()
 {
+    if(cleanpath.size()==0) return "";
     std::string s = "/"+getObjectName(true);
     if(cleanpath.substr(cleanpath.size()-s.size())==s) {
         return cleanpath.substr(0, cleanpath.size()-s.size());
