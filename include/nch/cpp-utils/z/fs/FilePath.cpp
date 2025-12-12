@@ -80,10 +80,6 @@ std::string FilePath::getParentDirName() { return getGrandparentDirName(1); }
 
 std::string FilePath::getParentDirPath()
 {
-    if(!FsUtils::dirExists(get()) && !FsUtils::fileExists(get())) {
-        throw std::exception(std::out_of_range("The file pointed to by this object does not exist"));
-    }
-
     std::string s = "/"+getObjectName(true);
     if(cleanpath.substr(cleanpath.size()-s.size())==s) {
         return cleanpath.substr(0, cleanpath.size()-s.size());
@@ -120,6 +116,8 @@ std::string FilePath::getExtension()
 
 std::string FilePath::getWithoutExtension()
 {
+    if(cleanpath=="") return "";
+
     std::string s = "."+getExtension();
     if(cleanpath.substr(cleanpath.size()-s.size())==s) {
         return cleanpath.substr(0, cleanpath.size()-s.size());

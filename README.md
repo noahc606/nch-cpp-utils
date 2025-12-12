@@ -11,3 +11,4 @@ Copy or symlink "nch" within this repo's "include" directory into your own proje
 - cpp-utils: none
 - sdl-utils: Depends on cpp-utils
 - ffmpeg-utils: Depends on cpp-utils + sdl-utils
+- xml-utils: Depends on cpp-utils
