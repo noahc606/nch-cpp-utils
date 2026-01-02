@@ -263,6 +263,15 @@ std::string StringUtils::replacedAllAWithB(std::string str, const std::string& a
     }
     return str;
 }
+std::u16string StringUtils::u16ReplacedAllAWithB(std::u16string str, const std::u16string& a, const std::u16string& b)
+{
+    size_t pos = str.find(a);
+    while(pos!=std::u16string::npos) {
+        str.replace(pos, a.size(), b);
+        pos = str.find(a, pos + b.size());
+    }
+    return str;
+}
 
 int StringUtils::parseCmdArg(const std::vector<std::string>& args, std::string argLabel, int defaultValue, int errorValue)
 {

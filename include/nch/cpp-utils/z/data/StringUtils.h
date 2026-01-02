@@ -57,6 +57,7 @@ public:
     static bool aContainsB(const std::string& a, const std::string& b);
     static bool aContainsAllMembersOfB(const std::string& a, const std::vector<std::string>& b);
     static std::string replacedAllAWithB(std::string str, const std::string& a, const std::string& b);
+    static std::u16string u16ReplacedAllAWithB(std::u16string str, const std::u16string& a, const std::u16string& b);
 
     static int parseCmdArg(const std::vector<std::string>& args, std::string argLabel, int defaultValue, int errorValue);
     static std::string parseCmdArg(const std::vector<std::string>& args, std::string argLabel, std::string defaultValue, std::string errorValue);

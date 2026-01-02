@@ -131,7 +131,7 @@ void Text::forcedNearestScaling(bool fns)
 bool Text::setText(std::u16string text)
 {
     if(text==Text::text) return false;
-
+    
     //Update string and update unscaled width/height
     Text::text = text;
     updateTextTexture();

@@ -56,7 +56,6 @@ private:
     double width = 0;
     double height = 0;
 
-
     bool forceNearestScaling = false;
     TextShadow shadow;
     double scale = 1;

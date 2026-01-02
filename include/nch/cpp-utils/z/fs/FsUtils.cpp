@@ -296,8 +296,7 @@ std::string FsUtils::getPathWithInferredExtension(std::string path) {
 
     if(logWarnings && count>1) Log::warnv(__PRETTY_FUNCTION__, "returning "+res, "Found %d possible matches for \"%s\"", count, path.c_str());
     if(res=="?null?") {
-        Log::error(__PRETTY_FUNCTION__, "Found no files matching the provided path \"%s\"", path.c_str());
-        throw std::logic_error("");
+        throw std::logic_error("Found no files matching the provided path");
     }
     return res;
 }
