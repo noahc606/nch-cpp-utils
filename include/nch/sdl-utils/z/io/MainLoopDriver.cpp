@@ -82,19 +82,19 @@ bool MainLoopDriver::hasQuit() {
 void MainLoopDriver::drawPerformanceBenchmark(SDL_Renderer* sdlRend, int bmHeight, int windowWidth, int windowHeight)
 {
 	SDL_BlendMode oldBlendMode;
-	SDL_GetRenderDrawBlendMode(rend, &oldBlendMode);
-	SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
+	SDL_GetRenderDrawBlendMode(sdlRend, &oldBlendMode);
+	SDL_SetRenderDrawBlendMode(sdlRend, SDL_BLENDMODE_BLEND);
 
 	//Tick and frame rectangles
 	{
 		Color col1(255, 0, 255);
 		SDL_Rect tickRect = {windowWidth-targetTPS, windowHeight-bmHeight, targetTPS, bmHeight};
-		SDL_SetRenderDrawColor(rend, col1.r, col1.g, col1.b, 191);
+		SDL_SetRenderDrawColor(sdlRend, col1.r, col1.g, col1.b, 191);
 		SDL_RenderFillRect(sdlRend, &tickRect);
 
 		Color col0(0, 255, 255);
 		SDL_Rect frameRect = {0, windowHeight-bmHeight, targetFPS, bmHeight};
-		SDL_SetRenderDrawColor(rend, col0.r, col0.g, col0.b, 191);
+		SDL_SetRenderDrawColor(sdlRend, col0.r, col0.g, col0.b, 191);
 		SDL_RenderFillRect(sdlRend, &frameRect);
 	}
 
@@ -116,7 +116,7 @@ void MainLoopDriver::drawPerformanceBenchmark(SDL_Renderer* sdlRend, int bmHeigh
 		SDL_RenderDrawLine(sdlRend, windowWidth-targetTPS+i, windowHeight-lineHeight, windowWidth-targetTPS+i, windowHeight);
 	}
 
-	SDL_SetRenderDrawBlendMode(rend, oldBlendMode);
+	SDL_SetRenderDrawBlendMode(sdlRend, oldBlendMode);
 }
 void MainLoopDriver::quit() {
 	running = false;
