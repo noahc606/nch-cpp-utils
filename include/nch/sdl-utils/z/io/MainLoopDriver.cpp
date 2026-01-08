@@ -6,9 +6,6 @@
 #include "nch/cpp-utils/log.h"
 #include "nch/cpp-utils/timer.h"
 #include "nch/sdl-utils/input.h"
-#include "nch/sdl-utils/input.h"
-
-
 
 /* Emscripten app support */
 #ifdef EMSCRIPTEN
