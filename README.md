@@ -1,7 +1,7 @@
 # NCH-CPP-Utils
 Noah's Utilities for C++, SDL2, FFmpeg, XML, and OpenGL.
 
-This repo contains shared C++ code for some of my other projects. It is a collection of 7 modules (math, cpp, sdl, ffmpeg, xml, json, opengl) - some may or may not be included depending on what is needed.
+This repo contains shared C++ code for some of my other projects. It is a collection of 8 modules - each may or may not be included depending on what is needed.
 
 # NCH Library Modules & Inter-Dependencies
 - math-utils: none
@@ -21,7 +21,7 @@ There's a CMakeLists.txt here which you can use to build the example nch::MainLo
 Building with Emscripten is possible (especially with the first 3 modules) but is not fully supported. <a href="https://noahc606.github.io/nch/emscripten/apps/nch-cpp-utils/">Here</a> is a browser-viewable Emscripten demo of the example program.
 
 # Third-party Dependencies
-This only applies to the modules after the first 3. Module 'ffmpeg-utils' is dynamically linked to via linker flags - FFmpeg is not included within this repo. Copies of <a href="https://github.com/g-truc/glm">glm</a> and <a href="https://github.com/nlohmann/json">nlohmann-json</a> are included within /include, and both are MIT licensed. They are used by 'opengl-utils' and 'json-utils' respectively. libxml2 is manually linked via CMakeLists.txt from /usr/include/libxml2 if it exists and is used by 'xml-utils'.
+This only applies to the modules after the first 3. Module 'rmlui-utils' is in its own repo and you can find out more about it <a href="https://github.com/noahc606/NCH-RmlUi-Utils">here</a>. Module 'ffmpeg-utils' is dynamically linked to via linker flags - FFmpeg is not included within this repo. Copies of <a href="https://github.com/g-truc/glm">glm</a> and <a href="https://github.com/nlohmann/json">nlohmann-json</a> are included within /include, and both are MIT licensed. They are used by 'opengl-utils' and 'json-utils' respectively. libxml2 is manually linked via CMakeLists.txt from /usr/include/libxml2 if it exists and is used by 'xml-utils'.
 
 If you do not need these, you don't need to include them within your 'include' folder. You can also remove the line that says /usr/include/libxml2 from the CMakeLists.txt if it is not needed. Similarly, you can remove linker flags you don't need within target_link_libraries:
 - "-lavutil, ...everything after..." -> FFmpeg, ffmpeg-utils
