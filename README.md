@@ -8,6 +8,7 @@ This repo contains shared C++ code for some of my other projects. It is a collec
 - cpp-utils: none
 - sdl-utils: Depends on cpp-utils
 - ffmpeg-utils: Depends on cpp-utils + sdl-utils
+- rmlui-utils (<a href="https://github.com/noahc606/NCH-RmlUi-Utils">separate repo</a>): Depends on cpp-utils + math-utils + sdl-utils
 - xml-utils: Depends on cpp-utils
 - json-utils: none
 - opengl-utils: Depends on cpp-utils + math-utils + sdl-utils
