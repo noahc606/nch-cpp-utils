@@ -42,7 +42,42 @@ Shader* Shader::readFromFiles(std::string vertexFilePath, std::string fragmentFi
 Shader* Shader::readFromAssetPath(std::string assetPath) {
     return readFromFiles(assetPath+".vs", assetPath+".fs");
 }
-Shader* Shader::createDefault2D() {
+Shader* Shader::createDefault2D_TexOrSolid() {
+    return new Shader(
+        R"(
+            #version 330 core
+            layout(location = 0) in vec2 inPos;     //Original position
+            layout(location = 1) in vec4 inColor;   //Original color
+            layout(location = 2) in vec2 inTexUV;   //Original texture UV
+            out vec4 vColor;                        //Final vertex color -> Frag
+            out vec2 vTexUV;                        //Final texture UV -> Frag
+            uniform mat4 uProjection;               //Projection matrix
+
+            void main() {
+                vColor = inColor;
+                vTexUV = inTexUV;
+                gl_Position = uProjection*vec4(inPos, 0.0, 1.0);
+            }
+        )",
+        R"(
+            #version 330 core
+            in vec4 vColor;             //Vertex -> Color
+            in vec2 vTexUV;             //Vertex -> UV
+            out vec4 FragColor;         //Final pixel color
+            uniform bool uApplyTexture; //Apply texture?
+            uniform sampler2D uTexture;
+
+            void main() {
+                if(uApplyTexture) {
+                    FragColor = texture(uTexture, vTexUV)*vColor;
+                } else {
+                    FragColor = vColor;
+                }
+            }
+        )"
+    );
+}
+Shader* Shader::createDefault2D_Tex() {
     return new Shader(
         R"(
             #version 330 core
@@ -61,12 +96,12 @@ Shader* Shader::createDefault2D() {
         R"(
             #version 330 core
             in vec2 TexCoord;
-            out vec4 color;
+            out vec4 FragColor;
 
             uniform sampler2D textTexture;
 
             void main() {
-                color = texture(textTexture, TexCoord);
+                FragColor = texture(textTexture, TexCoord);
             }
         )"
     );

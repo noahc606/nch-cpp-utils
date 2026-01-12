@@ -8,7 +8,8 @@ public:
     ~Shader();
     static Shader* readFromFiles(std::string vertexFilePath, std::string fragmentFilePath);
     static Shader* readFromAssetPath(std::string assetPath);
-    static Shader* createDefault2D();
+    static Shader* createDefault2D_TexOrSolid();
+    static Shader* createDefault2D_Tex();
     static Shader* createDefault3D();
 
     GLuint getID();
