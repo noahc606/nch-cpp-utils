@@ -7,7 +7,7 @@ nlohmann::json JSON::loadFromFile(const std::string& path)
 {
     nlohmann::json ret;
     if(!FsUtils::fileExists(path)) {
-        Log::warnv(__PRETTY_FUNCTION__, "returning empty JSON object." "File @ \"%s\" doesn't exist", path.c_str());
+        Log::warnv(__PRETTY_FUNCTION__, "returning empty JSON object", "File @ \"%s\" doesn't exist", path.c_str());
         return ret;
     }
 
