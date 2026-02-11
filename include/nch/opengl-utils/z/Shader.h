@@ -1,5 +1,6 @@
 #pragma once
 #include <GL/glew.h>
+#include <nch/math-utils/vec3.h>
 #include <string>
 
 namespace nch { class Shader {
@@ -13,6 +14,10 @@ public:
     static Shader* createDefault3D();
 
     GLuint getID();
+    GLint getUniformLoc(const std::string& name);
+    void setModelMatrix(nch::Vec3f scale, nch::Vec3f rotation, nch::Vec3f centerOfRotation);
+    void setModelMatrix(nch::Vec3f scale);
+    void resetModelMatrix();
 
     void useProgram();
     void deleteProgram();

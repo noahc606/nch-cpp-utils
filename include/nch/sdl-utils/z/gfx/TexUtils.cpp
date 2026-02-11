@@ -16,7 +16,6 @@ Color TexUtils::getPixelColor(void* pixels, SDL_PixelFormat* pxFmt, int pitch, i
 	SDL_GetRGBA(pixelData, pxFmt, &r, &g, &b, &a);
 	return Color(r, g, b, a);
 }
-
 Color TexUtils::getPixelColor(SDL_Surface* pSurface, int x, int y)
 {
     if(x<0 || x>=pSurface->w || y<0 || y>=pSurface->h) {
@@ -36,35 +35,36 @@ Color TexUtils::getPixelColor(SDL_Surface* pSurface, int x, int y)
 	SDL_GetRGBA(pixelData, pSurface->format, &r, &g, &b, &a);
 	return Color(r, g, b, a);
 }
-
+void TexUtils::setPixelColor(void* pixels, int pitch, uint8_t bpp, int x, int y, uint32_t rgba)
+{
+    uint32_t* const targetPixel = (uint32_t*) ((uint8_t*)pixels+y*pitch+x*bpp);
+    *targetPixel = rgba;
+}
 void TexUtils::setPixelColor(SDL_Surface* pSurface, int x, int y, uint32_t rgba)
 {
     if(x<0 || x>=pSurface->w || y<0 || y>=pSurface->h) {
         throw std::out_of_range("Specified pixel (x, y) is outside of the surface.");
     }
-    
-    uint32_t* const targetPixel = (uint32_t*)
-        ((uint8_t*)pSurface->pixels + y*pSurface->pitch + x*pSurface->format->BytesPerPixel);
-    *targetPixel = rgba;
+    setPixelColor(pSurface->pixels, pSurface->pitch, pSurface->format->BytesPerPixel, x, y, rgba);
 }
 
-void TexUtils::clearTexture(SDL_Renderer* rend, SDL_Texture*& tex)
+void TexUtils::clearTexture(GLSDL_Renderer* rend, GLSDL_Texture*& tex)
 {
     //Save old render target, draw blend mode, and draw color
-    SDL_Texture* oldRTarget = SDL_GetRenderTarget(rend);
-    SDL_BlendMode oldRDBlendMode;   SDL_GetRenderDrawBlendMode(rend, &oldRDBlendMode);
-    uint8_t oRDR, oRDG, oRDB, oRDA; SDL_GetRenderDrawColor(rend, &oRDR, &oRDG, &oRDB, &oRDA);
+    GLSDL_Texture* oldRTarget = GLSDL_GetRenderTarget(rend);
+    SDL_BlendMode oldRDBlendMode;   GLSDL_GetRenderDrawBlendMode(rend, &oldRDBlendMode);
+    uint8_t oRDR, oRDG, oRDB, oRDA; GLSDL_GetRenderDrawColor(rend, &oRDR, &oRDG, &oRDB, &oRDA);
 
     //Clear the texture
-    SDL_SetRenderTarget(rend, tex);                         //Set render target to tex we are clearing
-    SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_NONE);   //Set blend mode to SDL_BLENDMODE_NONE to replace all pixels with transparency
-    SDL_SetRenderDrawColor(rend, 0, 0, 0, 0);               //Set render draw color to invisible
-    SDL_RenderFillRect(rend, NULL);                         //Fill tex with transparency
+    GLSDL_SetRenderTarget(rend, tex);                       //Set render target to tex we are clearing
+    GLSDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_NONE); //Set blend mode to SDL_BLENDMODE_NONE to replace all pixels with transparency
+    GLSDL_SetRenderDrawColor(rend, 0, 0, 0, 0);             //Set render draw color to invisible
+    GLSDL_RenderFillRect(rend, NULL);                       //Fill tex with transparency
 
     //Restore old render target, draw blend mode, and draw color
-    SDL_SetRenderTarget(rend, oldRTarget);
-    SDL_SetRenderDrawBlendMode(rend, oldRDBlendMode);
-    SDL_SetRenderDrawColor(rend, oRDR, oRDG, oRDB, oRDA);
+    GLSDL_SetRenderTarget(rend, oldRTarget);
+    GLSDL_SetRenderDrawBlendMode(rend, oldRDBlendMode);
+    GLSDL_SetRenderDrawColor(rend, oRDR, oRDG, oRDB, oRDA);
 }
 
 /*

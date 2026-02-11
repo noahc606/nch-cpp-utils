@@ -19,6 +19,10 @@ public:
         c1.z = std::min(z1, z2);    c2.z = std::max(z1, z2);
     }
     Box3(Vec3<T> c1, Vec3<T> c2): Box3(c1.x, c1.y, c1.z, c2.x, c2.y, c2.z){}
+    static Box3<T> createFromXYZdXYZ(T x, T y, T z, T dx, T dy, T dz) {
+        return Box3<T>(x, y, z, x+dx, y+dy, z+dz);
+    }
+
 
     /* Does this box contain point 'p' (may be on edges/faces)? */
     bool contains(Vec3<T> p) {

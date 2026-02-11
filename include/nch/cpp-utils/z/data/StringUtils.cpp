@@ -202,6 +202,15 @@ std::string StringUtils::unicodeEscaped(const std::wstring& ws)
 
     return ret.str();
 }
+std::string StringUtils::shortened(const std::string& s, int maxDisplaySize) {
+    if(s.size()<=maxDisplaySize) {
+        return s;
+    }
+    int segSize = (maxDisplaySize-3)/2;
+    std::string beg = s.substr(0, segSize);
+    std::string end = s.substr(s.size()-segSize, segSize);
+    return beg+"..."+end;
+}
 
 std::string StringUtils::stringFromBytestream(const std::vector<unsigned char>& byteStream, bool keepZeros)
 {

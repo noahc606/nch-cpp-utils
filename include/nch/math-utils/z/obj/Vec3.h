@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <sstream>
 #include <tuple>
+#ifdef GLM_ENABLE
+#include <glm/glm.hpp>
+#endif
 
 namespace nch { template <typename T> class Vec3
 {
@@ -20,19 +23,38 @@ public:
     }
     Vec3(T xyz) { x = xyz; y = xyz; z = xyz; }
 
+#ifdef GLM_ENABLE
+    Vec3(const glm::ivec3& v)   { x = static_cast<T>(v.x); y = static_cast<T>(v.y); z = static_cast<T>(v.z); }
+    Vec3(const glm::i64vec3& v) { x = static_cast<T>(v.x); y = static_cast<T>(v.y); z = static_cast<T>(v.z); }
+    Vec3(const glm::fvec3& v)   { x = static_cast<T>(v.x); y = static_cast<T>(v.y); z = static_cast<T>(v.z); }
+    Vec3(const glm::dvec3& v)   { x = static_cast<T>(v.x); y = static_cast<T>(v.y); z = static_cast<T>(v.z); }
+#endif
+
     /** Getters **/
     //Functions
-    T length2() { return x*x+y*y+z*z; }
-    T length() { return std::sqrt(length2()); }
-    std::tuple<T, T, T> tuple() { return std::make_tuple(x, y, z); }
-    T distanceTo(const Vec3<T>& v) {
+    T length2() const { return x*x+y*y+z*z; }
+    T length() const { return std::sqrt(length2()); }
+    std::tuple<T, T, T> tuple() const { return std::make_tuple(x, y, z); }
+    T distanceTo(const Vec3<T>& v) const {
         return std::sqrt( (v.x-x)*(v.x-x) + (v.y-y)*(v.y-y) + (v.z-z)*(v.z-z) );
     }
-    Vec3<double> toDouble() { return Vec3<double>(x, y, z); }
-    Vec3<int64_t> toInt64() { return Vec3<int64_t>(x, y, z); }
-    std::string toString() { std::stringstream ss; ss << "(" << x << ", " << y << ", " << z << ")"; return ss.str(); }
-    std::string toArrayString() { std::stringstream ss; ss << "[" << x << "," << y << "," << z << "]"; return ss.str(); }
-    
+    Vec3<T> getMidpoint(const Vec3<T>& v) const {
+        return ((*this)+v)*0.5f;
+    }
+    Vec3<float> toFloat() const { return Vec3<float>(x, y, z); }
+    Vec3<double> toDouble() const { return Vec3<double>(x, y, z); }
+    Vec3<int64_t> toInt64() const { return Vec3<int64_t>(static_cast<int64_t>(x), static_cast<int64_t>(y), static_cast<int64_t>(z)); }
+    Vec3<uint64_t> toUint64() const { return Vec3<uint64_t>(static_cast<uint64_t>(x), static_cast<uint64_t>(y), static_cast<uint64_t>(z)); }
+    std::string toString() const { std::stringstream ss; ss << "(" << x << ", " << y << ", " << z << ")"; return ss.str(); }
+    std::string toArrayString() const { std::stringstream ss; ss << "[" << x << "," << y << "," << z << "]"; return ss.str(); }
+
+#ifdef GLM_ENABLE
+    operator glm::dvec3() const { return glm::dvec3(x, y, z); }
+    operator glm::fvec3() const { return glm::fvec3(x, y, z); }
+    operator glm::ivec3() const { return glm::ivec3(x, y, z); }
+    operator glm::i64vec3() const { return glm::i64vec3(x, y, z); }
+#endif
+
     /** Operations **/
     //Basic operations
     Vec3<T> operator-() const { return Vec3<T>(-x, -y, -z); }                           //Negate

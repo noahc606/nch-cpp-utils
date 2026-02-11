@@ -60,7 +60,7 @@ std::string FileUtils::readFileContent(std::string path)
 {
     FILE* pFile = fopen(path.c_str(), "r");    
     std::string ret = FileUtils::getFileContent(pFile);
-    fclose(pFile);
+    if(pFile!=nullptr) fclose(pFile);
     return ret;
 }
 

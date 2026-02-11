@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <glm/glm.hpp>
 #include <nch/cpp-utils/arraylist.h>
+#include <sstream>
 #include "Tri.h"
 #include "Quad.h"
 #include "GeoUtils.h"
@@ -28,6 +29,16 @@ Vertex Poly::v(int idx) const {
 }
 glm::vec3 Poly::norm() const {
     return normal;
+}
+std::string Poly::toString() const {
+    std::stringstream ss;
+    ss << "Poly{";
+    for(size_t i = 0; i<verts.size(); i++) {
+        if(i>0) ss << ",";
+        ss << "(" << verts[i].pos.x << "," << verts[i].pos.y << "," << verts[i].pos.z << ")";
+    }
+    ss << "}";
+    return ss.str();
 }
 
 void Poly::simplyTex(const glm::vec2& uv0, const glm::vec2& uv1)
@@ -120,15 +131,21 @@ void Poly::simplyTex(const glm::vec2& uv0, const glm::vec2& uv1)
 }
 void Poly::rotate(const glm::vec3& center, const glm::vec3& xyzRot)
 {
-    for(int i = 0; i<verts.size(); i++) {
+    for(size_t i = 0; i<verts.size(); i++) {
         GeoUtils::rotatePoint(verts[i].pos, center, xyzRot);
     }
     super_updateNormals();
 }
 void Poly::move(const glm::vec3& offset)
 {
-    for(int i = 0; i<verts.size(); i++) {
+    for(size_t i = 0; i<verts.size(); i++) {
         verts[i].pos += offset;
+    }
+}
+void Poly::invertNorm() {
+    normal = -normal;
+    for(size_t i = 0; i<verts.size(); i++) {
+        verts[i].normal = normal;
     }
 }
 

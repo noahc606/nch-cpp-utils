@@ -1,30 +1,40 @@
 #include"Camera3D.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <nch/cpp-utils/log.h>
 #include <nch/cpp-utils/timer.h>
 #include <nch/sdl-utils/input.h>
 #include <nch/sdl-utils/main-loop-driver.h>
 #include <sstream>
-
 using namespace nch;
 
 const std::vector<std::string> Camera3D::dirStrings = {
     "east", "west", "down", "up", "south", "north", "unknown",
 };
 
-Camera3D::Camera3D(SDL_Window* win) {
-    for(int i = 0; i<6; i++)
-        frustumPlanes.push_back({0, 0, 0, 0});
-    
-    sdlWin = win;
+Camera3D::Camera3D() {
+    frustumPlanes.clear();
+    for(int i = 0; i<6; i++) frustumPlanes.push_back({0, 0, 0, 0});
+}
+Camera3D::Camera3D(SDL_Window* win) : Camera3D() {
+    setWindow(win);
 }
 Camera3D::~Camera3D(){}
 
 void Camera3D::tick()
 {
     lastTickTimeNS = Timer::getCurrentTimeNS();
-    if(sdlWin==nullptr) return;
-    SDL_GetWindowSize(sdlWin, &sdlWinW, &sdlWinH);
+    if(sdlWin==nullptr) {
+        if(sdlWinW<=0 || sdlWinH<=0) {
+            throw std::runtime_error(Log::getFormattedString(
+                "Window has invalid dimensions %dx%d - did you forget to call Camera3D::setWindow()?", sdlWinW, sdlWinH
+            ));
+            return;
+        }
+    } else {
+        SDL_GetWindowSize(sdlWin, &sdlWinW, &sdlWinH);
+    }
+    
 
     /* Camera focus */
     {
@@ -41,31 +51,40 @@ void Camera3D::tick()
     }
 
 }
-void Camera3D::drawFromPos(GLuint shaderID, glm::vec3 offset)
+void Camera3D::drawFromPos(GLuint shaderID, Vec3f offset)
 {
     //Find interpolated position ('ipos') between two ticks:
     //Uses current position, tick progress, and current velocity.
     uint64_t currTimeNS = Timer::getCurrentTimeNS();
     double tickProgress = (double)(currTimeNS-lastTickTimeNS)/MainLoopDriver::getTargetNSPT();
-    glm::vec3 iLPos = lPos+vel*(float)tickProgress+offset;
+    Vec3f iLPos = (lPos)+vel*(float)tickProgress+offset;
 
     updateCamMatrix(iLPos);
     glUniform3f(glGetUniformLocation(shaderID, "camPos"), iLPos.x, iLPos.y, iLPos.z);
     glUniformMatrix4fv(glGetUniformLocation(shaderID, "camMatrix"), 1, GL_FALSE, glm::value_ptr(cMatrix));
 }
-
-glm::vec3 Camera3D::dirToVec(int dir)
-{
-    switch(dir) {
-        case EAST:  return {-1,00,00};
-        case WEST:  return {01,00,00};
-        case DOWN:  return {00,-1,00};
-        case UP:    return {00,01,00};
-        case SOUTH: return {00,00,-1};
-        case NORTH: return {00,00,01};
-    }
-    return {0,0,0};
+void Camera3D::drawFromPos(GLuint shaderID) {
+    drawFromPos(shaderID, {0, 0, 0});
 }
+void Camera3D::drawSkybox(GLuint shaderID)
+{
+    //For skybox rendering, we want the camera at the origin
+    //This removes translation while keeping rotation
+    updateCamMatrix({0, 0, 0});
+    glUniform3f(glGetUniformLocation(shaderID, "camPos"), 0.0f, 0.0f, 0.0f);
+    glUniformMatrix4fv(glGetUniformLocation(shaderID, "camMatrix"), 1, GL_FALSE, glm::value_ptr(cMatrix));
+}
+
+Vec3i64 Camera3D::dirToVecI64(int dir) {
+    return dirToVecX<Vec3i64>(dir);
+}
+Vec3i Camera3D::dirToVecI(int dir) {
+    return dirToVecX<Vec3i>(dir);
+}
+Vec3f Camera3D::dirToVec(int dir) {
+    return dirToVecX<Vec3f>(dir);
+}
+
 std::string Camera3D::dirToString(int dir)
 {
     if(dir>=EAST && dir<=NORTH) return dirStrings[dir];
@@ -90,26 +109,30 @@ std::string Camera3D::getInfo() {
 
     std::stringstream ss;
     ss << "Camera={xyz: [" << epos.x << ", " << epos.y << ", " << epos.z << "], ";
-    ss << "yp: [" << yaw << ", " << pitch << "], ";
+    ss << "ypr: [" << yaw << ", " << pitch << ", " << roll << "], ";
     ss << "facing: " << Camera3D::dirToString(getFacingNESW()) << "}";
     return ss.str();
 }
 
-glm::vec3 Camera3D::getEstPos() {
+Vec3f Camera3D::getEstPos() {
     updateRegAndSubPos();
-    glm::vec3 ret = glm::vec3(regPos.x*32, regPos.y*32, regPos.z*32)+subPos;
+    Vec3f ret = Vec3f(regPos.x*32, regPos.y*32, regPos.z*32)+subPos;
     return ret;
 }
-glm::i64vec3 Camera3D::getRegPos() {
+Vec3i64 Camera3D::getRegPos() {
     updateRegAndSubPos();
     return regPos;
 }
-glm::vec3 Camera3D::getSubPos() {
+Vec3f Camera3D::getSubPos() {
     updateRegAndSubPos();
     return subPos;
 }
+Vec3i64 Camera3D::getIntPos() {
+    updateRegAndSubPos();
+    return regPos*32+Vec3i64(std::floor(subPos.x), std::floor(subPos.y), std::floor(subPos.z));
+}
 
-glm::vec3 Camera3D::getRot() const {
+Vec3f Camera3D::getRot() const {
     return rot;
 }
 float Camera3D::getYaw() const {
@@ -118,10 +141,13 @@ float Camera3D::getYaw() const {
 float Camera3D::getPitch() const {
     return pitch;
 }
+float Camera3D::getRoll() const {
+    return roll;
+}
 std::vector<glm::vec4> Camera3D::getFrustumPlanes() const {
     return frustumPlanes;
 }
-glm::vec3 Camera3D::getUp() const {
+Vec3f Camera3D::getUp() const {
     return up;
 }
 
@@ -134,13 +160,44 @@ int Camera3D::getFacingNESW() const
     return WEST;
 }
 
-void Camera3D::setPos(glm::vec3 pos) {
-    Camera3D::regPos = glm::i64vec3(0, 0, 0);
+void Camera3D::setWindow(SDL_Window* win) {
+    sdlWin = win;
+}
+void Camera3D::setWindow(Vec2i virtualWinDims) {
+    if(virtualWinDims.x<=0 || virtualWinDims.y<=0) {
+        throw std::invalid_argument("Both dimensions must be positive");
+    }
+    sdlWinW = virtualWinDims.x;
+    sdlWinH = virtualWinDims.y;
+}
+
+void Camera3D::setPos(Vec3f pos) {
+    Camera3D::regPos = Vec3i64(0, 0, 0);
     Camera3D::lPos = pos;
     updateRegAndSubPos();
 }
-void Camera3D::setVel(glm::vec3 vel) {
+void Camera3D::setVel(Vec3f vel) {
     Camera3D::vel = vel;
+}
+void Camera3D::setRot(float yaw, float pitch, float roll) {
+    while(yaw<0) yaw += 360;
+    while(yaw>360) yaw -= 360;
+    if(pitch>179.9) pitch = 179.9;
+    if(pitch<0.01) pitch = 0.01;
+    while(roll<0) roll += 360;
+    while(roll>360) roll -= 360;
+
+	//Update 'rot' based on current yaw and pitch
+	float the = pitch*M_PI/180.; //From pitch
+	float phi = yaw*M_PI/180.;   //From yaw
+	rot = {
+		std::sin(the)*std::cos(phi),
+		std::cos(the),
+		std::sin(the)*std::sin(phi)
+    };
+    Camera3D::yaw = yaw;
+    Camera3D::pitch = pitch;
+    Camera3D::roll = roll;
 }
 
 void Camera3D::setFOV(float fov) {
@@ -153,14 +210,20 @@ void Camera3D::setFarPlane(float fp) {
     Camera3D::farPlane = fp;
 }
 
-void Camera3D::updateCamMatrix(glm::vec3 pos)
+void Camera3D::updateCamMatrix(Vec3f pos)
 {
     glm::mat4 view = glm::mat4(1.0f);
     glm::mat4 proj = glm::mat4(1.0f);
 
-    view = glm::lookAt(pos, pos+rot, up);
+    //Calculate 'rolledUp' from 'roll' and 'up'
+    glm::vec3 baseUp = glm::vec3(up);
+    glm::vec3 forward = glm::vec3(rot);
+    float rollRad = roll*M_PI/180.0f;
+    glm::vec3 rolledUp = glm::rotate(glm::mat4(1.0f), rollRad, forward) * glm::vec4(baseUp, 0.0f);
+    //Calculate 'view' from lookAt and 'proj'
+    view = glm::lookAt((glm::vec3)pos, (glm::vec3)(pos+rot), rolledUp);
     proj = glm::perspective(glm::radians(fov), ((float)sdlWinW/(float)sdlWinH), nearPlane, farPlane);
-
+    //Calculate 'cMatrix' from 'view' and 'proj'
     cMatrix = proj*view;
 
     //Calculate frustum planes for the camera.
@@ -214,19 +277,7 @@ void Camera3D::subtickRotation()
 
         yaw -= dmx/4.;   //Yaw
         pitch -= dmy/4.;   //Pitch
-
-        while(yaw<0) yaw += 360;
-        while(yaw>360) yaw -= 360;
-        if(pitch>179.9) pitch = 179.9;
-        if(pitch<0.01) pitch = 0.01;
     }
 
-	//Update 'rot' based on current yaw and pitch
-	float the = pitch*M_PI/180.;   //From pitch
-	float phi = yaw*M_PI/180.;   //From yaw
-	rot = glm::vec3(
-		std::sin(the)*std::cos(phi),
-		std::cos(the),
-		std::sin(the)*std::sin(phi)
-	);
+    setRot(yaw, pitch, roll);
 }

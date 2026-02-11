@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include "FilePath.h"
 #include "nch/cpp-utils/log.h"
+#include "nch/cpp-utils/string-utils.h"
 
 #if ( defined(_WIN32) || defined(WIN32) )
     #include "direct.h"
@@ -296,7 +297,7 @@ std::string FsUtils::getPathWithInferredExtension(std::string path) {
 
     if(logWarnings && count>1) Log::warnv(__PRETTY_FUNCTION__, "returning "+res, "Found %d possible matches for \"%s\"", count, path.c_str());
     if(res=="?null?") {
-        throw std::logic_error("Found no files matching the provided path");
+        throw std::logic_error(StringUtils::cat("Found no files matching the provided path \"", path, "\""));
     }
     return res;
 }

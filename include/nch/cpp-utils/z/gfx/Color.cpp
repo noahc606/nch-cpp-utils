@@ -19,6 +19,13 @@ Color::Color(std::string p_value)
 		set(0);
 	}
 }
+Color Color::fromDoubles255(double r, double g, double b, double a) {
+	if(r>255) r = 255; if(r<0) r = 0;
+	if(g>255) g = 255; if(g<0) g = 0;
+	if(b>255) b = 255; if(b<0) b = 0;
+	if(a>255) a = 255; if(a<0) a = 0;
+	return Color(std::ceil(r), std::ceil(g), std::ceil(b), std::ceil(a));
+}
 Color::Color(): Color(0, 0, 0){}
 Color::~Color(){}
 

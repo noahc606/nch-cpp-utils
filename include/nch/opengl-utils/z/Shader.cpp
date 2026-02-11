@@ -1,4 +1,6 @@
 #include "Shader.h"
+#include <glm/glm.hpp>
+#include <glm/ext.hpp>
 #include <nch/cpp-utils/file-utils.h>
 #include <nch/cpp-utils/log.h>
 
@@ -77,35 +79,6 @@ Shader* Shader::createDefault2D_TexOrSolid() {
         )"
     );
 }
-Shader* Shader::createDefault2D_Tex() {
-    return new Shader(
-        R"(
-            #version 330 core
-            layout(location = 0) in vec2 position; // Vertex position
-            layout(location = 1) in vec2 texCoord; // Texture coordinates
-
-            out vec2 TexCoord;
-
-            uniform mat4 projection; // Projection matrix
-
-            void main() {
-                gl_Position = projection * vec4(position, 0.0, 1.0);
-                TexCoord = texCoord;
-            }
-        )",
-        R"(
-            #version 330 core
-            in vec2 TexCoord;
-            out vec4 FragColor;
-
-            uniform sampler2D textTexture;
-
-            void main() {
-                FragColor = texture(textTexture, TexCoord);
-            }
-        )"
-    );
-}
 Shader* Shader::createDefault3D() {
     return new Shader(
         R"(
@@ -143,8 +116,6 @@ Shader* Shader::createDefault3D() {
             in vec3 Normal;
             in vec3 color;
             in vec2 texCoord;
-
-            // -> to .fs
             out vec4 FragColor;
 
             void main()
@@ -167,6 +138,32 @@ Shader::~Shader() {
 
 GLuint Shader::getID() {
     return id;
+}
+GLint Shader::getUniformLoc(const std::string& name) {
+    return glGetUniformLocation(id, name.c_str());
+}
+void Shader::setModelMatrix(Vec3f scale, Vec3f rotation, Vec3f centerOfRotation) {
+    glm::mat4 objectModel = glm::mat4(1.f);
+    //Translate to center of rotation
+    objectModel = glm::translate(objectModel, glm::vec3(centerOfRotation.x, centerOfRotation.y, centerOfRotation.z));
+    //Apply rotations (in order: Z, Y, X) - rotation is in degrees
+    objectModel = glm::rotate(objectModel, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+    objectModel = glm::rotate(objectModel, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+    objectModel = glm::rotate(objectModel, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+    //Apply scale
+    objectModel = glm::scale(objectModel, glm::vec3(scale.x, scale.y, scale.z));
+    //Translate back from center of rotation
+    objectModel = glm::translate(objectModel, glm::vec3(-centerOfRotation.x, -centerOfRotation.y, -centerOfRotation.z));
+    glUniformMatrix4fv(getUniformLoc("model"), 1, GL_FALSE, glm::value_ptr(objectModel));
+    //Calculate and set normal matrix (inverse transpose of upper-left 3x3)
+    glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(objectModel)));
+    glUniformMatrix3fv(getUniformLoc("normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
+}
+void Shader::setModelMatrix(Vec3f scale) {
+    setModelMatrix(scale, {0}, {0});
+}
+void Shader::resetModelMatrix() {
+    setModelMatrix({1});
 }
 
 void Shader::useProgram()

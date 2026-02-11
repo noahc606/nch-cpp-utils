@@ -36,8 +36,17 @@ std::string FilePath::getObjectName(bool includeExtension)
         wp = getWithoutExtension();
     }
     
-    std::string filename = "";
+    int lastIdx = wp.size()-1;
     for(int i = wp.size()-1; i>=0; i--) {
+        if(wp[i]!='/') {
+            lastIdx = i;
+            break;
+        }
+
+    }
+
+    std::string filename = "";
+    for(int i = lastIdx; i>=0; i--) {
         if(wp[i]=='/') {
             break;
         } else {

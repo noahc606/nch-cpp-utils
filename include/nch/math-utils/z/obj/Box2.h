@@ -33,6 +33,20 @@ public:
     bool collides(Box2<T> b) {
         return (c1.x<b.c2.x && b.c1.x<c2.x && c1.y<b.c2.y && b.c1.y<c2.y);
     }
+    Box2<T> intersection(Box2<T> b) {
+        if(!intersects(b)) {
+            return Box2(0, 0, 0, 0);
+        }
+
+        T rx1 = c1.x, rx2 = b.c2.x;
+        T ry1 = c1.y, ry2 = b.c2.y;
+        if(b.c1.x>c1.x) rx1 = b.c1.x;
+        if(b.c2.x>c2.x) rx2 = c2.x;
+        if(b.c1.y>c1.y) ry1 = b.c1.y;
+        if(b.c2.y>c2.y) ry2 = c2.y;
+
+        return Box2(rx1, ry1, rx2, ry2);
+    }
     bool operator==(Box2<T> other) {
         return (c1.x==other.c1.x && c1.y==other.c1.y && c2.x==other.c2.x && c2.y==other.c2.y);
     }

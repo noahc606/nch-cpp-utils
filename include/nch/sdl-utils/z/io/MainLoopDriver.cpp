@@ -1,7 +1,6 @@
 #include "MainLoopDriver.h"
 #include <assert.h>
 #include <thread>
-#include <SDL2/SDL_timer.h>
 #include "nch/cpp-utils/color.h"
 #include "nch/cpp-utils/log.h"
 #include "nch/cpp-utils/timer.h"
@@ -38,19 +37,12 @@ uint64_t MainLoopDriver::nextTickNS = 0;
 
 void (*MainLoopDriver::tickFunc)() = nullptr;
 void (*MainLoopDriver::altDrawFunc)() = nullptr;
-void (*MainLoopDriver::drawFunc)(SDL_Renderer*) = nullptr;
 void (*MainLoopDriver::eventFunc)(SDL_Event&) = nullptr;
 
 /**/
 
-MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS, void (*eventFunc)(SDL_Event&)) {
-	start(rend, tickFunc, targetTPS, drawFunc, nullptr, targetFPS, eventFunc);
-}
-MainLoopDriver::MainLoopDriver(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS)
-:MainLoopDriver(rend, tickFunc, targetTPS, drawFunc, targetFPS, nullptr){}
-
 MainLoopDriver::MainLoopDriver(void (*tickFunc)(), uint64_t targetTPS, void (*altDrawFunc)(), uint64_t targetFPS, void (*eventFunc)(SDL_Event&)) {
-	start(nullptr, tickFunc, targetTPS, nullptr, altDrawFunc, targetFPS, eventFunc);
+	start(nullptr, tickFunc, targetTPS, altDrawFunc, targetFPS, eventFunc);
 }
 MainLoopDriver::MainLoopDriver(void (*tickFunc)(), uint64_t targetTPS, void (*altDrawFunc)(), uint64_t targetFPS)
 :MainLoopDriver(tickFunc, targetTPS, altDrawFunc, targetFPS, nullptr){}
@@ -76,23 +68,23 @@ bool MainLoopDriver::hasQuit() {
 	return !running;
 }
 
-void MainLoopDriver::drawPerformanceBenchmark(SDL_Renderer* sdlRend, int bmHeight, int windowWidth, int windowHeight)
+void MainLoopDriver::drawPerformanceBenchmark(GLSDL_Renderer* sdlRend, int bmHeight, int windowWidth, int windowHeight)
 {
 	SDL_BlendMode oldBlendMode;
-	SDL_GetRenderDrawBlendMode(sdlRend, &oldBlendMode);
-	SDL_SetRenderDrawBlendMode(sdlRend, SDL_BLENDMODE_BLEND);
+	GLSDL_GetRenderDrawBlendMode(sdlRend, &oldBlendMode);
+	GLSDL_SetRenderDrawBlendMode(sdlRend, SDL_BLENDMODE_BLEND);
 
 	//Tick and frame rectangles
 	{
 		Color col1(255, 0, 255);
 		SDL_Rect tickRect = {windowWidth-targetTPS, windowHeight-bmHeight, targetTPS, bmHeight};
-		SDL_SetRenderDrawColor(sdlRend, col1.r, col1.g, col1.b, 191);
-		SDL_RenderFillRect(sdlRend, &tickRect);
+		GLSDL_SetRenderDrawColor(sdlRend, col1.r, col1.g, col1.b, 191);
+		GLSDL_RenderFillRect(sdlRend, &tickRect);
 
 		Color col0(0, 255, 255);
 		SDL_Rect frameRect = {0, windowHeight-bmHeight, targetFPS, bmHeight};
-		SDL_SetRenderDrawColor(sdlRend, col0.r, col0.g, col0.b, 191);
-		SDL_RenderFillRect(sdlRend, &frameRect);
+		GLSDL_SetRenderDrawColor(sdlRend, col0.r, col0.g, col0.b, 191);
+		GLSDL_RenderFillRect(sdlRend, &frameRect);
 	}
 
 
@@ -101,25 +93,25 @@ void MainLoopDriver::drawPerformanceBenchmark(SDL_Renderer* sdlRend, int bmHeigh
 	for(int i = 0; i<frameTimes.size()&&i<targetFPS; i++) {
 		int lineHeight = (bmHeight*frameTimes[i]/idealMSPF)+1;
 
-		SDL_SetRenderDrawColor(sdlRend, 255, 0, 0, 255);
-		SDL_RenderDrawLine(sdlRend, i, windowHeight-lineHeight, i, windowHeight);
+		GLSDL_SetRenderDrawColor(sdlRend, 255, 0, 0, 255);
+		GLSDL_RenderDrawLine(sdlRend, i, windowHeight-lineHeight, i, windowHeight);
 	}
 	//Tick times
 	double idealMSPT = 1000.0/targetTPS;
 	for(int i = 0; i<tickTimes.size()&&i<targetTPS; i++) {
 		int lineHeight = (bmHeight*tickTimes[i]/idealMSPT)+1;
 
-		SDL_SetRenderDrawColor(sdlRend, 0, 255, 0, 255);
-		SDL_RenderDrawLine(sdlRend, windowWidth-targetTPS+i, windowHeight-lineHeight, windowWidth-targetTPS+i, windowHeight);
+		GLSDL_SetRenderDrawColor(sdlRend, 0, 255, 0, 255);
+		GLSDL_RenderDrawLine(sdlRend, windowWidth-targetTPS+i, windowHeight-lineHeight, windowWidth-targetTPS+i, windowHeight);
 	}
 
-	SDL_SetRenderDrawBlendMode(sdlRend, oldBlendMode);
+	GLSDL_SetRenderDrawBlendMode(sdlRend, oldBlendMode);
 }
 void MainLoopDriver::quit() {
 	running = false;
 }
 
-void MainLoopDriver::start(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), void (*altDrawFunc)(), uint64_t targetFPS, void (*eventFunc)(SDL_Event&))
+void MainLoopDriver::start(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*altDrawFunc)(), uint64_t targetFPS, void (*eventFunc)(SDL_Event&))
 {
 	/* Track whether main loop driver exists */
 	{
@@ -143,7 +135,6 @@ void MainLoopDriver::start(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targ
 			tickTimes.push_back(0);
 		}
 		//Draw
-		MainLoopDriver::drawFunc = drawFunc;
 		MainLoopDriver::altDrawFunc = altDrawFunc;
 		MainLoopDriver::targetFPS = targetFPS;
 		fps = 0;
@@ -208,7 +199,6 @@ void MainLoopDriver::mainLoop(void)
 		Timer tim("draw");
 
 		nextFrameNS = Timer::getCurrentTimeNS()+nsPerFrame;
-		if(drawFunc!=nullptr) drawFunc(rend);
 		if(altDrawFunc!=nullptr) altDrawFunc();
 		if(fps==0) frameTimes.clear();
 

@@ -1,16 +1,19 @@
 #include "Mesh.h"
 #include <nch/cpp-utils/log.h>
 #include <nch/cpp-utils/timer.h>
+#include <nch/math-utils/chunkmath.h>
 #include <set>
 #include <sstream>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include "nch/opengl-utils/geo.h"
 #include "nch/opengl-utils/xbo.h"
 
 using namespace nch;
 
-Mesh::Mesh(const std::vector<Atlas*>& atlases)
-{
-    Mesh::atlases = atlases;
+Mesh::Mesh(){}
+Mesh::Mesh(const std::vector<Atlas*>& atlases) {
+    setAtlases(atlases);
 }
 Mesh::~Mesh() {
     reset();
@@ -22,25 +25,45 @@ void Mesh::draw(Shader* shader, Camera3D* cam)
     if(!built) return;
     shader->useProgram();
 
-    unsigned int numDiffuse = 0;
-    unsigned int numSpecular = 0;
-    for(unsigned int i = 0; i<atlases.size(); i++) {
-        std::string num;
-        std::string type = atlases[i]->getType();
-        if(type=="diffuse") {
-            num = std::to_string(numDiffuse++);
-        } else if(type=="specular") {
-            num = std::to_string(numSpecular++);
-        }
+    //Set camera draw-from position for render position
+    Vec3i64 fChk = cam->getRegPos()-chkPos;
+    Vec3f fSub = -subPos;
+    if(!skybox) {
+        cam->drawFromPos(shader->getID(), (fChk*32).toFloat()+fSub);
+    } else {
+        //For skybox, render with camera at origin (no translation)
+        cam->drawSkybox(shader->getID());
+    }
+    //Create model matrix with scale, rotation, and center of rotation
+    shader->setModelMatrix(scale, rotation, centerOfRotation);
 
-        atlases[i]->texUnit(shader, (type+num).c_str(), i);
-        atlases[i]->bind();
+    if(atlases.size()!=0) {
+        unsigned int numDiffuse = 0;
+        unsigned int numSpecular = 0;
+        for(size_t i = 0; i<atlases.size(); i++) {
+            std::string num;
+            std::string type = atlases[i]->getType();
+            if(type=="diffuse") {
+                num = std::to_string(numDiffuse++);
+            } else if(type=="specular") {
+                num = std::to_string(numSpecular++);
+            }
+
+            atlases[i]->texUnit(shader, (type+num).c_str(), i);
+            atlases[i]->bind();
+        }
     }
 
     VAO::bind(glVAO);
     assert(glIsVertexArray(glVAO) == GL_TRUE);
     glDrawElements(GL_TRIANGLES, drawnIndexCount, GL_UNSIGNED_INT, nullptr);
     VAO::unbind();
+
+    if(atlases.size()!=0) {
+        for(size_t i = 0; i<atlases.size(); i++) {
+            atlases[i]->unbind();
+        }
+    }
 }
 
 int Mesh::getInternalVerticesSize() {
@@ -51,6 +74,17 @@ int Mesh::getInternalIndicesSize() {
 }
 bool Mesh::isBuilt() {
     return built;
+}
+Vec3f Mesh::getGeometricCenter() {
+    if(vertices.size()==0) return {0.0f, 0.0f, 0.0f};
+    Vec3f sum = {0.0f, 0.0f, 0.0f};
+    for(const Vertex& v : vertices) {
+        sum.x += v.pos.x;
+        sum.y += v.pos.y;
+        sum.z += v.pos.z;
+    }
+    float count = static_cast<float>(vertices.size());
+    return {sum.x/count, sum.y/count, sum.z/count};
 }
 
 void Mesh::applyUpdates()
@@ -73,8 +107,20 @@ void Mesh::reset() {
 }
 void Mesh::addPoly(const glm::ivec3& key, const Poly& poly)
 {
+    //If key is valid -> check if this MPoly already exists at this key
+    MPoly newPoly(poly);
+    if(key.x>=0 && key.y>=0 && key.z>=0) {
+        auto range = polyMap.equal_range({key.x, key.y, key.z});
+        for(auto it = range.first; it != range.second; ++it) {
+            if(it->second == newPoly) {
+                //Duplicate found, don't add
+                return;
+            }
+        }
+    }
+
     //Add the poly to the 'polyMap'
-    polyMap.insert({{key.x, key.y, key.z}, poly});
+    polyMap.insert({{key.x, key.y, key.z}, newPoly});
 
     //Add vertices and indices to 'vertices', 'indices', and 'indicesMap'
     GLuint vs = vertices.size();
@@ -92,7 +138,6 @@ void Mesh::addPoly(const glm::ivec3& key, const Poly& poly)
 void Mesh::addPoly(const Poly& poly) {
     addPoly({-1,-1,-1}, poly);
 }
-
 void Mesh::remove(const glm::ivec3& key)
 {
     std::multimap<std::tuple<int, int, int>, Mesh::MPoly>::iterator pit;
@@ -139,6 +184,33 @@ void Mesh::remove(const glm::ivec3& key)
         vertices.erase(vertices.begin()+beg, vertices.begin()+end+1);
         indicesMap.erase(iit);
     }
+}
+
+void Mesh::setAtlases(const std::vector<Atlas*>& atlases) {
+    Mesh::atlases = atlases;
+}
+void Mesh::setPos(Vec3i64 chkPos, Vec3f subPos) {
+    Mesh::subPos = subPos;
+    Mesh::chkPos = chkPos;
+}
+void Mesh::setPos(Vec3f approxPos) {
+    chkPos = nch::chunked3F(approxPos);
+    subPos = nch::subbed3F(approxPos);
+}
+void Mesh::setScale(Vec3f scale) {
+    Mesh::scale = scale;
+}
+void Mesh::setScale(float uniformScale) {
+    Mesh::scale = {uniformScale, uniformScale, uniformScale};
+}
+void Mesh::setRotation(Vec3f rotation) {
+    Mesh::rotation = rotation;
+}
+void Mesh::setCenterOfRotation(Vec3f center) {
+    Mesh::centerOfRotation = center;
+}
+void Mesh::setSkybox(bool skybox) {
+    Mesh::skybox = skybox;
 }
 
 void Mesh::cleanup() {

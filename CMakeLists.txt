@@ -48,6 +48,11 @@ add_executable(${PROJ_OUT} ${PROJ_SOURCES})
 set_target_properties(${PROJ_OUT} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
 )
+set(NCH_GLSDL_OPENGL_BACKEND 0)
+if(NCH_GLSDL_OPENGL_BACKEND)
+    target_compile_definitions(${PROJ_OUT} PRIVATE NCH_GLSDL_OPENGL_BACKEND=1)
+endif()
+
 # Add assets for emscripten projects
 if(EMSCRIPTEN)
     set_target_properties(${PROJ_OUT} PROPERTIES LINK_FLAGS "--preload-file ../bin")

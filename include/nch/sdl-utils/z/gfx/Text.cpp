@@ -13,10 +13,13 @@
 #include <string>
 using namespace nch;
 
-Text::Text(){}
+Text::Text() {
+    initted = false;
+    txtTex = nullptr;
+}
 Text::~Text() { destroy(); }
 
-void Text::init(SDL_Renderer* rend, TTF_Font* font, bool darkenBackground)
+void Text::init(GLSDL_Renderer* rend, TTF_Font* font, bool darkenBackground)
 {
     if(initted) {
         destroy();
@@ -32,7 +35,7 @@ void Text::init(SDL_Renderer* rend, TTF_Font* font, bool darkenBackground)
 void Text::destroy()
 {
     if(txtTex!=nullptr) {
-        SDL_DestroyTexture(txtTex);
+        GLSDL_DestroyTexture(txtTex);
     }
     txtTex = nullptr;
 }
@@ -47,17 +50,17 @@ void Text::draw(int x, int y)
     dst.w = width*scale; dst.h = height*scale;
 
     if(darkenBackground) {
-        SDL_SetRenderDrawColor(rend, 255-textColor.r, 255-textColor.g, 255-textColor.b, 100);
-        SDL_RenderFillRect(rend, &dst);
+        GLSDL_SetRenderDrawColor(rend, 255-textColor.r, 255-textColor.g, 255-textColor.b, 100);
+        GLSDL_RenderFillRect(rend, &dst);
     }
 
-    SDL_SetTextureBlendMode(txtTex, SDL_BLENDMODE_BLEND);
+    GLSDL_SetTextureBlendMode(txtTex, SDL_BLENDMODE_BLEND);
 
     #if ( (SDL_MAJOR_VERSION>2) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION>0) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION==0 && SDL_PATCHLEVEL>=12))
     if(forceNearestScaling) {
-        SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeNearest);
+        //SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeNearest);
     } else {
-        SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeBest);
+        //SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeBest);
     }
     #endif
 
@@ -65,21 +68,21 @@ void Text::draw(int x, int y)
         dst.x += (shadow.dx*scale); dst.y += (shadow.dy*scale);
 
         if(shadow.customColor.a==0) {
-            SDL_SetTextureColorMod(txtTex, 255-textColor.r, 255-textColor.g, 255-textColor.b);
+            GLSDL_SetTextureColorMod(txtTex, 255-textColor.r, 255-textColor.g, 255-textColor.b);
         } else {
-            SDL_SetTextureColorMod(txtTex, shadow.customColor.r, shadow.customColor.g, shadow.customColor.b);
+            GLSDL_SetTextureColorMod(txtTex, shadow.customColor.r, shadow.customColor.g, shadow.customColor.b);
         }
 
-        SDL_SetTextureAlphaMod(txtTex, 255*shadow.fadeFactor);
+        GLSDL_SetTextureAlphaMod(txtTex, 255*shadow.fadeFactor);
 
-        SDL_RenderCopy(rend, txtTex, NULL, &dst );
+        GLSDL_RenderCopy(rend, txtTex, NULL, &dst );
 
         dst.x -= (shadow.dx*scale); dst.y -= (shadow.dy*scale);
     }
 
-    SDL_SetTextureColorMod(txtTex, textColor.r, textColor.g, textColor.b);
-    SDL_SetTextureAlphaMod(txtTex, textColor.a);
-    SDL_RenderCopy(rend, txtTex, NULL, &dst );
+    GLSDL_SetTextureColorMod(txtTex, textColor.r, textColor.g, textColor.b);
+    GLSDL_SetTextureAlphaMod(txtTex, textColor.a);
+    GLSDL_RenderCopy(rend, txtTex, NULL, &dst );
 }
 
 void Text::drawCentered(int x, int y, int w, int h)
@@ -87,24 +90,24 @@ void Text::drawCentered(int x, int y, int w, int h)
     draw(x+w/2-(int)getWidth()/2, y+h/2-(int)getHeight()/2);
 }
 
-void Text::stream(SDL_Renderer* rend, TTF_Font* font, std::string text, const Color& c, int x, int y, double scale)
+void Text::stream(GLSDL_Renderer* rend, TTF_Font* font, std::string text, const Color& c, int x, int y, double scale)
 {
     int textWidth = 0;
     TTF_MeasureText(font, text.c_str(), 5000, &textWidth, NULL);
     int textHeight = TTF_FontHeight(font);
 
     SDL_Surface* txtSurf = TTF_RenderText_Blended(font, text.c_str(), {255, 255, 255});
-    SDL_Texture* txtTex = SDL_CreateTextureFromSurface(rend, txtSurf);
+    GLSDL_Texture* txtTex = GLSDL_CreateTextureFromSurface(rend, txtSurf);
 
     SDL_Rect txtRect; txtRect.x = x; txtRect.y = y; txtRect.w = textWidth*scale; txtRect.h = textHeight*scale;
-    #if ( (SDL_MAJOR_VERSION>2) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION>0) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION==0 && SDL_PATCHLEVEL>=12))
-    SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeBest);
-    #endif
-    SDL_SetTextureColorMod(txtTex, c.r, c.g, c.b);
-    SDL_RenderCopy(rend, txtTex, NULL, &txtRect);
+#if ( (SDL_MAJOR_VERSION>2) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION>0) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION==0 && SDL_PATCHLEVEL>=12))
+    //SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeBest);
+#endif
+    GLSDL_SetTextureColorMod(txtTex, c.r, c.g, c.b);
+    GLSDL_RenderCopy(rend, txtTex, NULL, &txtRect);
 
     SDL_FreeSurface(txtSurf);
-    SDL_DestroyTexture(txtTex);
+    GLSDL_DestroyTexture(txtTex);
 }
 
 bool Text::isInitialized() { return initted; }
@@ -114,6 +117,10 @@ double Text::getUnscaledWidth() { return width; }
 double Text::getHeight() { return height*scale; }
 double Text::getUnscaledHeight() { return height; }
 std::u16string Text::getText() { return text; }
+GLSDL_Texture* Text::getTexture() {
+    if(!initted) return nullptr;
+    return txtTex;
+}
 
 bool Text::setScale(double scale)
 {
@@ -193,24 +200,28 @@ void Text::setShadowCustomColor(nch::Color shadowCustomColor)
 void Text::updateTextTexture()
 {
     //Destroy the last texture if it exists and re-create it from the 'txtSurf'
-    if(txtTex!=nullptr) SDL_DestroyTexture(txtTex);
+    if(txtTex!=nullptr) GLSDL_DestroyTexture(txtTex);
     txtTex = nullptr;
 
     /* Use text width processing on some occassions */
     if(maxLines>0 || everyLineCentered) {
         int fontHeight = TTF_FontHeight(font);
         auto processed = getProcessedText(text, font, wrapLength, maxLines);
-        txtTex = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, wrapLength, processed.size()*fontHeight);
+        txtTex = GLSDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, wrapLength, processed.size()*fontHeight);
         TexUtils::clearTexture(rend, txtTex);
         
         for(int i = 0; i<processed.size(); i++) {
             auto elem = processed[i];
             SDL_Surface* lineSurf = TTF_RenderUNICODE_Blended(font, reinterpret_cast<const Uint16*>(elem.second.c_str()), {255, 255, 255, 255});
             if(lineSurf==NULL) continue;
-            SDL_Texture* lineTex = SDL_CreateTextureFromSurface(rend, lineSurf);
-            if(lineTex==NULL) continue;
+            GLSDL_Texture* lineTex = GLSDL_CreateTextureFromSurface(rend, lineSurf);
+            if(lineTex==NULL) {
+                Log::warn(__PRETTY_FUNCTION__, "Texture creation failed during text processing");
+                SDL_FreeSurface(lineSurf);
+                continue;
+            }
 
-            SDL_SetRenderTarget(rend, txtTex); {
+            GLSDL_SetRenderTarget(rend, txtTex); {
                 SDL_Rect dst;
                 dst.y = (fontHeight)*i+1;
                 dst.h = lineSurf->h;
@@ -220,17 +231,17 @@ void Text::updateTextTexture()
                 } else {
                     dst.x = 0;
                 }
-                SDL_RenderCopy(rend, lineTex, NULL, &dst);
-            } SDL_SetRenderTarget(rend, NULL);
+                GLSDL_RenderCopy(rend, lineTex, NULL, &dst);
+            } GLSDL_SetRenderTarget(rend, NULL);
 
-            SDL_DestroyTexture(lineTex);
+            GLSDL_DestroyTexture(lineTex);
             SDL_FreeSurface(lineSurf);
         }
     } else {
         //Create surface representing the current text
         SDL_Surface* txtSurf = TTF_RenderUNICODE_Blended_Wrapped(font, reinterpret_cast<const Uint16*>(text.c_str()), {255, 255, 255, 255}, wrapLength);
         if(txtSurf==NULL) return;
-        txtTex = SDL_CreateTextureFromSurface(rend, txtSurf);
+        txtTex = GLSDL_CreateTextureFromSurface(rend, txtSurf);
         SDL_FreeSurface(txtSurf);
     }
 
@@ -238,7 +249,7 @@ void Text::updateTextTexture()
     
     //Set width and height, destroy the txtSurf.
     int w, h;
-    SDL_QueryTexture(txtTex, NULL, NULL, &w, &h);
+    GLSDL_QueryTexture(txtTex, NULL, NULL, &w, &h);
     width = w;
     height = h;
 }

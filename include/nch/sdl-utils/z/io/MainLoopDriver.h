@@ -1,13 +1,12 @@
 #pragma once
 #include <mutex>
-#include <SDL2/SDL.h>
+#include <GLSDL/GLSDL.h>
+#include <SDL2/SDL_events.h>
 #include <string>
 #include <vector>
 
 namespace nch { class MainLoopDriver {
 public:
-    MainLoopDriver(SDL_Renderer*, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS, void (*eventFunc)(SDL_Event&));
-    MainLoopDriver(SDL_Renderer*, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), uint64_t targetFPS);
     MainLoopDriver(void (*tickFunc)(), uint64_t targetTPS, void (*altDrawFunc)(), uint64_t targetFPS, void (*eventFunc)(SDL_Event&));
     MainLoopDriver(void (*tickFunc)(), uint64_t targetTPS, void (*altDrawFunc)(), uint64_t targetFPS);
     
@@ -19,10 +18,10 @@ public:
     static uint64_t getNumTicksPassedTotal();
     static bool hasQuit();
     
-    static void drawPerformanceBenchmark(SDL_Renderer* sdlRend, int bmHeight, int windowWidth, int windowHeight);
+    static void drawPerformanceBenchmark(GLSDL_Renderer* sdlRend, int bmHeight, int windowWidth, int windowHeight);
     static void quit();
 private:
-    void start(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*drawFunc)(SDL_Renderer*), void (*altDrawFunc)(), uint64_t targetFPS, void (*eventFunc)(SDL_Event&));
+    void start(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*altDrawFunc)(), uint64_t targetFPS, void (*eventFunc)(SDL_Event&));
     static void mainLoop();
 
     static void ticker();
@@ -55,6 +54,5 @@ private:
     //Draw, tick, event callbacks
     static void (*tickFunc)();
     static void (*altDrawFunc)();
-    static void (*drawFunc)(SDL_Renderer*);
     static void (*eventFunc)(SDL_Event&);
 };}

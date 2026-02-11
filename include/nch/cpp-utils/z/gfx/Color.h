@@ -10,6 +10,7 @@ public:
     Color(uint8_t r, uint8_t g, uint8_t b);
     Color(uint32_t rgba);
 	Color(std::string p_value);
+    static Color fromDoubles255(double r, double g, double b, double a);
     Color();
     ~Color();
 

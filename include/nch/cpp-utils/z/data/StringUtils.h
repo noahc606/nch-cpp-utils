@@ -12,15 +12,11 @@ public:
     template<typename T> static void cat(std::stringstream& ss, T t) {
         ss << t;
     }
-
     template<typename T, typename... Args>static void cat(std::stringstream& ss, T first, Args... args) {
-        ss << first;
-        cat(ss, args...);
+        ss << first; cat(ss, args...);
     }
     template<typename T, typename... Args>static std::string cat(T first, Args... args) {
-        std::stringstream ss;
-        cat(ss, first, args...);
-        return ss.str();
+        std::stringstream ss; cat(ss, first, args...); return ss.str();
     }
 
     /// @brief Similar to Java's String.split(regex), but instead of a regex, 'delim' is a char to split by.
@@ -49,6 +45,7 @@ public:
     static std::string trimmed(const std::string& s);
     static std::string removedNonASCII(const std::string& s);
     static std::string unicodeEscaped(const std::wstring& ws);
+    static std::string shortened(const std::string& s, int maxDisplaySize = 64);
 
     static std::string stringFromBytestream(const std::vector<unsigned char>& byteStream, bool keepZeros = false);
     static std::vector<unsigned char> bytestreamFromString(const std::string& str);

@@ -4,6 +4,7 @@
 #include <nch/cpp-utils/filepath.h>
 #include <nch/cpp-utils/fs-utils.h>
 #include <nch/cpp-utils/log.h>
+#include <nch/cpp-utils/timer.h>
 #include "nch/opengl-utils/z/atlas/MaxRectsBin.h"
 
 using namespace nch;
@@ -27,21 +28,30 @@ Atlas::Atlas(Atlas* base, std::string path, GLuint slot)
 		buildFromImg(path, slot);
 		return;
 	}
-	Log::error(__PRETTY_FUNCTION__, "Could not resolve object \"%s\" as a file or dir", path.c_str());
-	throw std::invalid_argument("");
+	throw std::invalid_argument(Log::getFormattedString("Could not resolve object \"%s\" as a file or dir", path.c_str()));
+}
+Atlas::Atlas(SDL_Surface* surf, GLuint slot)
+{
+	switch(slot) {
+		case 0: { type = "diffuse"; } break;
+		case 1: { type = "specular"; } break;
+	}
+    unit = slot;
+	buildFromSDL_Surface(surf, slot);
 }
 Atlas::Atlas(std::string path, GLuint slot):
 Atlas(nullptr, path, slot){}
 
 Atlas::~Atlas()
 {
-    glDeleteTextures(1, &id);
+	if(id!=0)
+    	glDeleteTextures(1, &id);
 }
 
 GLuint Atlas::getID() {
 	return id;
 }
-const char* Atlas::getType() {
+const std::string& Atlas::getType() {
     return type;
 }
 FRect Atlas::getSrc(const std::string& imgID) {
@@ -83,9 +93,13 @@ void Atlas::texUnit(Shader* shader, const char* uniform, GLuint unit)
 std::map<std::string, SDL_Surface*> Atlas::collectImagesFromDir(std::string dirPath)
 {
 	std::map<std::string, SDL_Surface*> ret;
-	auto dir = FsUtils::getDirContents(dirPath);
+
+	FsUtils::ListSettings lise; lise.excludeSymlinkDirs = true; lise.includeHiddenEntries = false; lise.maxItemsToList = 99999;
+	FsUtils::RecursionSettings rese; rese.recursiveSearch = true;
+	auto dir = FsUtils::getDirContents(dirPath, lise, rese);
 	for(std::string obj : dir) {
 		SDL_Surface* rawSurf = IMG_Load(obj.c_str());
+		if(rawSurf==NULL) continue;
 		SDL_Surface* convSurf = SDL_ConvertSurfaceFormat(rawSurf, SDL_PIXELFORMAT_RGBA8888, 0);
 		SDL_FreeSurface(rawSurf);
 
@@ -163,6 +177,14 @@ void Atlas::buildFromDir(std::string dirPath, GLuint slot)
     unbind();
 	SDL_FreeSurface(finalAtlasSurf);
 }
+void Atlas::buildFromSDL_Surface(SDL_Surface* surf, GLuint slot)
+{
+	//Build 'glTexture1'
+	glGenTextures(1, &id);
+	bind(unit, id);
+	buildGL_TextureFromSDL_Surface(surf);
+    unbind();
+}
 void Atlas::buildFromImg(std::string imgPath, GLuint slot)
 {
 	//Initial image load onto SDL surface
@@ -171,12 +193,7 @@ void Atlas::buildFromImg(std::string imgPath, GLuint slot)
 		Log::errorv(__PRETTY_FUNCTION__, "IMG Error", IMG_GetError());
 		return;
 	}
-
-	//Build 'glTexture1'
-	glGenTextures(1, &id);
-	bind(unit, id);
-	buildGL_TextureFromSDL_Surface(imgSurf);
-    unbind();
+	buildFromSDL_Surface(imgSurf, slot);
 	SDL_FreeSurface(imgSurf);
 }
 void Atlas::buildGL_TextureFromSDL_Surface(SDL_Surface* imgSurf)

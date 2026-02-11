@@ -14,8 +14,6 @@ public:
     std::string getExtension();
     std::string getWithoutExtension();
     bool isHidden();
-
-    static const std::string validChars;
 private:
     std::string cleanpath = "";
     /* data */

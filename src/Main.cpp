@@ -22,8 +22,9 @@ bool doBackground = true;
 bool firstDraw = true;
 int64_t tickTimer = -10;
 int64_t drawTimer = -10;
-SDL_Texture* tex = nullptr;
-SDL_Window* win = nullptr;
+GLSDL_Texture* tex = nullptr;
+GLSDL_Window* win = nullptr;
+GLSDL_Renderer* rend = nullptr;
 uint32_t winPixFormat = 0;
 ArrayList<Text> dbgScreen;
 TTF_Font* dbgFont = nullptr;
@@ -31,16 +32,16 @@ std::string basePath = "";
 
 int getWidth() {
     int width = 0;
-    SDL_GetWindowSize(win, &width, NULL);
+    SDL_GetWindowSize(win->toSDL_Window(), &width, NULL);
     return width;
 }
 int getHeight() {
     int height = 0;
-    SDL_GetWindowSize(win, NULL, &height);
+    SDL_GetWindowSize(win->toSDL_Window(), NULL, &height);
     return height;
 }
 
-void drawInfo(SDL_Renderer* rend)
+void drawInfo()
 {
     int width = getWidth();
     int height = getHeight();
@@ -79,53 +80,57 @@ void drawInfo(SDL_Renderer* rend)
     }
 }
 
-void draw(SDL_Renderer* rend)
+void draw()
 {
+    GLSDL_GL_SaveState(rend);
+
     //Only on first draw, create a clear texture that is 640x480.
     if(firstDraw) {
         if(doBackground) {
-            tex = SDL_CreateTexture(rend, winPixFormat, SDL_TEXTUREACCESS_TARGET, 640, 480);
+            tex = GLSDL_CreateTexture(rend, winPixFormat, SDL_TEXTUREACCESS_TARGET, 640, 480);
             nch::TexUtils::clearTexture(rend, tex);
         }
         firstDraw = false;
     }
 
     //Reset screen
-    SDL_RenderClear(rend);
-    SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-    SDL_RenderFillRect(rend, NULL);
+    GLSDL_RenderClear(rend);
+    GLSDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+    GLSDL_RenderFillRect(rend, NULL);
 
     if(doBackground) {
         //Update parts of texture depending on timer
-        SDL_SetRenderTarget(rend, tex);
+        GLSDL_SetRenderTarget(rend, tex);
         if(drawTimer>=0 && drawTimer<=480) {
             nch::Color c(255, 255, 255);
             int iy = drawTimer;
             for(int ix = 0; ix<640; ix++) {
                 int i = iy*640+ix;
                 c.setFromHSV(std::abs(ix+i/1000)%360, 100*iy/480, 100-(100*iy/480));
-                SDL_SetRenderDrawColor(rend, c.r, c.g, c.b, 255);
-                SDL_RenderDrawPoint(rend, ix, iy);
+                GLSDL_SetRenderDrawColor(rend, c.r, c.g, c.b, 255);
+                GLSDL_RenderDrawPoint(rend, ix, iy);
             }
         }
-        SDL_SetRenderTarget(rend, NULL);
+        GLSDL_SetRenderTarget(rend, NULL);
 
         //Draw texture and give it a color depending on the current tick timer
         nch::Color c2(255, 255, 255);
         c2.setFromHSV( std::abs(tickTimer%360), std::abs(tickTimer/3)%100, 100 );
-        SDL_SetTextureColorMod(tex, c2.r, c2.g, c2.b);
-        SDL_RenderCopy(rend, tex, NULL, NULL);
+        GLSDL_SetTextureColorMod(tex, c2.r, c2.g, c2.b);
+        GLSDL_RenderCopy(rend, tex, NULL, NULL);
     }
 
-    drawInfo(rend);
+    drawInfo();
 
     nch::MainLoopDriver::drawPerformanceBenchmark(rend, 100, getWidth(), getHeight());
 
     //Render all present objects
-    SDL_RenderPresent(rend);
+    GLSDL_RenderPresent(rend);
 
     //Increment draw timer
     drawTimer++;
+
+    GLSDL_GL_RestoreState(rend);
 }
 
 void tick()
@@ -137,24 +142,23 @@ void tick()
 int main(int argc, char **argv)
 {
     /* Say hello */
-    nch::Log::log("Hello world");
+    Log::log("Hello world");
 
     /* Init SDL, create window and renderer */
-    SDL_Renderer* rend;
     {
         //SDL
-        if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)<0) {
+        if(GLSDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)<0) {
             printf("SDL_Init Error: %s\n", SDL_GetError());
         }
         //Window
-        win = SDL_CreateWindow("NCH-CPP-Utils Example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_RESIZABLE);
+        win = GLSDL_CreateWindow("NCH-CPP-Utils Example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_RESIZABLE);
         if(win==NULL) {
             printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
         }
-        SDL_RaiseWindow(win);
-        winPixFormat = SDL_GetWindowPixelFormat(win);
+        SDL_RaiseWindow(win->toSDL_Window());
+        winPixFormat = SDL_GetWindowPixelFormat(win->toSDL_Window());
         //Renderer
-        rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+        rend = GLSDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
         if(rend==NULL) {
             printf("SDL_CreateRenderer Error: %s\n", SDL_GetError());
         }
@@ -169,17 +173,21 @@ int main(int argc, char **argv)
     TTF_Init();
     dbgFont = TTF_OpenFont((basePath+"res/BackToEarth.ttf").c_str(), 100);
     if(dbgFont==NULL) {
-        nch::Log::errorv(__PRETTY_FUNCTION__, TTF_GetError(), "Could not open font.");
+        Log::errorv(__PRETTY_FUNCTION__, TTF_GetError(), "Could not open font.");
     }
     for(int i = 0; i<6; i++) {
-        nch::Text* t = new nch::Text();
+        Text* t = new Text();
         t->init(rend, dbgFont, true);
         t->forcedNearestScaling(true);
         dbgScreen.pushBack(t);
     }
 
-    nch::MainLoopDriver mainLoop(rend, &tick, 60, &draw, 300);
-    nch::Log::log("Quitting");
+    MainLoopDriver mainLoop(&tick, 60, &draw, 300);
+    Log::log("Quitting");
+
+    GLSDL_GL_SaveState(rend);
+    dbgScreen.clear();
+    GLSDL_GL_RestoreState(rend);
     return 0;
 }
 

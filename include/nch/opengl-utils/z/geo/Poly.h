@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/vec2.hpp>
 #include <vector>
+#include <string>
 #include "Vertex.h"
 
 class Poly {
@@ -17,6 +18,7 @@ public:
     int vs() const;
     Vertex v(int idx) const;
     glm::vec3 norm() const;
+    std::string toString() const;
     bool operator<(const Poly& other) const {
         int s = vs(), os = other.vs();
         if(s<os) return true;
@@ -33,6 +35,16 @@ public:
     void simplyTex(const glm::vec2& uv0, const glm::vec2& uv1);
     void rotate(const glm::vec3& center, const glm::vec3& xyzRot);
     void move(const glm::vec3& offset);
+    void invertNorm();
+
+    Vertex& operator[](int idx) {
+        assert(idx>=0 && idx<verts.size() && "Index out of range!");
+        return verts[idx];
+    }
+    const Vertex& operator[](int idx) const {
+        assert(idx>=0 && idx<verts.size() && "Index out of range!");
+        return verts[idx];
+    }
 
 protected:
     void super_type(int type);

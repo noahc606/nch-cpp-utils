@@ -1,6 +1,6 @@
 #pragma once
 #include <algorithm>
-#include <SDL2/SDL.h>
+#include <GLSDL/GLSDL.h>
 #include <tuple>
 #include "nch/cpp-utils/color.h"
 #include "nch/sdl-utils/z/gfx/FrameBuffer.h"
@@ -11,8 +11,9 @@ public:
 
     static nch::Color getPixelColor(void* pixels, SDL_PixelFormat* pxFmt, int pitch, int x, int y);
     static nch::Color getPixelColor(SDL_Surface* pSurface, int x, int y);
+    static void setPixelColor(void* pixels, int pitch, uint8_t bpp, int x, int y, uint32_t rgba);
     static void setPixelColor(SDL_Surface* pSurface, int x, int y, uint32_t rgba);
-    static void clearTexture(SDL_Renderer* rend, SDL_Texture*& tex);
+    static void clearTexture(GLSDL_Renderer* rend, GLSDL_Texture*& tex);
     static void renderFillBorderedRect(SDL_Renderer* rend, SDL_Rect* r, int borderSize, nch::Color borderColor);
     static void renderFillBorderedRect(SDL_Renderer* rend, SDL_Rect* r, int borderSize);
     /*

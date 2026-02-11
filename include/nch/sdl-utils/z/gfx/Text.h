@@ -1,4 +1,5 @@
 #pragma once
+#include <GLSDL/GLSDL.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <string>
@@ -16,18 +17,19 @@ public:
 
     Text();
     ~Text();
-    void init(SDL_Renderer* rend, TTF_Font* font, bool darkenBackground = false);
+    void init(GLSDL_Renderer* rend, TTF_Font* font, bool darkenBackground = false);
     void destroy();
     void draw(int x, int y);
     void drawCentered(int x, int y, int w, int h);
     void drawRightAligned(int x, int y, int w, int h);
-    static void stream(SDL_Renderer* rend, TTF_Font* font, std::string text, const nch::Color& c, int x, int y, double scale);
+    static void stream(GLSDL_Renderer* rend, TTF_Font* font, std::string text, const nch::Color& c, int x, int y, double scale);
 
     bool isInitialized();
     double getScale();
     double getWidth(); double getHeight();
     double getUnscaledWidth(); double getUnscaledHeight();
     std::u16string getText();
+    GLSDL_Texture* getTexture();
 
     bool setScale(double scale);
     void forcedNearestScaling(bool fns);
@@ -49,8 +51,8 @@ private:
     static int measureTextWidth(TTF_Font* font, const std::u16string& text);
     static std::vector<std::pair<int, std::u16string>> getProcessedText(const std::u16string& text, TTF_Font* font, int maxWidth, int maxLines);
 
-    SDL_Renderer* rend = nullptr;
-    SDL_Texture* txtTex = nullptr;
+    GLSDL_Renderer* rend = nullptr;
+    GLSDL_Texture* txtTex = nullptr;
     bool initted = false;
     bool darkenBackground = false;
     double width = 0;

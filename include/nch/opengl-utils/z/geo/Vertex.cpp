@@ -24,6 +24,8 @@ Vertex::Vertex(const glm::vec3& pos, const glm::vec3& col)
 
 Vertex::Vertex(const glm::vec3& pos)
 : Vertex(pos, glm::vec3(0.0f)){}
+Vertex::Vertex(const nch::Vec3f& pos)
+: Vertex(pos, glm::vec3(0.0f)){}
 
 Vertex::Vertex(float x, float y, float z)
 : Vertex(glm::vec3(x, y, z)){}
