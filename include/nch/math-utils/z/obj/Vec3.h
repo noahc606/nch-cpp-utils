@@ -43,6 +43,7 @@ public:
     }
     Vec3<float> toFloat() const { return Vec3<float>(x, y, z); }
     Vec3<double> toDouble() const { return Vec3<double>(x, y, z); }
+    Vec3<int> toInt() const { return Vec3<int>(static_cast<int>(x), static_cast<int>(y), static_cast<int>(z)); }
     Vec3<int64_t> toInt64() const { return Vec3<int64_t>(static_cast<int64_t>(x), static_cast<int64_t>(y), static_cast<int64_t>(z)); }
     Vec3<uint64_t> toUint64() const { return Vec3<uint64_t>(static_cast<uint64_t>(x), static_cast<uint64_t>(y), static_cast<uint64_t>(z)); }
     std::string toString() const { std::stringstream ss; ss << "(" << x << ", " << y << ", " << z << ")"; return ss.str(); }

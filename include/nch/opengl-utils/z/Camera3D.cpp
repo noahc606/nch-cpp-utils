@@ -21,7 +21,7 @@ Camera3D::Camera3D(SDL_Window* win) : Camera3D() {
 }
 Camera3D::~Camera3D(){}
 
-void Camera3D::tick()
+void Camera3D::tick(bool focusChangingAllowed)
 {
     lastTickTimeNS = Timer::getCurrentTimeNS();
     if(sdlWin==nullptr) {
@@ -42,11 +42,8 @@ void Camera3D::tick()
         updateRegAndSubPos();
 
         //Toggle whether control-focused using ESCAPE
-        if(Input::keyDownTime(SDLK_ESCAPE)==1) {
-            focused = !focused;
-            if(focused) {
-                SDL_WarpMouseInWindow(sdlWin, sdlWinW/2, sdlWinH/2);
-            }
+        if(focusChangingAllowed && Input::keyDownTime(SDLK_ESCAPE)==1) {
+            setFocused(!focused);
         }
     }
 
@@ -132,6 +129,9 @@ Vec3i64 Camera3D::getIntPos() {
     return regPos*32+Vec3i64(std::floor(subPos.x), std::floor(subPos.y), std::floor(subPos.z));
 }
 
+bool Camera3D::isFocused() const {
+    return focused;
+}
 Vec3f Camera3D::getRot() const {
     return rot;
 }
@@ -160,6 +160,12 @@ int Camera3D::getFacingNESW() const
     return WEST;
 }
 
+void Camera3D::setFocused(bool focused) {
+    if(Camera3D::focused != focused) {
+        SDL_WarpMouseInWindow(sdlWin, sdlWinW/2, sdlWinH/2);
+    }
+    Camera3D::focused = focused;
+}
 void Camera3D::setWindow(SDL_Window* win) {
     sdlWin = win;
 }

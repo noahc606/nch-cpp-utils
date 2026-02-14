@@ -86,6 +86,16 @@ Vec3f Mesh::getGeometricCenter() {
     float count = static_cast<float>(vertices.size());
     return {sum.x/count, sum.y/count, sum.z/count};
 }
+std::vector<Poly> Mesh::getPolysAt(glm::ivec3 key) {
+    std::vector<Poly> ret;
+    
+    auto range = polyMap.equal_range({key.x, key.y, key.z});
+    for (auto it = range.first; it!=range.second; it++) {
+        ret.push_back(it->second.verts);
+    }
+
+    return ret;
+}
 
 void Mesh::applyUpdates()
 {

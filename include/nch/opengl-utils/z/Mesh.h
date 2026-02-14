@@ -43,6 +43,7 @@ public:
     int getInternalIndicesSize();
     bool isBuilt();
     Vec3f getGeometricCenter();
+    std::vector<Poly> getPolysAt(glm::ivec3 key);
 
     void applyUpdates();
     void addPoly(const glm::ivec3& key, const Poly& poly);

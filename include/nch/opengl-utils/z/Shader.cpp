@@ -1,6 +1,7 @@
 #include "Shader.h"
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
+#include <nch/cpp-utils/filepath.h>
 #include <nch/cpp-utils/file-utils.h>
 #include <nch/cpp-utils/log.h>
 
@@ -42,7 +43,9 @@ Shader* Shader::readFromFiles(std::string vertexFilePath, std::string fragmentFi
     return new Shader(vtxCode, frgCode);
 }
 Shader* Shader::readFromAssetPath(std::string assetPath) {
-    return readFromFiles(assetPath+".vs", assetPath+".fs");
+    FilePath fp(assetPath);
+    std::string ap = fp.getWithoutExtension();
+    return readFromFiles(ap+".vs", ap+".fs");
 }
 Shader* Shader::createDefault2D_TexOrSolid() {
     return new Shader(

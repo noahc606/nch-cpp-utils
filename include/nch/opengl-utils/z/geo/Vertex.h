@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <nch/math-utils/vec3.h>
+#include <string>
 
 class Vertex {
 public:
@@ -12,6 +13,8 @@ public:
     Vertex(const glm::vec3& pos);
     Vertex(const nch::Vec3f& pos);
     Vertex(float x, float y, float z);
+
+    std::string toString() const;
 
     glm::vec3 pos;
     glm::vec3 normal;

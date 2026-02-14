@@ -24,7 +24,7 @@ public:
     Camera3D(SDL_Window* win);
     ~Camera3D();
 
-    void tick();
+    void tick(bool focusChangingAllowed = true);
     void subtickRotation();
     void drawFromPos(GLuint shaderID, nch::Vec3f offset);
     void drawFromPos(GLuint shaderID);
@@ -53,6 +53,7 @@ public:
     nch::Vec3f getSubPos();
     nch::Vec3i64 getIntPos();
 
+    bool isFocused() const;
     nch::Vec3f getRot() const;
     float getYaw() const;
     float getPitch() const;
@@ -61,6 +62,7 @@ public:
     nch::Vec3f getUp() const;
     int getFacingNESW() const;
 
+    void setFocused(bool focused);
     void setWindow(SDL_Window* win);
     void setWindow(nch::Vec2i virtualWinDims);
     void setPos(nch::Vec3f pos);

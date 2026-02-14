@@ -36,6 +36,7 @@ public:
     void rotate(const glm::vec3& center, const glm::vec3& xyzRot);
     void move(const glm::vec3& offset);
     void invertNorm();
+    std::vector<Poly> split() const;
 
     Vertex& operator[](int idx) {
         assert(idx>=0 && idx<verts.size() && "Index out of range!");
