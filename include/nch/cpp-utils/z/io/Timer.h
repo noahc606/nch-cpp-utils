@@ -14,14 +14,11 @@ public:
     static uint64_t getCurrentTimeNS();
     static uint64_t getTicks();
     double getElapsedTimeMS();
-
+    std::string getDesc() const;
     void debugElapsedTimeMS();
+
     static void sleep(int ms);
 private:
-    uint64_t getCurrentTime();
-    
-    void updateElapsedTime();
-    
     /* Times (in nanoseconds) */
     uint64_t t0 = 0;    //Initial time (time constructor was called)
     uint64_t t1 = 0;    //End time (time destructor activates)

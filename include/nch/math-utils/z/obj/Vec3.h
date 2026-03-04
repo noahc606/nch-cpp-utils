@@ -35,8 +35,11 @@ public:
     T length2() const { return x*x+y*y+z*z; }
     T length() const { return std::sqrt(length2()); }
     std::tuple<T, T, T> tuple() const { return std::make_tuple(x, y, z); }
+    T distance2To(const Vec3<T>& v) const {
+        return (v.x-x)*(v.x-x) + (v.y-y)*(v.y-y) + (v.z-z)*(v.z-z);
+    }
     T distanceTo(const Vec3<T>& v) const {
-        return std::sqrt( (v.x-x)*(v.x-x) + (v.y-y)*(v.y-y) + (v.z-z)*(v.z-z) );
+        return std::sqrt(distance2To(v));
     }
     Vec3<T> getMidpoint(const Vec3<T>& v) const {
         return ((*this)+v)*0.5f;
@@ -75,6 +78,12 @@ public:
             res *= invLen;
         }
         return res;
+    }
+    Vec3<T> floor() const {
+        return Vec3<T>(std::floor(x), std::floor(y), std::floor(z));
+    }
+    Vec3<T> ceil() const {
+        return Vec3<T>(std::ceil(x), std::ceil(y), std::ceil(z));
     }
     
     //Comparison

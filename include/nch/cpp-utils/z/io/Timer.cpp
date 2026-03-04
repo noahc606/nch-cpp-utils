@@ -37,17 +37,18 @@ uint64_t Timer::getCurrentTimeNS() { return ti.nsSinceStartup(); }
  */
 uint64_t Timer::getTicks() { return getCurrentTimeNS()/(uint64_t)1000000; }
 
-double Timer::getElapsedTimeMS()
-{
+double Timer::getElapsedTimeMS() {
     //End timer
     t1 = getCurrentTimeNS();
     //Calculate time elapsed and convert to milliseconds.
     dT = (double)((t1-t0)/(double)1000000);
     return dT;
 }
+std::string Timer::getDesc() const {
+    return desc;
+}
 
-void Timer::debugElapsedTimeMS()
-{
+void Timer::debugElapsedTimeMS() {
     std::stringstream ss;
     ss << getElapsedTimeMS();
     Log::log("Finished "+desc+" in "+ss.str()+"ms.");

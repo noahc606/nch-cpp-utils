@@ -19,6 +19,7 @@ public:
     Vertex v(int idx) const;
     glm::vec3 norm() const;
     std::string toString() const;
+    bool usingManualNormals() const;
     bool operator<(const Poly& other) const {
         int s = vs(), os = other.vs();
         if(s<os) return true;
@@ -32,10 +33,11 @@ public:
         return false;
     }
 
-    void simplyTex(const glm::vec2& uv0, const glm::vec2& uv1);
+    void simplyTex(glm::vec2 uv0, glm::vec2 uv1);
     void rotate(const glm::vec3& center, const glm::vec3& xyzRot);
     void move(const glm::vec3& offset);
     void invertNorm();
+    void useManualNormals(bool useManNormals);
     std::vector<Poly> split() const;
 
     Vertex& operator[](int idx) {
@@ -53,7 +55,8 @@ protected:
     void super_updateColors();
 
     std::vector<Vertex> verts;
-private:
     glm::vec3 normal;
+    bool manualNormals = false;
+private:
     int type = PolyType::UNKNOWN;
 };

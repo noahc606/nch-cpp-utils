@@ -15,6 +15,7 @@ public:
         Vec2::x = xy.first;
         Vec2::y = xy.second;
     }
+    Vec2(T xy) { x = xy; y = xy; }
 
     /** Getters **/
     //Functions

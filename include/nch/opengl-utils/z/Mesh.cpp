@@ -15,11 +15,35 @@ Mesh::Mesh(){}
 Mesh::Mesh(const std::vector<Atlas*>& atlases) {
     setAtlases(atlases);
 }
+Mesh::Mesh(Mesh&& other) noexcept:
+built(other.built),
+glVAO(other.glVAO),
+glVBO(other.glVBO),
+glEBO(other.glEBO),
+drawnIndexCount(other.drawnIndexCount),
+chkPos(other.chkPos),
+subPos(other.subPos),
+scale(other.scale),
+rotation(other.rotation),
+centerOfRotation(other.centerOfRotation),
+skybox(other.skybox),
+polyMap(std::move(other.polyMap)),
+indicesMap(std::move(other.indicesMap)),
+vertices(std::move(other.vertices)),
+indices(std::move(other.indices)),
+atlases(other.atlases)
+{
+    //Invalidate source's OpenGL handles so destructor doesn't delete them
+    other.glVAO = 0;
+    other.glVBO = 0;
+    other.glEBO = 0;
+    other.built = false;
+}
 Mesh::~Mesh() {
     reset();
 }
 
-void Mesh::draw(Shader* shader, Camera3D* cam)
+void Mesh::draw(Shader* shader, Camera3D* cam) const
 {
     assert(built);
     if(!built) return;
@@ -29,10 +53,10 @@ void Mesh::draw(Shader* shader, Camera3D* cam)
     Vec3i64 fChk = cam->getRegPos()-chkPos;
     Vec3f fSub = -subPos;
     if(!skybox) {
-        cam->drawFromPos(shader->getID(), (fChk*32).toFloat()+fSub);
+        cam->drawFromPos(shader, (fChk*32).toFloat()+fSub);
     } else {
         //For skybox, render with camera at origin (no translation)
-        cam->drawSkybox(shader->getID());
+        cam->drawSkybox(shader);
     }
     //Create model matrix with scale, rotation, and center of rotation
     shader->setModelMatrix(scale, rotation, centerOfRotation);
@@ -75,6 +99,37 @@ int Mesh::getInternalIndicesSize() {
 bool Mesh::isBuilt() {
     return built;
 }
+bool Mesh::isChunkInFrustum(Camera3D* cam)
+{
+    //Compute camera offset matching how draw() positions this mesh
+    Vec3f offset = ((cam->getRegPos()-chkPos)*32).toFloat()-subPos;
+    offset.x *= scale.x;
+    offset.y *= scale.y;
+    offset.z *= scale.z;
+    glm::mat4 mvp = cam->getCMatrixForOffset(offset);
+
+    //Extract and normalize frustum planes (Gribb/Hartmann)
+    glm::vec4 planes[6];
+    planes[0] = {mvp[0][3]+mvp[0][0], mvp[1][3]+mvp[1][0], mvp[2][3]+mvp[2][0], mvp[3][3]+mvp[3][0]}; // Left
+    planes[1] = {mvp[0][3]-mvp[0][0], mvp[1][3]-mvp[1][0], mvp[2][3]-mvp[2][0], mvp[3][3]-mvp[3][0]}; // Right
+    planes[2] = {mvp[0][3]+mvp[0][1], mvp[1][3]+mvp[1][1], mvp[2][3]+mvp[2][1], mvp[3][3]+mvp[3][1]}; // Bottom
+    planes[3] = {mvp[0][3]-mvp[0][1], mvp[1][3]-mvp[1][1], mvp[2][3]-mvp[2][1], mvp[3][3]-mvp[3][1]}; // Top
+    planes[4] = {mvp[0][3]+mvp[0][2], mvp[1][3]+mvp[1][2], mvp[2][3]+mvp[2][2], mvp[3][3]+mvp[3][2]}; // Near
+    planes[5] = {mvp[0][3]-mvp[0][2], mvp[1][3]-mvp[1][2], mvp[2][3]-mvp[2][2], mvp[3][3]-mvp[3][2]}; // Far
+    for(auto& plane : planes) {
+        plane /= glm::length(glm::vec3(plane));
+    }
+
+    //Treat mesh as 32x32x32 cube: bounding sphere centered at (16,16,16) with radius 16*sqrt(3)
+    static const glm::vec3 center(16.0f*scale.x, 16.0f*scale.y, 16.0f*scale.z);
+    static const float radius = glm::length(center);
+
+    //Sphere-plane test: outside if behind any plane by more than radius
+    for(int i = 0; i<6; i++) {
+        if(glm::dot(glm::vec3(planes[i]), center)+planes[i].w < -radius) return false;
+    }
+    return true;
+}
 Vec3f Mesh::getGeometricCenter() {
     if(vertices.size()==0) return {0.0f, 0.0f, 0.0f};
     Vec3f sum = {0.0f, 0.0f, 0.0f};
@@ -95,6 +150,9 @@ std::vector<Poly> Mesh::getPolysAt(glm::ivec3 key) {
     }
 
     return ret;
+}
+Vec3i64 Mesh::getChunkPos() const {
+    return chkPos;
 }
 
 void Mesh::applyUpdates()
@@ -203,6 +261,10 @@ void Mesh::setPos(Vec3i64 chkPos, Vec3f subPos) {
     Mesh::subPos = subPos;
     Mesh::chkPos = chkPos;
 }
+void Mesh::setPos(Vec3d approxPos) {
+    chkPos = nch::chunked3D(approxPos);
+    subPos = nch::subbed3D(approxPos).toFloat();
+}
 void Mesh::setPos(Vec3f approxPos) {
     chkPos = nch::chunked3F(approxPos);
     subPos = nch::subbed3F(approxPos);
@@ -218,6 +280,9 @@ void Mesh::setRotation(Vec3f rotation) {
 }
 void Mesh::setCenterOfRotation(Vec3f center) {
     Mesh::centerOfRotation = center;
+}
+void Mesh::setCenterOfRotation() {
+    setCenterOfRotation(getGeometricCenter());
 }
 void Mesh::setSkybox(bool skybox) {
     Mesh::skybox = skybox;

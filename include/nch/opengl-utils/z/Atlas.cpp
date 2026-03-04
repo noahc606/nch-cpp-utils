@@ -1,51 +1,38 @@
 #include "Atlas.h"
+#ifdef NCH_GLSDL_OPENGL_BACKEND
+#include <GLSDL/GLSDL.h>
+#endif
 #include <SDL2/SDL_image.h>
 #include <assert.h>
 #include <nch/cpp-utils/filepath.h>
 #include <nch/cpp-utils/fs-utils.h>
 #include <nch/cpp-utils/log.h>
+#include <nch/cpp-utils/string-utils.h>
 #include <nch/cpp-utils/timer.h>
+#include <stdexcept>
 #include "nch/opengl-utils/z/atlas/MaxRectsBin.h"
-
 using namespace nch;
 
 Atlas::Atlas(Atlas* base, std::string path, GLuint slot)
 {
-	switch(slot) {
-		case 0: { type = "diffuse"; } break;
-		case 1: { type = "specular"; } break;
-	}
-    unit = slot;
-    
-	//Assume building from files within dir
-	if(FsUtils::dirExists(path)) {
-		if(base==nullptr) buildFromDir(path, slot);
-		if(base!=nullptr) buildVariantFromDir(base, path, slot);
-		return;
-	}
-	//Assume building from single image file
-	if(FsUtils::fileExists(path)) {
-		buildFromImg(path, slot);
-		return;
-	}
-	throw std::invalid_argument(Log::getFormattedString("Could not resolve object \"%s\" as a file or dir", path.c_str()));
+	buildInfo.source = BuildInfo::Source::Path;
+	buildInfo.base = base;
+	buildInfo.path = path;
+	buildInfo.slot = slot;
+	build();
 }
 Atlas::Atlas(SDL_Surface* surf, GLuint slot)
 {
-	switch(slot) {
-		case 0: { type = "diffuse"; } break;
-		case 1: { type = "specular"; } break;
-	}
-    unit = slot;
-	buildFromSDL_Surface(surf, slot);
+	buildInfo.source = BuildInfo::Source::Surface;
+	buildInfo.surf = surf;
+	buildInfo.slot = slot;
+	build();
 }
 Atlas::Atlas(std::string path, GLuint slot):
 Atlas(nullptr, path, slot){}
 
-Atlas::~Atlas()
-{
-	if(id!=0)
-    	glDeleteTextures(1, &id);
+Atlas::~Atlas() {
+	destroy();
 }
 
 GLuint Atlas::getID() {
@@ -89,7 +76,56 @@ void Atlas::texUnit(Shader* shader, const char* uniform, GLuint unit)
     shader->useProgram();
     glUniform1i(texUni, unit);
 }
+void Atlas::saveDump(const std::string& imgPath) {
+#ifdef NCH_GLSDL_OPENGL_BACKEND
+	SDL_Surface* surf = GLSDL_Renderer::surfaceReadPixels(id, mapSize, mapSize, 4);
+	IMG_SavePNG(surf, imgPath.c_str());
+	SDL_FreeSurface(surf);
+#else
+	Log::warnv(__PRETTY_FUNCTION__, "doing nothing", "Function requires GLSDL and NCH_GLSDL_OPENGL_BACKEND to be defined");
+#endif
+}
 
+void Atlas::reload() {
+	destroy();
+	build();
+}
+void Atlas::destroy() {
+	unit = 0;
+	if(id!=0) glDeleteTextures(1, &id);
+	type = "";
+	map.clear();
+	mapSize = 0;
+	built = false;
+}
+void Atlas::build() {
+	switch(buildInfo.slot) {
+		case 0: { type = "diffuse"; } break;
+		case 1: { type = "specular"; } break;
+	}
+	unit = buildInfo.slot;
+
+	if(buildInfo.source == BuildInfo::Source::Surface) {
+		buildFromSDL_Surface(buildInfo.surf, buildInfo.slot);
+		built = true;
+		return;
+	}
+
+	//Assume building from files within dir
+	if(FsUtils::dirExists(buildInfo.path)) {
+		if(buildInfo.base==nullptr) buildFromDir(buildInfo.path, buildInfo.slot);
+		if(buildInfo.base!=nullptr) buildVariantFromDir(buildInfo.base, buildInfo.path, buildInfo.slot);
+		built = true;
+		return;
+	}
+	//Assume building from single image file
+	if(FsUtils::fileExists(buildInfo.path)) {
+		buildFromImg(buildInfo.path, buildInfo.slot);
+		built = true;
+		return;
+	}
+	throw std::invalid_argument(Log::getFormattedString("Could not resolve object \"%s\" as a file or dir", buildInfo.path.c_str()));
+}
 std::map<std::string, SDL_Surface*> Atlas::collectImagesFromDir(std::string dirPath)
 {
 	std::map<std::string, SDL_Surface*> ret;

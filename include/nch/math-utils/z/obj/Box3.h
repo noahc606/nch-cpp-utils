@@ -23,9 +23,12 @@ public:
         return Box3<T>(x, y, z, x+dx, y+dy, z+dz);
     }
 
+    T volume() const {
+        return std::abs(c2.x-c1.x)*std::abs(c2.y-c1.y)*std::abs(c2.z-c1.z);
+    }
 
     /* Does this box contain point 'p' (may be on edges/faces)? */
-    bool contains(Vec3<T> p) {
+    bool contains(Vec3<T> p) const {
         return (
             c1.x<=p.x && p.x<=c2.x &&
             c1.y<=p.y && p.y<=c2.y &&
@@ -33,7 +36,7 @@ public:
         );
     }
     /* Does this box completely contain box 'b' (may be on edges/faces)? */
-    bool contains(Box3<T> b) {
+    bool contains(Box3<T> b) const {
         return (
             c1.x<=b.c1.x &&
             c1.y<=b.c1.y &&
@@ -44,7 +47,7 @@ public:
         );
     }
     /* Does this box at all intersect box 'b' (vertices/edges/faces count)? */
-    bool intersects(Box3<T> b) {
+    bool intersects(Box3<T> b) const {
         return (
             c1.x<=b.c2.x && b.c1.x<=c2.x &&
             c1.y<=b.c2.y && b.c1.y<=c2.y &&
@@ -52,7 +55,7 @@ public:
         );
     }
     /* Same as intersects(), but vertices/edges/faces DON'T count */
-    bool collides(Box3<T> b) {
+    bool collides(Box3<T> b) const {
         return (
             c1.x<b.c2.x && b.c1.x<c2.x &&
             c1.y<b.c2.y && b.c1.y<c2.y &&
@@ -60,7 +63,7 @@ public:
         );
     }
     /* Get the intersection between this box and box 'b'. If no intersection, return Box(0, 0, 0, 0, 0, 0); */
-    Box3<T> intersection(Box3<T> b) {
+    Box3<T> intersection(Box3<T> b) const {
         if(!intersects(b)) {
             return Box3(0, 0, 0, 0, 0, 0);
         }
@@ -81,7 +84,7 @@ public:
     /**
         ==: 'left' is the same as 'right'
     */
-    bool operator==(Box3<T> other) {
+    bool operator==(Box3<T> other) const {
         return (
             c1.x==other.c1.x &&
             c1.y==other.c1.y &&
@@ -91,7 +94,7 @@ public:
             c2.z==other.c2.z
         );
     }
-    bool operator!=(Box3<T> other) {
+    bool operator!=(Box3<T> other) const {
         return !((*this)==other);
     }
     

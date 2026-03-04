@@ -1,12 +1,12 @@
 #pragma once
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
-#define GLM_FORCE_PURE
 #include <glm/glm.hpp>
 #include <string>
 #include <vector>
 #include "nch/math-utils/vec2.h"
 #include "nch/math-utils/vec3.h"
+#include "nch/opengl-utils/shader.h"
 
 namespace nch { class Camera3D {
 public:
@@ -26,9 +26,10 @@ public:
 
     void tick(bool focusChangingAllowed = true);
     void subtickRotation();
-    void drawFromPos(GLuint shaderID, nch::Vec3f offset);
-    void drawFromPos(GLuint shaderID);
-    void drawSkybox(GLuint shaderID);
+    void drawFromPos(Shader* sdr, nch::Vec3f offset);
+    void drawFromPos(Shader* sdr);
+    void drawSkybox(Shader* sdr);
+    glm::mat4 getCMatrixForOffset(nch::Vec3f offset) const;
 
     template<typename VecX> static VecX dirToVecX(int dir)
     {
@@ -49,16 +50,20 @@ public:
     static int flippedDir(int dir);
     std::string getInfo();
     nch::Vec3f getEstPos();
+    nch::Vec3f getEstInterpolPos();
     nch::Vec3i64 getRegPos();
     nch::Vec3f getSubPos();
     nch::Vec3i64 getIntPos();
 
     bool isFocused() const;
+    float getFOV() const;
     nch::Vec3f getRot() const;
     float getYaw() const;
     float getPitch() const;
     float getRoll() const;
+    float getSensitivity() const;
     std::vector<glm::vec4> getFrustumPlanes() const;
+    glm::mat4 getCMatrix() const;
     nch::Vec3f getUp() const;
     int getFacingNESW() const;
 
@@ -68,9 +73,13 @@ public:
     void setPos(nch::Vec3f pos);
     void setVel(nch::Vec3f vel);
     void setRot(float yaw, float pitch, float roll = 0);
+    void setRotVec(nch::Vec3f rotVec);
     void setFOV(float fov);
     void setNearPlane(float np);
     void setFarPlane(float fp);
+    void setSensitivity(float s);
+    void setOverrideMatrix(const glm::mat4& mat);
+    void clearOverrideMatrix();
 private:
     /// @brief Helper function to update 'cMatrix', a perspective matrix for this 'Camera3D' that takes in a number of parameters.
     /// @brief See 'fov', 'nearPlane', and 'farPlane' for more info.
@@ -88,17 +97,20 @@ private:
     float farPlane = 1000.0f;   //How far away "far-clipping" should take place (anything beyond this should be invisible)
     Vec3f up = {0.0f, 1.0f, 0.0f};
     glm::mat4 cMatrix;
+    bool useOverrideMatrix = false;
+    glm::mat4 overrideMatrix = glm::mat4(1.0f);
     std::vector<glm::vec4> frustumPlanes;
 
     Vec3i64 regPos = 0; //Region pos
     Vec3f subPos = 0;   //Sub pos (in [0, 31.9999])
     Vec3f lPos = 0;     //Logical pos (truncated to subpos every tick)
 
-    Vec3f rot = {0.0f, 0.0f, -1.0f};
+    Vec3f rotVec = {0.0f, 0.0f, -1.0f};
     float yaw = 270;  //Nodding no
     float pitch = 90; //Nodding yes
     float roll = 0;   //Tilting head left/right
     Vec3f vel = 0;
+    float sensitivity = 0.15f;
 
     static const std::vector<std::string> dirStrings;
 }; }

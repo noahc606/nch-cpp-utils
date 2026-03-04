@@ -11,7 +11,6 @@
 #include "nch/opengl-utils/geo.h"
 #include "nch/opengl-utils/shader.h"
 
-
 namespace nch { class Mesh {
 public:
     struct MPoly {
@@ -35,15 +34,17 @@ public:
 
     Mesh();
     Mesh(const std::vector<Atlas*>& atlases);
-    Mesh(Mesh& other);
+    Mesh(Mesh&& other) noexcept;
     ~Mesh();
 
-    void draw(nch::Shader* shader, nch::Camera3D* cam);
+    void draw(nch::Shader* shader, nch::Camera3D* cam) const;
     int getInternalVerticesSize();
     int getInternalIndicesSize();
     bool isBuilt();
+    bool isChunkInFrustum(Camera3D* cam);
     Vec3f getGeometricCenter();
     std::vector<Poly> getPolysAt(glm::ivec3 key);
+    Vec3i64 getChunkPos() const;
 
     void applyUpdates();
     void addPoly(const glm::ivec3& key, const Poly& poly);
@@ -53,11 +54,13 @@ public:
 
     void setAtlases(const std::vector<Atlas*>& atlases);
     void setPos(Vec3i64 chkPos, Vec3f subPos);
+    void setPos(Vec3d approxPos);
     void setPos(Vec3f approxPos);
     void setScale(Vec3f scale);
     void setScale(float uniformScale);
     void setRotation(Vec3f rotation);
     void setCenterOfRotation(Vec3f center);
+    void setCenterOfRotation();
     void setSkybox(bool skybox);
 
 private:

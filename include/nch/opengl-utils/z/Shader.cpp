@@ -9,10 +9,11 @@ using namespace nch;
 
 Shader::Shader(std::string vtxCode, std::string frgCode)
 {
-    const char* vtxSrc = vtxCode.c_str();
-    const char* frgSrc = frgCode.c_str();
+    /* Build basic shader program */
+    {
+        const char* vtxSrc = vtxCode.c_str();
+        const char* frgSrc = frgCode.c_str();
 
-    /* Build shader program */ {
         //Vertex shader
         GLuint glVtxShader = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(glVtxShader, 1, &vtxSrc, NULL);
@@ -34,6 +35,32 @@ Shader::Shader(std::string vtxCode, std::string frgCode)
         //Cleanup (we already have the program by now)
         glDeleteShader(glVtxShader);
         glDeleteShader(glFrgShader);
+    }
+
+    /* Extract useful info from shader program */
+    {
+        GLint cnt;
+        glGetProgramiv(id, GL_ACTIVE_UNIFORMS, &cnt);
+        std::set<std::string> unilist;
+        for(GLint i = 0; i<cnt; i++) {
+            GLsizei len;
+            GLint size;
+            GLenum type;
+            GLchar name[64];
+            glGetActiveUniform(id, (GLuint)i, 64, &len, &size, &type, name);
+            unilist.insert(name);
+        }
+        uniformList = unilist;
+        
+        if(uniformList.find("camMatrix")!=uniformList.end()) {
+            uniformCamMatrix = "camMatrix";
+        } else if(uniformList.find("camMatrixLight")!=uniformList.end()) {
+            uniformCamMatrix = "camMatrixLight";
+        }
+
+        if(uniformList.find("camPos")!=uniformList.end()) {
+            uniformCamPos = "camPos";
+        }
     }
 }
 
@@ -139,12 +166,22 @@ Shader::~Shader() {
     deleteProgram();
 }
 
-GLuint Shader::getID() {
+GLuint Shader::getID() const {
     return id;
 }
-GLint Shader::getUniformLoc(const std::string& name) {
+GLint Shader::getUniformLoc(const std::string& name) const {
     return glGetUniformLocation(id, name.c_str());
 }
+std::set<std::string> Shader::getUniformList() const {
+    return uniformList;
+}
+std::string Shader::getUniformCamMatrix() const {
+    return uniformCamMatrix;
+}
+std::string Shader::getUniformCamPos() const {
+    return uniformCamPos;
+}
+
 void Shader::setModelMatrix(Vec3f scale, Vec3f rotation, Vec3f centerOfRotation) {
     glm::mat4 objectModel = glm::mat4(1.f);
     //Translate to center of rotation

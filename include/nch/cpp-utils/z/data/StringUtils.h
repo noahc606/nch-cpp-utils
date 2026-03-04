@@ -4,20 +4,26 @@
 #include <string>
 #include <vector>
 
-namespace nch { class StringUtils {
+namespace nch {
+
+template<typename T> static void cat(std::stringstream& ss, T t) {
+    ss << t;
+}
+template<typename T, typename... Args>static void cat(std::stringstream& ss, T first, Args... args) {
+    ss << first; cat(ss, args...);
+}
+template<typename T, typename... Args>static std::string cat(T first, Args... args) {
+    std::stringstream ss; cat(ss, first, args...); return ss.str();
+}
+
+class StringUtils {
 public:
 
     static void logValidationWarnings(bool show);
 
-    template<typename T> static void cat(std::stringstream& ss, T t) {
-        ss << t;
-    }
-    template<typename T, typename... Args>static void cat(std::stringstream& ss, T first, Args... args) {
-        ss << first; cat(ss, args...);
-    }
-    template<typename T, typename... Args>static std::string cat(T first, Args... args) {
-        std::stringstream ss; cat(ss, first, args...); return ss.str();
-    }
+    template<typename T> static void cat(std::stringstream& ss, T t) { nch::cat(ss, t); }
+    template<typename T, typename... Args>static void cat(std::stringstream& ss, T first, Args... args) { nch::cat(ss, first, args...); }
+    template<typename T, typename... Args>static std::string cat(T first, Args... args) { return nch::cat(first, args...); }
 
     /// @brief Similar to Java's String.split(regex), but instead of a regex, 'delim' is a char to split by.
     /// @brief Size-0 strings will not appear in the resulting vec.

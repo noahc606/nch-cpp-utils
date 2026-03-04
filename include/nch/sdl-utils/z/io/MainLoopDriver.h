@@ -1,9 +1,12 @@
 #pragma once
-#include <mutex>
 #include <GLSDL/GLSDL.h>
 #include <SDL2/SDL_events.h>
+#include <map>
+#include <mutex>
 #include <string>
 #include <vector>
+#include "nch/cpp-utils/color.h"
+#include "nch/cpp-utils/timer.h"
 
 namespace nch { class MainLoopDriver {
 public:
@@ -18,7 +21,9 @@ public:
     static uint64_t getNumTicksPassedTotal();
     static bool hasQuit();
     
-    static void drawPerformanceBenchmark(GLSDL_Renderer* sdlRend, int bmHeight, int windowWidth, int windowHeight);
+    static void drawPerformanceBenchmark(GLSDL_Renderer* sdlRend, int bmHeight, int windowWidth, int windowHeight, void* ttfFont = nullptr);
+    static void performanceBenchmarkDrawOp(nch::Timer& timer, const nch::Color& color);
+    static void performanceBenchmarkTickOp(nch::Timer& timer, const nch::Color& color);
     static void quit();
 private:
     void start(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targetTPS, void (*altDrawFunc)(), uint64_t targetFPS, void (*eventFunc)(SDL_Event&));
@@ -43,6 +48,8 @@ private:
     static std::string performanceInfo;
     static int currentTPS; static int currentFPS;
     static std::vector<double> frameTimes, tickTimes;
+    static std::map<std::string, std::vector<double>> bmFrameTimes, bmTickTimes;
+    static std::map<std::string, nch::Color> bmLabelColors;
     //Objects used by ticker
 	static std::mutex mtx;
 	static int currentNumTicksLeft;

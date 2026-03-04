@@ -10,12 +10,19 @@
 
 namespace nch { class Atlas {
 public:
+    struct BuildInfo {
+        enum class Source { Path, Surface };
+        Source source = Source::Path;
+        Atlas* base = nullptr;
+        std::string path = "";
+        SDL_Surface* surf = nullptr;
+        GLuint slot = 0;
+    };
     struct ImageInfo {
         std::string name;
         SDL_Surface* surface;
         int w, h;
     };
-
     
     Atlas(Atlas* base, std::string path, GLuint slot);
     Atlas(SDL_Surface* surf, GLuint slot);
@@ -38,11 +45,16 @@ public:
     std::map<std::string, nch::Rect> getMap();
     int getMapSize();
 
+    void reload();
     static void bind(GLenum unit, GLuint id);
     void bind();
     static void unbind();
     void texUnit(nch::Shader* shader, const char* uniform, GLuint unit);
+    void saveDump(const std::string& imgPath);
 private:
+    void destroy();
+    void build();
+
     static std::map<std::string, SDL_Surface*> collectImagesFromDir(std::string dirPath);
     void buildVariantFromDir(Atlas* base, std::string dirPath, GLuint slot);
     void buildFromDir(std::string dirPath, GLuint slot);
@@ -53,9 +65,11 @@ private:
     static std::map<std::string, nch::Rect> buildSquareAtlas(const std::map<std::string, SDL_Surface*>& collection, int& outSize);
     static bool tryPackMaxRects(int size, const std::vector<ImageInfo>& images, std::map<std::string, nch::Rect>& atlas);
 
-    GLenum unit;
+    BuildInfo buildInfo;
+    GLenum unit = 0;
     GLuint id = 0;
-    std::string type;
+    std::string type = "";
     std::map<std::string, nch::Rect> map;
     int mapSize = 0;
+    bool built = false;
 }; }

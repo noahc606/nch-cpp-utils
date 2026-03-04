@@ -48,7 +48,7 @@ void Camera3D::tick(bool focusChangingAllowed)
     }
 
 }
-void Camera3D::drawFromPos(GLuint shaderID, Vec3f offset)
+void Camera3D::drawFromPos(Shader* sdr, Vec3f offset)
 {
     //Find interpolated position ('ipos') between two ticks:
     //Uses current position, tick progress, and current velocity.
@@ -57,19 +57,43 @@ void Camera3D::drawFromPos(GLuint shaderID, Vec3f offset)
     Vec3f iLPos = (lPos)+vel*(float)tickProgress+offset;
 
     updateCamMatrix(iLPos);
-    glUniform3f(glGetUniformLocation(shaderID, "camPos"), iLPos.x, iLPos.y, iLPos.z);
-    glUniformMatrix4fv(glGetUniformLocation(shaderID, "camMatrix"), 1, GL_FALSE, glm::value_ptr(cMatrix));
+    const std::string& uniCamPos = sdr->getUniformCamPos();
+    const std::string& uniCamMat = sdr->getUniformCamMatrix();
+    if(uniCamPos!="") {
+        glUniform3f(sdr->getUniformLoc(uniCamPos), iLPos.x, iLPos.y, iLPos.z);
+    }
+    if(uniCamMat!="") {
+        glUniformMatrix4fv(sdr->getUniformLoc(uniCamMat), 1, GL_FALSE, glm::value_ptr(cMatrix));
+    }
 }
-void Camera3D::drawFromPos(GLuint shaderID) {
-    drawFromPos(shaderID, {0, 0, 0});
+void Camera3D::drawFromPos(Shader* sdr) {
+    drawFromPos(sdr, {0, 0, 0});
 }
-void Camera3D::drawSkybox(GLuint shaderID)
+glm::mat4 Camera3D::getCMatrixForOffset(Vec3f offset) const
 {
-    //For skybox rendering, we want the camera at the origin
-    //This removes translation while keeping rotation
+    uint64_t currTimeNS = Timer::getCurrentTimeNS();
+    double tickProgress = (double)(currTimeNS-lastTickTimeNS)/MainLoopDriver::getTargetNSPT();
+    Vec3f pos = lPos+vel*(float)tickProgress+offset;
+    glm::vec3 baseUp = glm::vec3(up);
+    glm::vec3 forward = glm::vec3(rotVec);
+    float rollRad = roll*(float)M_PI/180.0f;
+    glm::vec3 rolledUp = glm::rotate(glm::mat4(1.0f), rollRad, forward)*glm::vec4(baseUp, 0.0f);
+    glm::mat4 view = glm::lookAt((glm::vec3)pos, (glm::vec3)(pos+rotVec), rolledUp);
+    glm::mat4 proj = glm::perspective(glm::radians(fov), ((float)sdlWinW/(float)sdlWinH), nearPlane, farPlane);
+    return proj*view;
+}
+void Camera3D::drawSkybox(Shader* sdr)
+{
+    //For skybox rendering, put camera @ origin while keeping rotation
     updateCamMatrix({0, 0, 0});
-    glUniform3f(glGetUniformLocation(shaderID, "camPos"), 0.0f, 0.0f, 0.0f);
-    glUniformMatrix4fv(glGetUniformLocation(shaderID, "camMatrix"), 1, GL_FALSE, glm::value_ptr(cMatrix));
+    const std::string& uniCamPos = sdr->getUniformCamPos();
+    const std::string& uniCamMat = sdr->getUniformCamMatrix();
+    if(uniCamPos!="") {
+        glUniform3f(sdr->getUniformLoc(uniCamPos), 0.0f, 0.0f, 0.0f);
+    }
+    if(uniCamMat!="") {
+        glUniformMatrix4fv(sdr->getUniformLoc(uniCamMat), 1, GL_FALSE, glm::value_ptr(cMatrix));
+    }
 }
 
 Vec3i64 Camera3D::dirToVecI64(int dir) {
@@ -116,6 +140,14 @@ Vec3f Camera3D::getEstPos() {
     Vec3f ret = Vec3f(regPos.x*32, regPos.y*32, regPos.z*32)+subPos;
     return ret;
 }
+Vec3f Camera3D::getEstInterpolPos() {
+    //Find interpolated position ('ipos') between two ticks:
+    //Uses current position, tick progress, and current velocity.
+    uint64_t currTimeNS = Timer::getCurrentTimeNS();
+    double tickProgress = (double)(currTimeNS-lastTickTimeNS)/MainLoopDriver::getTargetNSPT();
+    Vec3f iLPos = (lPos)+vel*(float)tickProgress+regPos.toFloat()*32;
+    return iLPos;
+}
 Vec3i64 Camera3D::getRegPos() {
     updateRegAndSubPos();
     return regPos;
@@ -132,8 +164,11 @@ Vec3i64 Camera3D::getIntPos() {
 bool Camera3D::isFocused() const {
     return focused;
 }
+float Camera3D::getFOV() const {
+    return fov;
+}
 Vec3f Camera3D::getRot() const {
-    return rot;
+    return rotVec;
 }
 float Camera3D::getYaw() const {
     return yaw;
@@ -144,8 +179,14 @@ float Camera3D::getPitch() const {
 float Camera3D::getRoll() const {
     return roll;
 }
+float Camera3D::getSensitivity() const {
+    return sensitivity;
+}
 std::vector<glm::vec4> Camera3D::getFrustumPlanes() const {
     return frustumPlanes;
+}
+glm::mat4 Camera3D::getCMatrix() const {
+    return cMatrix;
 }
 Vec3f Camera3D::getUp() const {
     return up;
@@ -196,16 +237,19 @@ void Camera3D::setRot(float yaw, float pitch, float roll) {
 	//Update 'rot' based on current yaw and pitch
 	float the = pitch*M_PI/180.; //From pitch
 	float phi = yaw*M_PI/180.;   //From yaw
-	rot = {
+
+    setRotVec({
 		std::sin(the)*std::cos(phi),
 		std::cos(the),
 		std::sin(the)*std::sin(phi)
-    };
+    });
     Camera3D::yaw = yaw;
     Camera3D::pitch = pitch;
     Camera3D::roll = roll;
 }
-
+void Camera3D::setRotVec(Vec3f rotVec) {
+    Camera3D::rotVec = rotVec;
+}
 void Camera3D::setFOV(float fov) {
     Camera3D::fov = fov;
 }
@@ -215,19 +259,30 @@ void Camera3D::setNearPlane(float np) {
 void Camera3D::setFarPlane(float fp) {
     Camera3D::farPlane = fp;
 }
+void Camera3D::setSensitivity(float s) {
+    Camera3D::sensitivity = s;
+}
+void Camera3D::setOverrideMatrix(const glm::mat4& mat) {
+    overrideMatrix = mat;
+    useOverrideMatrix = true;
+}
+void Camera3D::clearOverrideMatrix() {
+    useOverrideMatrix = false;
+}
 
 void Camera3D::updateCamMatrix(Vec3f pos)
 {
+    if(useOverrideMatrix) { cMatrix = overrideMatrix; return; }
     glm::mat4 view = glm::mat4(1.0f);
     glm::mat4 proj = glm::mat4(1.0f);
 
     //Calculate 'rolledUp' from 'roll' and 'up'
     glm::vec3 baseUp = glm::vec3(up);
-    glm::vec3 forward = glm::vec3(rot);
+    glm::vec3 forward = glm::vec3(rotVec);
     float rollRad = roll*M_PI/180.0f;
     glm::vec3 rolledUp = glm::rotate(glm::mat4(1.0f), rollRad, forward) * glm::vec4(baseUp, 0.0f);
     //Calculate 'view' from lookAt and 'proj'
-    view = glm::lookAt((glm::vec3)pos, (glm::vec3)(pos+rot), rolledUp);
+    view = glm::lookAt((glm::vec3)pos, (glm::vec3)(pos+rotVec), rolledUp);
     proj = glm::perspective(glm::radians(fov), ((float)sdlWinW/(float)sdlWinH), nearPlane, farPlane);
     //Calculate 'cMatrix' from 'view' and 'proj'
     cMatrix = proj*view;
@@ -281,8 +336,8 @@ void Camera3D::subtickRotation()
         int dmx = sdlWinW/2-lmx;
         int dmy = sdlWinH/2-lmy;
 
-        yaw -= dmx/4.;   //Yaw
-        pitch -= dmy/4.;   //Pitch
+        yaw -= dmx * sensitivity;
+        pitch -= dmy * sensitivity;
     }
 
     setRot(yaw, pitch, roll);
