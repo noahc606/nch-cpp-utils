@@ -1,7 +1,8 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <nch/math-utils/vec3.h>
 #include "Poly.h"
-class GeoUtils {
+namespace nch { class GeoUtils {
 public:
     static const std::vector<Poly> unitCube;
 
@@ -10,4 +11,4 @@ public:
     static bool isPointInConvexPoly2D(const std::vector<glm::vec2>& poly2D, const glm::vec2& p);
     static bool isPolyWithinPoly(const Poly& inner, const Poly& outer);
 private:
-};
+}; }

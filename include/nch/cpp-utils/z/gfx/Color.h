@@ -9,8 +9,9 @@ public:
     Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
     Color(uint8_t r, uint8_t g, uint8_t b);
     Color(uint32_t rgba);
-	Color(std::string p_value);
+	Color(const std::string& p_value);
     static Color fromDoubles255(double r, double g, double b, double a);
+    static Color fromStringB16(const std::string& hexvalue);
     Color();
     ~Color();
 

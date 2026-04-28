@@ -116,6 +116,18 @@ void MainLoopDriver::drawPerformanceBenchmark(GLSDL_Renderer* sdlRend, int bmHei
 
 		GLSDL_SetRenderDrawColor(sdlRend, 0, 255, 0, 255);
 		GLSDL_RenderDrawLine(sdlRend, windowWidth-targetTPS+i, windowHeight-lineHeight, windowWidth-targetTPS+i, windowHeight);
+
+		lineHeight = windowHeight;
+		int lineSize = 0;
+		for(const auto& bm : bmTickTimes) {
+			lineSize = 0;
+			try { lineSize = (bmHeight*bm.second.at(i)/idealMSPT)+1; } catch(...){}
+			Color lineColor = Color(255, 255, 255);
+			try { lineColor = bmLabelColors.at(bm.first); } catch(...){}
+			lineHeight -= lineSize;
+			GLSDL_SetRenderDrawColor(sdlRend, lineColor.r, lineColor.g, lineColor.b, 255);
+			GLSDL_RenderDrawLine(sdlRend, windowWidth-targetTPS+i, lineHeight, windowWidth-targetTPS+i, lineHeight+lineSize);
+		}
 	}
 
 	GLSDL_SetRenderDrawBlendMode(sdlRend, oldBlendMode);
@@ -137,6 +149,27 @@ void MainLoopDriver::performanceBenchmarkDrawOp(Timer& timer, const nch::Color& 
 	
 	//At start of draw: Clear, populate with empty
 	if(fps==0) {
+		vecItr->second.clear();
+	}
+	vecItr->second.push_back(timer.getElapsedTimeMS());
+}
+void MainLoopDriver::performanceBenchmarkTickOp(Timer& timer, const nch::Color& color) {
+	const std::string lbl = timer.getDesc();
+	auto vecItr = bmTickTimes.find(lbl);
+	if(vecItr==bmTickTimes.end()) {
+		std::vector<double> times;
+		bmTickTimes.insert({lbl, times});
+		vecItr = bmTickTimes.find(lbl);
+	}
+	assert(vecItr!=bmTickTimes.end());
+
+	auto colItr = bmLabelColors.find(lbl);
+	if(colItr==bmLabelColors.end()) {
+		bmLabelColors.insert({lbl, color});
+	}
+
+	//At start of tick cycle: Clear, populate with empty
+	if(tps==0) {
 		vecItr->second.clear();
 	}
 	vecItr->second.push_back(timer.getElapsedTimeMS());
@@ -249,6 +282,8 @@ void MainLoopDriver::mainLoop(void)
 		currentFPS = fps;
 		tps = 0;
 		fps = 0;
+		bmFrameTimes.clear();
+		bmTickTimes.clear();
 	}
 
 	//Sleep for ~1ms so CPU core usage not overused.

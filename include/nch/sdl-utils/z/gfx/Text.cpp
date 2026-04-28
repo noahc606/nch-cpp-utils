@@ -17,6 +17,46 @@ Text::Text() {
     initted = false;
     txtTex = nullptr;
 }
+Text::Text(Text&& obj) noexcept {
+    rend = obj.rend;
+    txtTex = obj.txtTex; obj.txtTex = nullptr;
+    initted = obj.initted;
+    darkenBackground = obj.darkenBackground;
+    width = obj.width;
+    height = obj.height;
+    forceNearestScaling = obj.forceNearestScaling;
+    shadow = obj.shadow;
+    scale = obj.scale;
+    text = obj.text;
+    font = obj.font;
+    textColor = obj.textColor;
+    wrapLength = obj.wrapLength;
+    maxLines = obj.maxLines;
+    everyLineCentered = obj.everyLineCentered;
+}
+Text& Text::operator=(const Text& obj)
+{
+    if(this == &obj) return *this;
+
+    destroy();
+    rend = obj.rend;
+    initted = obj.initted;
+    darkenBackground = obj.darkenBackground;
+    width = obj.width;
+    height = obj.height;
+    forceNearestScaling = obj.forceNearestScaling;
+    shadow = obj.shadow;
+    scale = obj.scale;
+    text = obj.text;
+    font = obj.font;
+    textColor = obj.textColor;
+    wrapLength = obj.wrapLength;
+    maxLines = obj.maxLines;
+    everyLineCentered = obj.everyLineCentered;
+
+    if(initted && obj.txtTex != nullptr) updateTextTexture();
+    return *this;
+}
 Text::~Text() { destroy(); }
 
 void Text::init(GLSDL_Renderer* rend, TTF_Font* font, bool darkenBackground)
@@ -34,13 +74,11 @@ void Text::init(GLSDL_Renderer* rend, TTF_Font* font, bool darkenBackground)
 
 void Text::destroy()
 {
-    if(txtTex!=nullptr) {
-        GLSDL_DestroyTexture(txtTex);
-    }
+    if(txtTex!=nullptr) GLSDL_DestroyTexture(txtTex);
     txtTex = nullptr;
 }
 
-void Text::draw(int x, int y)
+void Text::draw(int x, int y) const
 {
     if(txtTex==nullptr) return;
 
@@ -85,7 +123,7 @@ void Text::draw(int x, int y)
     GLSDL_RenderCopy(rend, txtTex, NULL, &dst );
 }
 
-void Text::drawCentered(int x, int y, int w, int h)
+void Text::drawCentered(int x, int y, int w, int h) const
 {
     draw(x+w/2-(int)getWidth()/2, y+h/2-(int)getHeight()/2);
 }
@@ -110,14 +148,14 @@ void Text::stream(GLSDL_Renderer* rend, TTF_Font* font, std::string text, const 
     GLSDL_DestroyTexture(txtTex);
 }
 
-bool Text::isInitialized() { return initted; }
-double Text::getScale() { return scale; }
-double Text::getWidth() { return width*scale; }
-double Text::getUnscaledWidth() { return width; }
-double Text::getHeight() { return height*scale; }
-double Text::getUnscaledHeight() { return height; }
-std::u16string Text::getText() { return text; }
-GLSDL_Texture* Text::getTexture() {
+bool Text::isInitialized() const { return initted; }
+double Text::getScale() const { return scale; }
+double Text::getWidth() const { return width*scale; }
+double Text::getUnscaledWidth() const { return width; }
+double Text::getHeight() const { return height*scale; }
+double Text::getUnscaledHeight() const { return height; }
+std::u16string Text::getText() const { return text; }
+GLSDL_Texture* Text::getTexture() const {
     if(!initted) return nullptr;
     return txtTex;
 }

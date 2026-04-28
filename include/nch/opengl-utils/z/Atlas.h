@@ -6,27 +6,29 @@
 #include <string>
 #include <vector>
 #include "nch/opengl-utils/shader.h"
-
+#include "nch/opengl-utils/z/atlas/AtlasImage.h"
 
 namespace nch { class Atlas {
 public:
     struct BuildInfo {
-        enum class Source { Path, Surface };
+        enum class Source { MultiplePaths, Path, Surface };
         Source source = Source::Path;
         Atlas* base = nullptr;
-        std::string path = "";
+        std::vector<std::string> multPaths;
+        std::vector<std::string> multPrefixes;
+        std::string singlePath = "";
+        std::string singlePrefix = "";
         SDL_Surface* surf = nullptr;
         GLuint slot = 0;
     };
-    struct ImageInfo {
-        std::string name;
-        SDL_Surface* surface;
-        int w, h;
-    };
-    
+
+    Atlas(Atlas* base, const std::vector<std::string>& paths, const std::vector<std::string>& prefixes, GLuint slot);
+    Atlas(Atlas* base, std::pair<std::string, std::string> pathAndPrefix, GLuint slot);
     Atlas(Atlas* base, std::string path, GLuint slot);
-    Atlas(SDL_Surface* surf, GLuint slot);
+    Atlas(const std::vector<std::string>& paths, const std::vector<std::string>& prefixes, GLuint slot);
+    Atlas(std::pair<std::string, std::string> pathAndPrefix, GLuint slot);
     Atlas(std::string path, GLuint slot);
+    Atlas(SDL_Surface* surf, GLuint slot);
     Atlas(Atlas&& obj) {
         unit = obj.unit;
         id = obj.id;
@@ -41,7 +43,7 @@ public:
 
     GLuint getID();
     const std::string& getType();
-    nch::FRect getSrc(const std::string& imgID);
+    nch::FRect getSrc(const std::string& imgID) const;
     std::map<std::string, nch::Rect> getMap();
     int getMapSize();
 
@@ -55,15 +57,10 @@ private:
     void destroy();
     void build();
 
-    static std::map<std::string, SDL_Surface*> collectImagesFromDir(std::string dirPath);
-    void buildVariantFromDir(Atlas* base, std::string dirPath, GLuint slot);
-    void buildFromDir(std::string dirPath, GLuint slot);
+    void buildVariantFromDirs(Atlas* base, const std::vector<std::string>& dirPaths, const std::vector<std::string>& prefixes, GLuint slot);
+    void buildFromDirs(const std::vector<std::string>& dirPaths, const std::vector<std::string>& prefixes, GLuint slot);
     void buildFromSDL_Surface(SDL_Surface* surf, GLuint slot);
     void buildFromImg(std::string imgPath, GLuint slot);
-    /// @brief Generate a single OpenGL texture (created within 'textures') from the provided SDL_Surface*.
-    static void buildGL_TextureFromSDL_Surface(SDL_Surface* surf);
-    static std::map<std::string, nch::Rect> buildSquareAtlas(const std::map<std::string, SDL_Surface*>& collection, int& outSize);
-    static bool tryPackMaxRects(int size, const std::vector<ImageInfo>& images, std::map<std::string, nch::Rect>& atlas);
 
     BuildInfo buildInfo;
     GLenum unit = 0;

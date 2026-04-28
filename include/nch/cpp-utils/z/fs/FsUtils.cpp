@@ -1,4 +1,5 @@
 #include "FsUtils.h"
+#include <errno.h>
 #include <functional>
 #include <set>
 #include <sstream>
@@ -6,6 +7,7 @@
 #include "FilePath.h"
 #include "nch/cpp-utils/log.h"
 #include "nch/cpp-utils/string-utils.h"
+
 
 #if ( defined(_WIN32) || defined(WIN32) )
     #include "direct.h"
@@ -20,8 +22,41 @@ using namespace nch;
 
 bool FsUtils::logWarnings = false;
 
-int FsUtils::createDir(std::string path) {
-    return -100;
+bool FsUtils::createDir(std::string path) {
+    //If dir exists, OK
+    if(dirExists(path)) {
+        return true;
+    }
+
+    // Make the directory...
+    // ...for Windows
+    #if ( defined(_WIN32) || defined(WIN32) )
+        BOOL ret = CreateDirectoryA(path.c_str(), NULL);
+        if(ret) {
+            return true;
+        } else {
+			Log::error(__PRETTY_FUNCTION__, "windows.h CreateDirectory returned %d", ret);
+            return false;
+        }
+    // ...for Linux and macOS
+    #elif ( defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)) )
+		#if defined(_POSIX_VERSION)
+			int ret = mkdir(path.c_str(), 0775);
+            if(ret==0) {
+                return true;
+            } else {
+			    Log::error(__PRETTY_FUNCTION__, "POSIX mkdir returned %d, errno is %d", ret, errno);
+                return false;
+            }
+		#else
+			Log::error(__PRETTY_FUNCTION__, "POSIX version undefined for this Unix OS, could not create directory");
+		#endif
+    // ...for something else? -> Error
+    #else
+		Log::error(__PRETTY_FUNCTION__, "Unknown operating system, could not create directory");
+    #endif
+
+    return false;
 }
 
 bool FsUtils::pathExists(std::string path)
@@ -237,30 +272,21 @@ std::vector<std::string> FsUtils::getDirContents(std::string dirPath) { ListSett
 
 std::vector<std::string> FsUtils::getManyDirContents(std::vector<std::string> dirPaths, ListSettings& lise, RecursionSettings& rese)
 {
-    std::vector<std::string> res;
+    std::set<std::string> res;
     
     //Loop through all dirPaths
     for(int i = 0; i<dirPaths.size(); i++) {
         //Loop through this dirPath's list of strings.
         auto gdc = getDirContents(dirPaths[i], lise, rese);
         for(std::string s : gdc) {
-            //Make sure each of strings does not exist within res before adding it
-            bool contained = false;
-            for(std::string r : res) {
-                if(s==r) {
-                    contained = true;
-                    break;
-                }
-            }
-            //If the string is new, add it.
-            if(contained==false) {
-                res.push_back(s);
-            }
+            res.insert(s);
         }
     }
 
     //Return the final list
-    return res;
+    std::vector<std::string> ret; ret.reserve(res.size());
+    for(auto s : res) ret.push_back(s);
+    return ret;
 }
 
 std::string FsUtils::getPathWithInferredExtension(std::string path) {
@@ -283,8 +309,8 @@ std::string FsUtils::getPathWithInferredExtension(std::string path) {
     for(std::string f : dirFileList) {
         FilePath fp(f);
         std::string ext = fp.getExtension();
-
         std::string potentialFile = path+"."+ext;
+        if(ext=="") potentialFile = path;
         if(path==fp.getWithoutExtension() && fileExists(potentialFile)) {
             res = potentialFile;
             count++;

@@ -23,6 +23,7 @@ public:
 	static void allEvents(SDL_Event& e);
 	static void inputEvents(SDL_Event& e);
 	
+	static bool isInitialized();
     static std::string getLastKnownSDLEventDesc();
     static int32_t getLastKnownSDLEventID();
 	static int getMouseXAbs(), getMouseYAbs();
@@ -33,6 +34,7 @@ public:
 	static int joystickButtonDownTime(int joyButton);
 	static int joystickHatDirTime(int dir);
 	static bool isKeyDown(SDL_Keycode kc);
+	static bool isKeyPressed(SDL_Keycode kc, int firstRepeatWait, int repeatEvery);
 	static bool isModKeyDown(SDL_Keymod km);
 	static bool isMouseDown(int mouseButton);
 	static bool isJoystickButtonDown(int joyButton);

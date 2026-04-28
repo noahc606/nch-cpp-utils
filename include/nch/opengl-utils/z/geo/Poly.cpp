@@ -10,10 +10,11 @@
 using namespace nch;
 
 Poly::Poly(){}
-Poly::Poly(const std::vector<Vertex>& verts)
+Poly::Poly(const std::vector<Vertex>& verts, float expansion)
 {
     Poly::verts = verts;
     super_updateNormals();
+    if(expansion != 0.0f) expand(expansion);
 }
 Poly::~Poly(){}
 
@@ -142,6 +143,17 @@ void Poly::simplyTex(glm::vec2 uv0, glm::vec2 uv1)
 
         //Set vertex color to white
         verts[i].color = glm::vec3(1.0f, 1.0f, 1.0f);
+    }
+}
+void Poly::expand(float amount)
+{
+    glm::vec3 centroid = {0.0f, 0.0f, 0.0f};
+    for(const auto& v : verts) centroid += v.pos;
+    centroid /= (float)verts.size();
+    for(auto& v : verts) {
+        glm::vec3 dir = v.pos-centroid;
+        float len = glm::length(dir);
+        if(len>1e-7f) v.pos += (dir/len)*amount;
     }
 }
 void Poly::rotate(const glm::vec3& center, const glm::vec3& xyzRot)

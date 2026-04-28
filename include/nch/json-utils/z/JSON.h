@@ -1,9 +1,11 @@
 #pragma once
 #include <nlohmann/json.hpp>
 #include "nch/cpp-utils/log.h"
+#include "nch/math-utils/vec3.h"
 namespace nch { class JSON {
 public:
     static nlohmann::json loadFromFile(const std::string& path);
+    static nch::Vec3f parseVec3f(const nlohmann::json& jsonData, const std::string& jsonKey, const std::string& context);
 
     template<typename T> static void loadFromRequiredField(T& var, const nlohmann::json& jsonData, const std::string& jsonKey, const std::string& jsonFilePath = "")
     {
@@ -35,5 +37,6 @@ public:
 
         return false;
     }
+
 private:
 }; }

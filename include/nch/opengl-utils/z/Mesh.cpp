@@ -31,7 +31,8 @@ polyMap(std::move(other.polyMap)),
 indicesMap(std::move(other.indicesMap)),
 vertices(std::move(other.vertices)),
 indices(std::move(other.indices)),
-atlases(other.atlases)
+atlases(other.atlases),
+frustumCache(other.frustumCache)
 {
     //Invalidate source's OpenGL handles so destructor doesn't delete them
     other.glVAO = 0;
@@ -101,11 +102,18 @@ bool Mesh::isBuilt() {
 }
 bool Mesh::isChunkInFrustum(Camera3D* cam)
 {
-    //Compute camera offset matching how draw() positions this mesh
-    Vec3f offset = ((cam->getRegPos()-chkPos)*32).toFloat()-subPos;
-    offset.x *= scale.x;
-    offset.y *= scale.y;
-    offset.z *= scale.z;
+    //Check if inputs changed since last call; if not, return cached result
+    Vec3i64 camRegPos = cam->getRegPos();
+    Vec3f camSubPos = cam->getSubPos();
+    Vec3f camRot = cam->getRot();
+    if(frustumCache.valid
+    && frustumCache.meshChkPos==chkPos && frustumCache.meshSubPos==subPos && frustumCache.meshScale==scale
+    && frustumCache.camRegPos==camRegPos && frustumCache.camSubPos==camSubPos && frustumCache.camRot==camRot) {
+        return frustumCache.lastResult;
+    }
+
+    //Compute camera offset matching how draw() positions this mesh (tile-world space, no scale)
+    Vec3f offset = ((camRegPos-chkPos)*32).toFloat()-subPos;
     glm::mat4 mvp = cam->getCMatrixForOffset(offset);
 
     //Extract and normalize frustum planes (Gribb/Hartmann)
@@ -120,13 +128,39 @@ bool Mesh::isChunkInFrustum(Camera3D* cam)
         plane /= glm::length(glm::vec3(plane));
     }
 
-    //Treat mesh as 32x32x32 cube: bounding sphere centered at (16,16,16) with radius 16*sqrt(3)
-    static const glm::vec3 center(16.0f*scale.x, 16.0f*scale.y, 16.0f*scale.z);
-    static const float radius = glm::length(center);
+    //Bounding sphere in tile-world space: scaled [0,32*scale]^3 box centered at (16*scale, 16*scale, 16*scale)
+    const glm::vec3 center(16.0f*scale.x, 16.0f*scale.y, 16.0f*scale.z);
+    const float radius = glm::length(center);
 
     //Sphere-plane test: outside if behind any plane by more than radius
+    bool result = true;
     for(int i = 0; i<6; i++) {
-        if(glm::dot(glm::vec3(planes[i]), center)+planes[i].w < -radius) return false;
+        if(glm::dot(glm::vec3(planes[i]), center)+planes[i].w < -radius) { result = false; break; }
+    }
+
+    //Update cache
+    frustumCache.meshChkPos = chkPos;
+    frustumCache.meshSubPos = subPos;
+    frustumCache.meshScale = scale;
+    frustumCache.camRegPos = camRegPos;
+    frustumCache.camSubPos = camSubPos;
+    frustumCache.camRot = camRot;
+    frustumCache.lastResult = result;
+    frustumCache.valid = true;
+    return result;
+}
+bool Mesh::isChunkInFrustum(Camera3D* cam, const std::vector<glm::vec4>& cullingPlanes)
+{
+    //Offset from camera to chunk center in tile-world space
+    Vec3f offset = ((cam->getRegPos()-chkPos)*32).toFloat()-subPos;
+
+    //Bounding sphere center translated into camera-relative space
+    //cullingPlanes were extracted with zero offset, so shift sphere by -offset
+    const glm::vec3 center(16.0f*scale.x - offset.x, 16.0f*scale.y - offset.y, 16.0f*scale.z - offset.z);
+    const float radius = glm::length(glm::vec3(16.0f*scale.x, 16.0f*scale.y, 16.0f*scale.z));
+
+    for(int i = 0; i<6; i++) {
+        if(glm::dot(glm::vec3(cullingPlanes[i]), center)+cullingPlanes[i].w < -radius) return false;
     }
     return true;
 }
@@ -199,8 +233,26 @@ void Mesh::addPoly(const glm::ivec3& key, const Poly& poly)
     }
     else if (poly.getNumVerts()==4) {
         for(int i = 0; i<4; i++) vertices.push_back(poly.v(i));
-        indices.insert   (indices.end(),          {vs+0, vs+1, vs+2, vs+0, vs+2, vs+3});
-        indicesMap.insert({{key.x, key.y, key.z}, {vs+0, vs+1, vs+2, vs+0, vs+2, vs+3}});
+        
+        /*
+            Written by Claude
+            //Choose diagonal based on light: put it through the two brighter corners so
+            //the gradient spreads across the full face regardless of which corner is lit.
+            One side effect to be aware of: the indicesMap now stores different index sets per quad depending on light values, which means Mesh::remove() needs to match the same stored set.
+            Since light values are fixed per-build and removal uses the stored map keys, this should work correctly — applyUpdates() rebuilds from scratch anyway when light changes.
+
+            Old inserting:
+            indices.insert   (indices.end(),          {vs+0, vs+1, vs+2, vs+0, vs+2, vs+3});
+            indicesMap.insert({{key.x, key.y, key.z}, {vs+0, vs+1, vs+2, vs+0, vs+2, vs+3}});
+        */
+        float l02 = glm::length(poly.v(0).light) + glm::length(poly.v(2).light);
+        float l13 = glm::length(poly.v(1).light) + glm::length(poly.v(3).light);
+        std::vector<GLuint> order = (l13 > l02)
+            ? std::vector<GLuint>{vs+0, vs+1, vs+3, vs+1, vs+2, vs+3}
+            : std::vector<GLuint>{vs+0, vs+1, vs+2, vs+0, vs+2, vs+3};
+        
+        indices.insert   (indices.end(), order.begin(), order.end());
+        indicesMap.insert({{key.x, key.y, key.z}, order});
     }
 }
 void Mesh::addPoly(const Poly& poly) {
@@ -323,6 +375,8 @@ void Mesh::setup()
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, color));
     glEnableVertexAttribArray(3);
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, texUV));
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, light));
     assert(glGetError() == GL_NO_ERROR);
 
     glBindVertexArray(0);

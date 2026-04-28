@@ -3,7 +3,7 @@
 #include <nch/math-utils/vec3.h>
 #include <string>
 
-class Vertex {
+namespace nch { class Vertex {
 public:
     Vertex();
     Vertex(const glm::vec3& pos, const glm::vec3& norm, const glm::vec3& col, const glm::vec2& uv);
@@ -20,5 +20,6 @@ public:
     glm::vec3 normal;
     glm::vec3 color;
     glm::vec2 texUV;
+    glm::vec3 light;
 private:
-};
+}; }

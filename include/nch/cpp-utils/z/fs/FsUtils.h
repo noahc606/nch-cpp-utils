@@ -21,7 +21,7 @@ public:
         int maxLayersDown = 999;
     } RecursionSettings;
 
-    static int createDir(std::string path);
+    static bool createDir(std::string path);
     static bool pathExists(std::string path);
     static bool dirExists(std::string dirPath);
     static bool fileExists(std::string rfPath);

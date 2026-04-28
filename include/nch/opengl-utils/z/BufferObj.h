@@ -3,6 +3,7 @@
 #include "nch/opengl-utils/geo/vertex.h"
 #include <vector>
 
+namespace nch {
 class EBO {
 public:
     static GLuint build(std::vector<GLuint>& idxes);
@@ -34,3 +35,4 @@ public:
     static void unbind();
     static void update(GLuint glVBO, GLuint idx, const Vertex& newVtx);
 };
+}

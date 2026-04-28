@@ -16,20 +16,21 @@ public:
     };
 
     Text();
+    Text(Text&& obj) noexcept;
+    Text& operator=(const Text& obj);
     ~Text();
     void init(GLSDL_Renderer* rend, TTF_Font* font, bool darkenBackground = false);
     void destroy();
-    void draw(int x, int y);
-    void drawCentered(int x, int y, int w, int h);
-    void drawRightAligned(int x, int y, int w, int h);
+    void draw(int x, int y) const;
+    void drawCentered(int x, int y, int w, int h) const;
     static void stream(GLSDL_Renderer* rend, TTF_Font* font, std::string text, const nch::Color& c, int x, int y, double scale);
 
-    bool isInitialized();
-    double getScale();
-    double getWidth(); double getHeight();
-    double getUnscaledWidth(); double getUnscaledHeight();
-    std::u16string getText();
-    GLSDL_Texture* getTexture();
+    bool isInitialized() const;
+    double getScale() const;
+    double getWidth() const; double getHeight() const;
+    double getUnscaledWidth() const; double getUnscaledHeight() const;
+    std::u16string getText() const;
+    GLSDL_Texture* getTexture() const;
 
     bool setScale(double scale);
     void forcedNearestScaling(bool fns);

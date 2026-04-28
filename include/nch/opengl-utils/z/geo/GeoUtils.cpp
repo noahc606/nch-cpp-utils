@@ -2,6 +2,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
+using namespace nch;
 
 const std::vector<Poly> GeoUtils::unitCube = {
     Poly({{0,0,0},{0,0,1},{0,1,1},{0,1,0}}), //East

@@ -37,10 +37,10 @@ void Draw::texturedTri(const Vec3f& p0, const Vec3f& p1, const Vec3f& p2, const 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sf, (void*)0);
     glEnableVertexAttribArray(0);
     //1st arg 1 = Color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sf, (void*)(3*sf));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sf, (void*)(uintptr_t)(3*sf));
     glEnableVertexAttribArray(1);
     //1st arg 2 = Texture coord attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sf, (void*)(6*sf));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sf, (void*)(uintptr_t)(6*sf));
     glEnableVertexAttribArray(2);
 
 	//Draw
@@ -101,7 +101,7 @@ void Draw::tri(const Vec3f& p0, const Vec3f& p1, const Vec3f& p2, GLuint& glVAO,
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sf, (void*)0);
     glEnableVertexAttribArray(0);
     // Color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sf, (void*)(3 * sf));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sf, (void*)(uintptr_t)(3 * sf));
     glEnableVertexAttribArray(1);
 
 	//Draw

@@ -4,23 +4,40 @@
 #endif
 #include <SDL2/SDL_image.h>
 #include <assert.h>
-#include <nch/cpp-utils/filepath.h>
 #include <nch/cpp-utils/fs-utils.h>
 #include <nch/cpp-utils/log.h>
 #include <nch/cpp-utils/string-utils.h>
 #include <nch/cpp-utils/timer.h>
 #include <stdexcept>
-#include "nch/opengl-utils/z/atlas/MaxRectsBin.h"
 using namespace nch;
 
-Atlas::Atlas(Atlas* base, std::string path, GLuint slot)
+Atlas::Atlas(Atlas* base, const std::vector<std::string>& paths, const std::vector<std::string>& prefixes, GLuint slot)
 {
-	buildInfo.source = BuildInfo::Source::Path;
+	buildInfo.source = BuildInfo::Source::MultiplePaths;
 	buildInfo.base = base;
-	buildInfo.path = path;
+	buildInfo.multPaths = paths;
+	buildInfo.multPrefixes = prefixes;
 	buildInfo.slot = slot;
 	build();
 }
+Atlas::Atlas(Atlas* base, std::pair<std::string, std::string> pathAndPrefix, GLuint slot)
+{
+	buildInfo.source = BuildInfo::Source::Path;
+	buildInfo.base = base;
+	buildInfo.singlePath = pathAndPrefix.first;
+	buildInfo.singlePrefix = pathAndPrefix.second;
+	buildInfo.slot = slot;
+	build();
+}
+Atlas::Atlas(Atlas* base, std::string path, GLuint slot):
+Atlas(base, {path, ""}, slot) {}
+
+Atlas::Atlas(const std::vector<std::string>& paths, const std::vector<std::string>& prefixes, GLuint slot):
+Atlas(nullptr, paths, prefixes, slot) {}
+Atlas::Atlas(std::pair<std::string, std::string> pathAndPrefix, GLuint slot):
+Atlas(nullptr, pathAndPrefix, slot) {}
+Atlas::Atlas(std::string path, GLuint slot):
+Atlas(nullptr, path, slot) {}
 Atlas::Atlas(SDL_Surface* surf, GLuint slot)
 {
 	buildInfo.source = BuildInfo::Source::Surface;
@@ -28,8 +45,6 @@ Atlas::Atlas(SDL_Surface* surf, GLuint slot)
 	buildInfo.slot = slot;
 	build();
 }
-Atlas::Atlas(std::string path, GLuint slot):
-Atlas(nullptr, path, slot){}
 
 Atlas::~Atlas() {
 	destroy();
@@ -41,16 +56,15 @@ GLuint Atlas::getID() {
 const std::string& Atlas::getType() {
     return type;
 }
-FRect Atlas::getSrc(const std::string& imgID) {
+FRect Atlas::getSrc(const std::string& imgID) const {
 	auto itr = map.find(imgID);
 	if(itr!=map.end()) {
-		FRect fr = FRect(itr->second.r.x, itr->second.r.y, itr->second.r.w, itr->second.r.h);
+		FRect fr = FRect(itr->second.r.x+AtlasImage::PAD_F, itr->second.r.y+AtlasImage::PAD_F, itr->second.r.w-2*AtlasImage::PAD_F, itr->second.r.h-2*AtlasImage::PAD_F);
 		fr.scale(1.0f/mapSize);
 		return fr;
 	}
 
-	Log::error(__PRETTY_FUNCTION__, "Key \"%s\" does not exist within this atlas", imgID.c_str());
-	throw std::invalid_argument("");
+	throw std::runtime_error(nch::cat("Key \"", imgID, "\" does not exist within this atlas"));
 }
 std::map<std::string, nch::Rect> Atlas::getMap() {
 	return map;
@@ -105,58 +119,50 @@ void Atlas::build() {
 	}
 	unit = buildInfo.slot;
 
-	if(buildInfo.source == BuildInfo::Source::Surface) {
+	if(buildInfo.source==BuildInfo::Source::Surface) {
 		buildFromSDL_Surface(buildInfo.surf, buildInfo.slot);
 		built = true;
 		return;
 	}
+	if(buildInfo.source==BuildInfo::Source::Path) {
+		//Assume building from files within dir
+		if(FsUtils::dirExists(buildInfo.singlePath)) {
+			if(buildInfo.base==nullptr) buildFromDirs({buildInfo.singlePath}, { buildInfo.singlePrefix }, buildInfo.slot);
+			if(buildInfo.base!=nullptr) buildVariantFromDirs(buildInfo.base, {buildInfo.singlePath}, { buildInfo.singlePrefix }, buildInfo.slot);
+			built = true;
+			return;
+		}
+		//Assume building from single image file
+		if(FsUtils::fileExists(buildInfo.singlePath)) {
+			buildFromImg(buildInfo.singlePath, buildInfo.slot);
+			built = true;
+			return;
+		}
+		throw std::runtime_error(nch::cat("Could not resolve object \"", buildInfo.singlePath, "\" as a file or dir"));
+	}
 
-	//Assume building from files within dir
-	if(FsUtils::dirExists(buildInfo.path)) {
-		if(buildInfo.base==nullptr) buildFromDir(buildInfo.path, buildInfo.slot);
-		if(buildInfo.base!=nullptr) buildVariantFromDir(buildInfo.base, buildInfo.path, buildInfo.slot);
+	if(buildInfo.source==BuildInfo::Source::MultiplePaths) {
+		//Matching number of paths and prefixes?
+		if(buildInfo.multPaths.size()!=buildInfo.multPrefixes.size())
+			throw std::runtime_error("Expected number of paths to == number of prefixes");
+		//Do all dirs exist?
+		for(size_t i = 0; i<buildInfo.multPaths.size(); i++) {
+			if(!FsUtils::dirExists(buildInfo.multPaths[i])) {
+				throw std::runtime_error(nch::cat("Directory \"", buildInfo.multPaths[i], "\" doesn't exist"));
+			}
+		}
+		
+		//Building from multiple dir paths
+		if(buildInfo.base==nullptr) { buildFromDirs(buildInfo.multPaths, buildInfo.multPrefixes, buildInfo.slot); }
+		if(buildInfo.base!=nullptr) { buildVariantFromDirs(buildInfo.base, buildInfo.multPaths, buildInfo.multPrefixes, buildInfo.slot); }
 		built = true;
 		return;
 	}
-	//Assume building from single image file
-	if(FsUtils::fileExists(buildInfo.path)) {
-		buildFromImg(buildInfo.path, buildInfo.slot);
-		built = true;
-		return;
-	}
-	throw std::invalid_argument(Log::getFormattedString("Could not resolve object \"%s\" as a file or dir", buildInfo.path.c_str()));
 }
-std::map<std::string, SDL_Surface*> Atlas::collectImagesFromDir(std::string dirPath)
-{
-	std::map<std::string, SDL_Surface*> ret;
-
-	FsUtils::ListSettings lise; lise.excludeSymlinkDirs = true; lise.includeHiddenEntries = false; lise.maxItemsToList = 99999;
-	FsUtils::RecursionSettings rese; rese.recursiveSearch = true;
-	auto dir = FsUtils::getDirContents(dirPath, lise, rese);
-	for(std::string obj : dir) {
-		SDL_Surface* rawSurf = IMG_Load(obj.c_str());
-		if(rawSurf==NULL) continue;
-		SDL_Surface* convSurf = SDL_ConvertSurfaceFormat(rawSurf, SDL_PIXELFORMAT_RGBA8888, 0);
-		SDL_FreeSurface(rawSurf);
-
-		if(convSurf->w>512 || convSurf->h>512) {
-			Log::warnv(__PRETTY_FUNCTION__, "skipping entry", "Image \"%s\" is too large (max 512x512) to be added to this atlas.", obj.c_str());
-			continue;
-		}
-		if(convSurf==NULL) {
-			Log::warnv(__PRETTY_FUNCTION__, "skipping entry", "Failed to IMG_Load() and SDL_ConvertSurfaceFormat() for \"%s\"", obj.c_str());
-			continue;
-		}
-
-		std::string atlasID = FilePath(obj).getObjectName(false);
-		ret.insert({atlasID, convSurf});
-	}
-	return ret;
-}
-void Atlas::buildVariantFromDir(Atlas* base, std::string dirPath, GLuint slot)
+void Atlas::buildVariantFromDirs(Atlas* base, const std::vector<std::string>& dirPaths, const std::vector<std::string>& prefixes, GLuint slot)
 {
 	//Collect images to be placed in the atlas...
-	auto collection = collectImagesFromDir(dirPath);
+	auto collection = AtlasImage::collectFromDirs(dirPaths, prefixes, true);
 
 	//Build the final atlas surface...
 	SDL_Surface* finalAtlasSurf;
@@ -172,28 +178,29 @@ void Atlas::buildVariantFromDir(Atlas* base, std::string dirPath, GLuint slot)
 			auto itr = collection.find(ep);
 			if(itr!=collection.end()) {
 				map.insert({ep, er});
-				SDL_BlitSurface(itr->second, NULL, finalAtlasSurf, &er);
+				AtlasImage::blitWithPadding(itr->second, finalAtlasSurf, er.x, er.y);
 			}
 		}
 	}
 
-	//Build 'glTexture1'
+	//Build ‘glTexture1’
 	glGenTextures(1, &id);
 	bind(unit, id);
-	buildGL_TextureFromSDL_Surface(finalAtlasSurf);
+	AtlasImage::buildGLTexture(finalAtlasSurf);
     unbind();
 	SDL_FreeSurface(finalAtlasSurf);
+	for(auto& kv : collection) { SDL_FreeSurface(kv.second); }
 }
-void Atlas::buildFromDir(std::string dirPath, GLuint slot)
+void Atlas::buildFromDirs(const std::vector<std::string>& dirPaths, const std::vector<std::string>& prefixes, GLuint slot)
 {
 	//Collect images to be placed in the atlas...
-	auto collection = collectImagesFromDir(dirPath);
+	auto collection = AtlasImage::collectFromDirs(dirPaths, prefixes, true);
 
 	//Build the final atlas surface...
 	SDL_Surface* finalAtlasSurf;
 	{
 		map.clear();
-		map = buildSquareAtlas(collection, mapSize);
+		map = AtlasImage::buildSquareAtlas(collection, mapSize);
 
 		finalAtlasSurf = SDL_CreateRGBSurfaceWithFormat(0, mapSize, mapSize, 4, SDL_PIXELFORMAT_RGBA8888);
 		for(auto elem : map) {
@@ -202,23 +209,24 @@ void Atlas::buildFromDir(std::string dirPath, GLuint slot)
 
 			auto itr = collection.find(ep);
 			assert(itr!=collection.end());
-			SDL_BlitSurface(itr->second, NULL, finalAtlasSurf, &er);
+			AtlasImage::blitWithPadding(itr->second, finalAtlasSurf, er.x, er.y);
 		}
 	}
 
-	//Build 'glTexture1'
+	//Build ‘glTexture1’
 	glGenTextures(1, &id);
 	bind(unit, id);
-	buildGL_TextureFromSDL_Surface(finalAtlasSurf);
+	AtlasImage::buildGLTexture(finalAtlasSurf);
     unbind();
 	SDL_FreeSurface(finalAtlasSurf);
+	for(auto& kv : collection) { SDL_FreeSurface(kv.second); }
 }
 void Atlas::buildFromSDL_Surface(SDL_Surface* surf, GLuint slot)
 {
-	//Build 'glTexture1'
+	//Build ‘glTexture1’
 	glGenTextures(1, &id);
 	bind(unit, id);
-	buildGL_TextureFromSDL_Surface(surf);
+	AtlasImage::buildGLTexture(surf);
     unbind();
 }
 void Atlas::buildFromImg(std::string imgPath, GLuint slot)
@@ -231,102 +239,4 @@ void Atlas::buildFromImg(std::string imgPath, GLuint slot)
 	}
 	buildFromSDL_Surface(imgSurf, slot);
 	SDL_FreeSurface(imgSurf);
-}
-void Atlas::buildGL_TextureFromSDL_Surface(SDL_Surface* imgSurf)
-{
-	//Anisotropy params
-	GLfloat maxAnisotropy;
-	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
-	//Set wrapping parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	//set texture wrapping to GL_REPEAT (default wrapping method)
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	//Set filtering parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	
-	/* Create GL texture after converting SDL surface to the proper pixel format */
-	{
-		SDL_Surface* finalSurf = imgSurf;
-		switch(imgSurf->format->BytesPerPixel) {
-			case 1: {
-				//Create a 1-channel OpenGL texture (spectral maps)...
-				finalSurf = imgSurf;
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, finalSurf->w, finalSurf->h, 0, GL_RED, GL_UNSIGNED_BYTE, finalSurf->pixels);
-			} break;
-			case 3: case 4: {
-				//Create a 4-channel OpenGL texture...
-				finalSurf = SDL_ConvertSurfaceFormat(imgSurf, SDL_PIXELFORMAT_ABGR8888, 0);
-				if(finalSurf==NULL) {
-					Log::errorv(__PRETTY_FUNCTION__, "IMG Error", IMG_GetError());
-					return;
-				}
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, finalSurf->w, finalSurf->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, finalSurf->pixels);
-			} break;
-			default: {
-				Log::error(__PRETTY_FUNCTION__, "Failed conversion (provided 'imgSurf' must be a surface with 1, 3, or 4 bytes per pixel).");
-				throw std::invalid_argument("");
-			}
-		}
-
-		//Cleanup
-		if(imgSurf!=finalSurf) SDL_FreeSurface(finalSurf);
-	}
-	
-	//Generate texture mipmap
-	glGenerateMipmap(GL_TEXTURE_2D);
-}
-std::map<std::string, Rect> Atlas::buildSquareAtlas(const std::map<std::string, SDL_Surface*>& collection, int& outSize) {
-    std::map<std::string, Rect> ret;
-	
-	std::vector<Atlas::ImageInfo> images; {
-		images.reserve(collection.size());
-		for (auto& kv : collection)
-			images.push_back({ kv.first, kv.second, kv.second->w, kv.second->h });
-
-		//Sort largest first (better packing)
-		std::sort(images.begin(), images.end(), [](const ImageInfo& a, const ImageInfo& b) {
-			return std::max(a.w, a.h) > std::max(b.w, b.h);
-		});
-	}
-
-	int totalArea, maxDim; {
-		totalArea = 0;
-		maxDim = 0;
-		for(auto& img : images) {
-			totalArea += img.w*img.h;
-			maxDim = std::max({maxDim, img.w, img.h});
-		}
-	}
-
-	int low, high; {
-		low = maxDim;
-		high = std::max(low*2, (int)std::ceil(std::sqrt(totalArea))*2);
-		while(low<high) {
-			int mid = (low+high)/2;
-			std::map<std::string, Rect> temp;
-			if(tryPackMaxRects(mid, images, temp)) {
-				ret = std::move(temp);
-				high = mid; //try smaller
-			} else {
-				low = mid+1; //need bigger square
-			}
-		}
-	}
-
-
-    outSize = high;
-    return ret;
-}
-bool Atlas::tryPackMaxRects(int size, const std::vector<Atlas::ImageInfo>& images, std::map<std::string, Rect>& atlas) {
-    MaxRectsBin bin(size, size);
-    atlas.clear();
-
-    for (const auto& img : images) {
-        Rect r;
-        if(!bin.insert({img.w, img.h}, r))
-            return false; // doesn’t fit
-        atlas[img.name] = r;
-    }
-    return true;
 }

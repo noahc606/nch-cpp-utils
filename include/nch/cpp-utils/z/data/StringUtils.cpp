@@ -137,13 +137,24 @@ std::string StringUtils::extractBracketedStr(const std::string& s)
 
     if(rBktPos>lBktPos && lBktPos!=-1 && rBktPos!=-1) {
         return s.substr(lBktPos, rBktPos-lBktPos);
-    } else {
-        return "][";
     }
+    throw std::invalid_argument("No bracketed string could be found");
+}
+std::string StringUtils::extractBracedStr(const std::string& s)
+{
+    int lBrcPos = -1; for(int i = 0; i<s.size(); i++)    if(s[i]=='{') lBrcPos = i;
+    int rBrcPos = -1; for(int i = s.size()-1; i>=0; i--) if(s[i]=='}') rBrcPos = i;
+
+    if(rBrcPos>lBrcPos && lBrcPos!=-1 && rBrcPos!=-1) {
+        return s.substr(lBrcPos, rBrcPos-lBrcPos);
+    }
+    throw std::invalid_argument("No braced string could be found");
 }
 
 std::string StringUtils::trimmed(const std::string& s, const std::string& charsToTrim)
 {
+    if(s=="") return "";
+
     //Characters to be trimmed at beginning or end
     std::string ctt = charsToTrim;
 

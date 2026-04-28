@@ -96,6 +96,23 @@ public:
     Vec3<T>& operator*=(const T& r) { x*=r, y*=r, z*=r; return *this; }                 //Scale-set
     Vec3<T>& operator=(const Vec3<T>& v) { x = v.x; y = v.y; z = v.z; return (*this); }
 
+    T& operator[](int idx) {
+        switch(idx) {
+            case 0: return x;
+            case 1: return y;
+            case 2: return z;
+        }
+        throw std::invalid_argument("idx must be 0, 1, or 2");
+    }
+    const T& operator[](int idx) const {
+        switch(idx) {
+            case 0: return x;
+            case 1: return y;
+            case 2: return z;
+        }
+        throw std::invalid_argument("idx must be 0, 1, or 2");
+    }
+
     T x = (T)0, y = (T)0, z = (T)0;
 protected:
 

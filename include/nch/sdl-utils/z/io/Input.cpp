@@ -90,6 +90,9 @@ void Input::inputEvents(SDL_Event& e)
 	currentModKeys = e.key.keysym.mod;
 }
 
+bool Input::isInitialized() {
+	return initialized;
+}
 std::string Input::getLastKnownSDLEventDesc() { return lastKnownEventDesc; }
 int32_t Input::getLastKnownSDLEventID() { return lastKnownEventID; }
 int Input::getMouseXAbs() { int x; SDL_GetMouseState(&x, NULL); return x; }
@@ -141,6 +144,13 @@ int Input::joystickHatDirTime(int dir)
 	return 0;
 }
 bool Input::isKeyDown(SDL_Keycode kc) { return keyDownTime(kc)>0; }
+bool Input::isKeyPressed(SDL_Keycode kc, int firstRepeatWait, int repeatEvery) {
+	int time = keyDownTime(kc);
+	if(time==1 || (time>firstRepeatWait && time%repeatEvery==0)) {
+		return true;
+	}
+	return false;
+}
 bool Input::isModKeyDown(SDL_Keymod km) { return (currentModKeys & km); }
 bool Input::isMouseDown(int mouseButton) { return mouseDownTime(mouseButton)>0; }
 bool Input::isJoystickButtonDown(int joyButton) { return joystickButtonDownTime(joyButton)>0; }

@@ -13,6 +13,17 @@
 
 namespace nch { class Mesh {
 public:
+    struct FrustumCache {
+        nch::Vec3i64 meshChkPos = {0};
+        nch::Vec3f meshSubPos = {0};
+        nch::Vec3f meshScale = {1.0f, 1.0f, 1.0f};
+        nch::Vec3i64 camRegPos = {0};
+        nch::Vec3f camSubPos = {0};
+        nch::Vec3f camRot = {0};
+        bool lastResult = false;
+        bool valid = false;
+    };
+
     struct MPoly {
         MPoly(const Poly& poly) {
             verts.reserve(poly.getNumVerts());
@@ -42,6 +53,7 @@ public:
     int getInternalIndicesSize();
     bool isBuilt();
     bool isChunkInFrustum(Camera3D* cam);
+    bool isChunkInFrustum(Camera3D* cam, const std::vector<glm::vec4>& cullingPlanes);
     Vec3f getGeometricCenter();
     std::vector<Poly> getPolysAt(glm::ivec3 key);
     Vec3i64 getChunkPos() const;
@@ -82,4 +94,5 @@ private:
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
     std::vector<Atlas*> atlases;
+    FrustumCache frustumCache;
 }; }

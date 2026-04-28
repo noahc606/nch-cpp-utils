@@ -1,15 +1,17 @@
 #include "Color.h"
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <math.h>
 #include <sstream>
+#include "nch/cpp-utils/string-utils.h"
 
 using namespace nch;
 
 Color::Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a) { set(r, g, b, a); }
 Color::Color(uint8_t r, uint8_t g, uint8_t b) { set(r, g, b); }
 Color::Color(uint32_t rgba) { set(rgba); }
-Color::Color(std::string p_value)
+Color::Color(const std::string& p_value)
 {
 	try {
 		uint32_t num = std::stoul(p_value);
@@ -25,6 +27,29 @@ Color Color::fromDoubles255(double r, double g, double b, double a) {
 	if(b>255) b = 255; if(b<0) b = 0;
 	if(a>255) a = 255; if(a<0) a = 0;
 	return Color(std::ceil(r), std::ceil(g), std::ceil(b), std::ceil(a));
+}
+Color Color::fromStringB16(const std::string& hexvalue) {
+	//Sanitize input
+	std::string allowedChars = "0123456789ABCDEFabcdef";
+	std::stringstream ss;
+	for(int i = 0; i<(int)hexvalue.size(); i++) {
+		if(allowedChars.find(hexvalue[i])!=std::string::npos) {
+			ss << (char)std::toupper(hexvalue[i]);
+		}
+	}
+	std::string hex = ss.str();
+
+	//Parse as RRGGBB (alpha=255) or RRGGBBAA
+	if(hex.size()==6) {
+		std::istringstream converter(hex.substr(0, 6));
+		uint32_t rgb; converter >> std::hex >> rgb;
+		return Color((rgb>>16)&0xFF, (rgb>>8)&0xFF, rgb&0xFF, 255);
+	} else if(hex.size()>=8) {
+		std::istringstream converter(hex.substr(0, 8));
+		uint32_t rgba; converter >> std::hex >> rgba;
+		return Color((rgba>>24)&0xFF, (rgba>>16)&0xFF, (rgba>>8)&0xFF, rgba&0xFF);
+	}
+	throw std::invalid_argument(nch::cat("Could not parse ", hexvalue, " as a hex string"));
 }
 Color::Color(): Color(0, 0, 0){}
 Color::~Color(){}

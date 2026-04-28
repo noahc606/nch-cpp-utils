@@ -1,7 +1,7 @@
 #include "NoahAllocTable.h"
-#include "file-utils.h"
-#include "log.h"
-#include "string-utils.h"
+#include "nch/cpp-utils/file-utils.h"
+#include "nch/cpp-utils/log.h"
+#include "nch/cpp-utils/string-utils.h"
 #include <sstream>
 
 using namespace nch;

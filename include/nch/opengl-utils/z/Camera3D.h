@@ -50,6 +50,7 @@ public:
     static int flippedDir(int dir);
     std::string getInfo();
     nch::Vec3f getEstPos();
+    nch::Vec3f getInterpolDelta() const;
     nch::Vec3f getEstInterpolPos();
     nch::Vec3i64 getRegPos();
     nch::Vec3f getSubPos();
@@ -62,12 +63,15 @@ public:
     float getPitch() const;
     float getRoll() const;
     float getSensitivity() const;
-    std::vector<glm::vec4> getFrustumPlanes() const;
+    std::vector<glm::vec4> computeCullingPlanes() const;
     glm::mat4 getCMatrix() const;
     nch::Vec3f getUp() const;
+    nch::Vec3f getPerspectiveOffset() const;
+    float getPerspectiveDir() const;
     int getFacingNESW() const;
 
     void setFocused(bool focused);
+    void setWindow(SDL_Window* win, nch::Vec2i virtualWinDims);
     void setWindow(SDL_Window* win);
     void setWindow(nch::Vec2i virtualWinDims);
     void setPos(nch::Vec3f pos);
@@ -80,14 +84,18 @@ public:
     void setSensitivity(float s);
     void setOverrideMatrix(const glm::mat4& mat);
     void clearOverrideMatrix();
+    void setPerspective(nch::Vec3f perspectiveOffset, float perspectiveDir);
 private:
     /// @brief Helper function to update 'cMatrix', a perspective matrix for this 'Camera3D' that takes in a number of parameters.
     /// @brief See 'fov', 'nearPlane', and 'farPlane' for more info.
     /// @param pos The current position of the camera (Camera3D::pos is not accurate in between ticks - see draw() for more info)
     void updateCamMatrix(nch::Vec3f pos);
     void updateRegAndSubPos();
+    glm::vec3 computeNaturalUp() const;
+    glm::vec3 computeRolledUp(glm::vec3 naturalUp, glm::vec3 forward) const;
 
     bool focused = false;
+    uint64_t ticksSinceLastUnfocus = 0;
     uint64_t lastTickTimeNS = 0;
     uint64_t tickTimeNS = 0;
 
@@ -99,7 +107,6 @@ private:
     glm::mat4 cMatrix;
     bool useOverrideMatrix = false;
     glm::mat4 overrideMatrix = glm::mat4(1.0f);
-    std::vector<glm::vec4> frustumPlanes;
 
     Vec3i64 regPos = 0; //Region pos
     Vec3f subPos = 0;   //Sub pos (in [0, 31.9999])
@@ -111,6 +118,8 @@ private:
     float roll = 0;   //Tilting head left/right
     Vec3f vel = 0;
     float sensitivity = 0.15f;
+    Vec3f perspectiveOffset = {0, 0, 0};
+    float perspectiveDir = 1.0f;
 
     static const std::vector<std::string> dirStrings;
 }; }

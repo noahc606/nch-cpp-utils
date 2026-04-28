@@ -127,8 +127,10 @@ std::string FilePath::getExtension()
 std::string FilePath::getWithoutExtension()
 {
     if(cleanpath=="") return "";
+    std::string ext = getExtension();
+    if(ext=="") { return cleanpath; }
 
-    std::string s = "."+getExtension();
+    std::string s = "."+ext;
     if(cleanpath.substr(cleanpath.size()-s.size())==s) {
         return cleanpath.substr(0, cleanpath.size()-s.size());
     }

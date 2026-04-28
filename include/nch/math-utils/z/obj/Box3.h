@@ -32,7 +32,7 @@ public:
         return (
             c1.x<=p.x && p.x<=c2.x &&
             c1.y<=p.y && p.y<=c2.y &&
-            c1.z<=p.z && p.y<=c2.z
+            c1.z<=p.z && p.z<=c2.z
         );
     }
     /* Does this box completely contain box 'b' (may be on edges/faces)? */
