@@ -1,6 +1,7 @@
 #pragma once
 #include "Mat4x4.h"
 #include "Vec3.h"
+#include "nch/math-utils/consts.h"
 
 namespace nch { template<typename T> class MatrixOps {
 public:
@@ -78,7 +79,7 @@ public:
         double far = 1000.0;                                //Far plane
         double fov = 90.0;                                  //Field of View
         double aspectRatio = 1.0;                           //Screen aspect ratio
-        double fovRad = 1.0/std::tan( fov*0.5/180.0*M_PI ); //modified fov value, in radians
+        double fovRad = 1.0/std::tan(fov*0.5*nch::rad_deg); //modified fov value, in radians
 
         Mat4x4<T> res;
         res[0][0] = aspectRatio*fovRad;

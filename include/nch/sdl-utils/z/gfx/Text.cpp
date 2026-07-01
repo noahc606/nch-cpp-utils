@@ -74,6 +74,7 @@ void Text::init(GLSDL_Renderer* rend, TTF_Font* font, bool darkenBackground)
 
 void Text::destroy()
 {
+    initted = false;
     if(txtTex!=nullptr) GLSDL_DestroyTexture(txtTex);
     txtTex = nullptr;
 }
@@ -159,6 +160,7 @@ GLSDL_Texture* Text::getTexture() const {
     if(!initted) return nullptr;
     return txtTex;
 }
+TTF_Font* Text::getFont() const { return font; }
 
 bool Text::setScale(double scale)
 {

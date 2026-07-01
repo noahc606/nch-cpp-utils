@@ -9,6 +9,8 @@ bool Log::enabledColors = false;
 bool Log::logToFile = false;
 bool Log::logDestroyed = false;
 
+std::function<void(const std::string&)> Log::sink_;
+
 
 Log::Log(){}
 Log::~Log(){}
@@ -26,6 +28,11 @@ void Log::throwException()
 
 void Log::logString(std::string s) {
 	std::cout << s;
+	if(sink_) sink_(s);
+}
+
+void Log::setSink(std::function<void(const std::string&)> s) {
+	sink_ = std::move(s);
 }
 
 void Log::logSStream(std::stringstream& ss)

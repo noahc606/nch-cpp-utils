@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -125,6 +126,11 @@ public:
 
     static bool enabledBrackets;
     static bool enabledColors;
+
+    /* Optional sink fired alongside std::cout for every emitted chunk. Pass a
+       default-constructed std::function to disable. Not thread-coordinated on
+       its own — the sink itself must handle concurrent invocations. */
+    static void setSink(std::function<void(const std::string&)> sink);
 protected:
 
 private:
@@ -133,5 +139,7 @@ private:
 
 	static bool logToFile;
 	static bool logDestroyed;
+
+	static std::function<void(const std::string&)> sink_;
 };
 }

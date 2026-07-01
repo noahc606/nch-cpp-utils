@@ -5,7 +5,8 @@
 namespace nch { class JSON {
 public:
     static nlohmann::json loadFromFile(const std::string& path);
-    static nch::Vec3f parseVec3f(const nlohmann::json& jsonData, const std::string& jsonKey, const std::string& context);
+    static nch::Vec3f parseVec3f(const nlohmann::json& jsonArray, const std::string& arrayKey, const std::string& context);
+    static nch::Vec3i64 parseVec3i64(const nlohmann::json& jsonArray, const std::string& arrayKey, const std::string& context);
 
     template<typename T> static void loadFromRequiredField(T& var, const nlohmann::json& jsonData, const std::string& jsonKey, const std::string& jsonFilePath = "")
     {

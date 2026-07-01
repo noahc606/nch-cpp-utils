@@ -74,9 +74,8 @@ std::vector<unsigned char> FileUtils::getFileBytes(FILE* pFile)
     }
 
     //Build the 'ret'urn object
-    std::vector<unsigned char> ret;
-    ret.reserve(fileSize*sizeof(unsigned char));
-    for(int i = 0; i<fileSize; i++) {
+    std::vector<unsigned char> ret; ret.resize(fileSize*sizeof(unsigned char));
+    for(long i = 0; i<fileSize; i++) {
         ret[i] = fgetc(pFile);
     }
     return ret;
@@ -84,7 +83,6 @@ std::vector<unsigned char> FileUtils::getFileBytes(FILE* pFile)
 
 std::vector<unsigned char> FileUtils::readFileBytes(std::string path)
 {
-    //Open file to be encrypted (read+binary)
     FILE* pFile = fopen(path.c_str(), "rb");
     auto ret = getFileBytes(pFile);
     fclose(pFile);

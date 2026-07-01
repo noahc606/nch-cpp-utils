@@ -46,6 +46,8 @@ public:
     }
     Vec3<float> toFloat() const { return Vec3<float>(x, y, z); }
     Vec3<double> toDouble() const { return Vec3<double>(x, y, z); }
+    Vec3<long double> toLongDouble() const { return Vec3<long double>(x, y, z); }
+    Vec3<uint8_t> toUint8() const { return Vec3<uint8_t>(static_cast<uint8_t>(x), static_cast<uint8_t>(y), static_cast<uint8_t>(z)); }
     Vec3<int> toInt() const { return Vec3<int>(static_cast<int>(x), static_cast<int>(y), static_cast<int>(z)); }
     Vec3<int64_t> toInt64() const { return Vec3<int64_t>(static_cast<int64_t>(x), static_cast<int64_t>(y), static_cast<int64_t>(z)); }
     Vec3<uint64_t> toUint64() const { return Vec3<uint64_t>(static_cast<uint64_t>(x), static_cast<uint64_t>(y), static_cast<uint64_t>(z)); }
@@ -70,7 +72,7 @@ public:
     Vec3<T> operator*(const Vec3<T>& v) const { return Vec3<T>(x*v.x, y*v.y, z*v.z); }  //Not dot product! Returns "stretched" vector
     T dot(const Vec3<T>& v) const { return x*v.x+y*v.y+z*v.z; }
     Vec3<T> cross(const Vec3<T>& v) const { return Vec3<T>(y*v.z-z*v.y, z*v.x-x*v.z, x*v.y-y*v.x); }
-    Vec3<T> normalized() {
+    Vec3<T> normalized() const {
         Vec3<T> res = (*this);
         T len2 = res.length2();
         if(len2>0) {
@@ -86,9 +88,10 @@ public:
         return Vec3<T>(std::ceil(x), std::ceil(y), std::ceil(z));
     }
     
-    //Comparison
-    bool operator==(Vec3<T> v) const { return v.x==x && v.y==y && v.z==z; };
-    bool operator!=(Vec3<T> v) const { return !(v==(*this)); };
+    //Comparisons
+    bool operator==(const Vec3<T>& o) const { return o.x==x && o.y==y && o.z==z; };
+    bool operator!=(const Vec3<T>& o) const { return !(o==(*this)); };
+    bool operator<(const Vec3<T>& o) const { return std::tie(x, y, z) < std::tie(o.x, o.y, o.z); } //Exactly the same as std::tuple<T, T, T> less-than
 
     /** Mutators **/
     Vec3<T>& operator+=(const Vec3<T>& v) { x+=v.x, y+=v.y, z+=v.z; return *this; }     //Add-set
@@ -119,9 +122,16 @@ protected:
 private:
 };
 
+typedef Vec3<int8_t> Vec3i8;
+typedef Vec3<uint8_t> Vec3u8;
+typedef Vec3<int16_t> Vec3i16;
+typedef Vec3<uint16_t> Vec3u16;
 typedef Vec3<int> Vec3i;
 typedef Vec3<int64_t> Vec3i64;
 typedef Vec3<uint64_t> Vec3u64;
 typedef Vec3<float> Vec3f;
 typedef Vec3<double> Vec3d;
+typedef Vec3<long double> Vec3ld;
+
+struct Vec3i64Hash { size_t operator()(const nch::Vec3i64& v) const; };
 }

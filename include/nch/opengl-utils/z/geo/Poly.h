@@ -35,7 +35,7 @@ public:
 
     void simplyTex(glm::vec2 uv0, glm::vec2 uv1);
     void expand(float amount);
-    void rotate(const glm::vec3& center, const glm::vec3& xyzRot);
+    void rotate(const glm::vec3& center, const glm::vec3& xyzRotRad);
     void move(const glm::vec3& offset);
     void invertNorm();
     void useManualNormals(bool useManNormals);

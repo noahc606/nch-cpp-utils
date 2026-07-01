@@ -15,10 +15,10 @@ const std::vector<Poly> GeoUtils::unitCube = {
 
 constexpr float EPSILON = 1e-5f;
 
-void GeoUtils::rotatePoint(glm::vec3& p, const glm::vec3& center, const glm::vec3& xyzRot) {
-    glm::mat4 rotation = glm::rotate(xyzRot.z, glm::vec3(0, 0, 1))*
-                         glm::rotate(xyzRot.y, glm::vec3(0, 1, 0))*
-                         glm::rotate(xyzRot.x, glm::vec3(1, 0, 0));
+void GeoUtils::rotatePoint(glm::vec3& p, const glm::vec3& center, const glm::vec3& xyzRotRad) {
+    glm::mat4 rotation = glm::rotate(xyzRotRad.z, glm::vec3(0, 0, 1))*
+                         glm::rotate(xyzRotRad.y, glm::vec3(0, 1, 0))*
+                         glm::rotate(xyzRotRad.x, glm::vec3(1, 0, 0));
     glm::mat4 transform = glm::translate(center)*rotation*glm::translate(-center);
     glm::vec4 rotated = transform*glm::vec4(p, 1.0f);
     p = glm::vec3(rotated);

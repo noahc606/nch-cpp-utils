@@ -20,6 +20,8 @@ public:
         nch::Vec3i64 camRegPos = {0};
         nch::Vec3f camSubPos = {0};
         nch::Vec3f camRot = {0};
+        nch::Vec3f camPerspOffset = {0};
+        float camPerspDir = 1.0f;
         bool lastResult = false;
         bool valid = false;
     };

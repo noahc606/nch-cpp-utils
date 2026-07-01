@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cstdint>
 #include <sstream>
+#include <tuple>
 
 namespace nch { template <typename T> class Vec2
 {
@@ -19,18 +20,18 @@ public:
 
     /** Getters **/
     //Functions
-    T length2() { return x*x+y*y; }
-    T length() { return std::sqrt(length2()); }
-    std::pair<T, T> pair() { return std::make_pair(x, y); }
-    T distance2To(const Vec2<T>& v) { return (v.x-x)*(v.x-x) + (v.y-y)*(v.y-y); }
-    T distanceTo(const Vec2<T>& v) { return std::sqrt(distance2To(v)); }
-    Vec2<int> toInt() { return Vec2<int>(x, y); }
-    Vec2<int64_t> toInt64() { return Vec2<int64_t>(x, y); }
-    Vec2<uint64_t> toUint64() { return Vec2<uint64_t>(x, y); }
-    Vec2<float> toFloat() { return Vec2<float>(x, y); }
-    Vec2<double> toDouble() { return Vec2<double>(x, y); }
-    std::string toString() { std::stringstream ss; ss << "(" << x << ", " << y << ")"; return ss.str(); }
-    std::string toArrayString() { std::stringstream ss; ss << "[" << x << "," << y << "]"; return ss.str(); }
+    T length2() const { return x*x+y*y; }
+    T length() const { return std::sqrt(length2()); }
+    std::pair<T, T> pair() const { return std::make_pair(x, y); }
+    T distance2To(const Vec2<T>& v) const { return (v.x-x)*(v.x-x) + (v.y-y)*(v.y-y); }
+    T distanceTo(const Vec2<T>& v) const { return std::sqrt(distance2To(v)); }
+    Vec2<int> toInt() const { return Vec2<int>(x, y); }
+    Vec2<int64_t> toInt64() const { return Vec2<int64_t>(x, y); }
+    Vec2<uint64_t> toUint64() const { return Vec2<uint64_t>(x, y); }
+    Vec2<float> toFloat() const { return Vec2<float>(x, y); }
+    Vec2<double> toDouble() const { return Vec2<double>(x, y); }
+    std::string toString() const { std::stringstream ss; ss << "(" << x << ", " << y << ")"; return ss.str(); }
+    std::string toArrayString() const { std::stringstream ss; ss << "[" << x << "," << y << "]"; return ss.str(); }
 
     /** Operations **/
     //Basic operations
@@ -39,7 +40,7 @@ public:
     Vec2<T> operator-(const Vec2<T>& v) const { return (*this)+(-v); }          //Subtract vector from vector (translation)
     Vec2<T> operator*(T r) const { return Vec2<T>(x*r, y*r); }                  //Scaling
     Vec2<T> operator/(T r) const { return Vec2<T>(x/r, y/r); }                  //Scaling
-    Vec2<T> normalized() {
+    Vec2<T> normalized() const {
         Vec2<T> res = (*this);
         T len2 = res.length2();
         if(len2>0) {
@@ -50,19 +51,22 @@ public:
     }
 
     //Comparison
-    bool operator==(Vec2<T> v) const { return v.x==x && v.y==y; };
-    bool operator!=(Vec2<T> v) const { return !(v==(*this)); };
+    bool operator==(const Vec2<T>& v) const { return v.x==x && v.y==y; };
+    bool operator!=(const Vec2<T>& v) const { return !(v==(*this)); };
+    bool operator<(const Vec2<T>& o) const { return std::tie(x, y) < std::tie(o.x, o.y); } //Exactly the same as std::tuple<T, T> less-than
 
     /** Mutators **/
-    Vec2<T>& operator+=(const Vec2<T>& v) { x+=v.x, y+=v.y; return *this; }     //Add-set
-    Vec2<T>& operator-=(const Vec2<T>& v) { x-=v.x, y-=v.y; return *this; }     //Add-set
-    Vec2<T>& operator*=(const T& r) { x*=r, y*=r; return *this; }                 //Scale-set
+    Vec2<T>& operator+=(const Vec2<T>& v) { x+=v.x, y+=v.y; return *this; } //Add-set
+    Vec2<T>& operator-=(const Vec2<T>& v) { x-=v.x, y-=v.y; return *this; } //Add-set
+    Vec2<T>& operator*=(const T& r) { x*=r, y*=r; return *this; }           //Scale-set
+    Vec2<T>& operator/=(const T& r) { x/=r, y/=r; return *this; }           //Scale-set
     Vec2<T>& operator=(const Vec2<T>& v) { x = v.x; y = v.y; return (*this); }
 
     T x = (T)0, y = (T)0;
 };
 
 typedef Vec2<int> Vec2i;
+typedef Vec2<int16_t> Vec2i16;
 typedef Vec2<int64_t> Vec2i64;
 typedef Vec2<uint64_t> Vec2u64;
 typedef Vec2<float> Vec2f;

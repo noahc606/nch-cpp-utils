@@ -106,9 +106,12 @@ bool Mesh::isChunkInFrustum(Camera3D* cam)
     Vec3i64 camRegPos = cam->getRegPos();
     Vec3f camSubPos = cam->getSubPos();
     Vec3f camRot = cam->getRot();
+    Vec3f camPerspOffset = cam->getPerspectiveOffset();
+    float camPerspDir = cam->getPerspectiveDir();
     if(frustumCache.valid
     && frustumCache.meshChkPos==chkPos && frustumCache.meshSubPos==subPos && frustumCache.meshScale==scale
-    && frustumCache.camRegPos==camRegPos && frustumCache.camSubPos==camSubPos && frustumCache.camRot==camRot) {
+    && frustumCache.camRegPos==camRegPos && frustumCache.camSubPos==camSubPos && frustumCache.camRot==camRot
+    && frustumCache.camPerspOffset==camPerspOffset && frustumCache.camPerspDir==camPerspDir) {
         return frustumCache.lastResult;
     }
 
@@ -145,6 +148,8 @@ bool Mesh::isChunkInFrustum(Camera3D* cam)
     frustumCache.camRegPos = camRegPos;
     frustumCache.camSubPos = camSubPos;
     frustumCache.camRot = camRot;
+    frustumCache.camPerspOffset = camPerspOffset;
+    frustumCache.camPerspDir = camPerspDir;
     frustumCache.lastResult = result;
     frustumCache.valid = true;
     return result;
@@ -154,9 +159,22 @@ bool Mesh::isChunkInFrustum(Camera3D* cam, const std::vector<glm::vec4>& culling
     //Offset from camera to chunk center in tile-world space
     Vec3f offset = ((cam->getRegPos()-chkPos)*32).toFloat()-subPos;
 
-    //Bounding sphere center translated into camera-relative space
-    //cullingPlanes were extracted with zero offset, so shift sphere by -offset
-    const glm::vec3 center(16.0f*scale.x - offset.x, 16.0f*scale.y - offset.y, 16.0f*scale.z - offset.z);
+    //Transform the chunk-center through the SAME model matrix draw() applies (scale + rotation about
+    //centerOfRotation; see Shader::setModelMatrix), then shift into camera-relative cull space by -offset.
+    //For unrotated, origin-centered meshes (terrain) this collapses to (16*scale - offset). For a rotated
+    //PhysStructure, whose chunks rotate about the structure origin (far from the chunk's own center), the
+    //center swings accordingly — testing the un-rotated location wrongly culled visible chunks.
+    glm::mat4 model(1.0f);
+    model = glm::translate(model, glm::vec3(centerOfRotation.x, centerOfRotation.y, centerOfRotation.z));
+    model = glm::rotate(model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+    model = glm::rotate(model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::scale(model, glm::vec3(scale.x, scale.y, scale.z));
+    model = glm::translate(model, glm::vec3(-centerOfRotation.x, -centerOfRotation.y, -centerOfRotation.z));
+    glm::vec3 worldCenter = glm::vec3(model*glm::vec4(16.0f, 16.0f, 16.0f, 1.0f));
+
+    //Bounding sphere center translated into camera-relative space (rotation preserves the radius).
+    const glm::vec3 center(worldCenter.x - offset.x, worldCenter.y - offset.y, worldCenter.z - offset.z);
     const float radius = glm::length(glm::vec3(16.0f*scale.x, 16.0f*scale.y, 16.0f*scale.z));
 
     for(int i = 0; i<6; i++) {

@@ -31,6 +31,7 @@ public:
     double getUnscaledWidth() const; double getUnscaledHeight() const;
     std::u16string getText() const;
     GLSDL_Texture* getTexture() const;
+    TTF_Font* getFont() const;
 
     bool setScale(double scale);
     void forcedNearestScaling(bool fns);

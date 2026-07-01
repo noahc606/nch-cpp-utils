@@ -222,6 +222,12 @@ std::string StringUtils::shortened(const std::string& s, int maxDisplaySize) {
     std::string end = s.substr(s.size()-segSize, segSize);
     return beg+"..."+end;
 }
+std::string StringUtils::lowercased(const std::string& s) {
+    std::string r = s; for(auto& c : r) c = (char)std::tolower((unsigned char)c); return r;
+}
+std::string StringUtils::uppercased(const std::string& s) {
+    std::string r = s; for(auto& c : r) c = (char)std::toupper((unsigned char)c); return r;
+}
 
 std::string StringUtils::stringFromBytestream(const std::vector<unsigned char>& byteStream, bool keepZeros)
 {
@@ -327,7 +333,7 @@ std::string StringUtils::parseCmdArg(const std::vector<std::string>& args, std::
             break;
         }
         if(args[i]==argLabel && i<args.size()-1) {
-            try        { res = args[i+1]; }
+            try        { res = args.at(i+1); }
             catch(...) { res = errorValue; }
             if(res=="") res = errorValue;
             break;
@@ -344,6 +350,11 @@ bool StringUtils::cmdArgExists(const std::vector<std::string>& args, std::string
     }
     return false;
 }
+bool StringUtils::cmdArgExistsAndNotFalse(const std::vector<std::string>& args, std::string arg)
+{
+    return parseCmdArg(args, arg, "false", "false")=="true" || StringUtils::cmdArgExists(args, arg);
+}
+
 std::string StringUtils::validatedString(const std::string& s, const std::string& charSet)
 {
     std::stringstream ret;

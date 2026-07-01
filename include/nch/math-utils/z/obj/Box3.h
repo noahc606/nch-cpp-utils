@@ -106,6 +106,7 @@ private:
 
 };
 
+typedef Box3<uint8_t> Box3u8;
 typedef Box3<int> Box3i;
 typedef Box3<int64_t> Box3i64;
 typedef Box3<uint64_t> Box3u64;

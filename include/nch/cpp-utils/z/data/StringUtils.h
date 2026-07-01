@@ -53,7 +53,9 @@ public:
     static std::string removedNonASCII(const std::string& s);
     static std::string unicodeEscaped(const std::wstring& ws);
     static std::string shortened(const std::string& s, int maxDisplaySize = 64);
-
+    static std::string lowercased(const std::string& s);
+    static std::string uppercased(const std::string& s);
+    
     static std::string stringFromBytestream(const std::vector<unsigned char>& byteStream, bool keepZeros = false);
     static std::vector<unsigned char> bytestreamFromString(const std::string& str);
     static bool aHasPrefixB(const std::string& a, const std::string& b);
@@ -65,7 +67,9 @@ public:
 
     static int parseCmdArg(const std::vector<std::string>& args, std::string argLabel, int defaultValue, int errorValue);
     static std::string parseCmdArg(const std::vector<std::string>& args, std::string argLabel, std::string defaultValue, std::string errorValue);
+    /// @brief If calling with arg=="--test", an arg "--test=false" makes this return false. Use cmdArgExistsAndNotFalse() for this.
     static bool cmdArgExists(const std::vector<std::string>& args, std::string arg);
+    static bool cmdArgExistsAndNotFalse(const std::vector<std::string>& args, std::string arg);
 
     static std::string validatedString(const std::string& s, const std::string& charSet);
     static bool validateString(const std::string& s, const std::string& charSet);

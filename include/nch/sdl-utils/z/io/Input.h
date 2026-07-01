@@ -37,6 +37,7 @@ public:
 	static bool isKeyPressed(SDL_Keycode kc, int firstRepeatWait, int repeatEvery);
 	static bool isModKeyDown(SDL_Keymod km);
 	static bool isMouseDown(int mouseButton);
+	static bool isMousePressed(int mouseButton, int firstRepeatWait, int repeatEvery);
 	static bool isJoystickButtonDown(int joyButton);
 	static bool isJoystickHatDir(int dir);
 	

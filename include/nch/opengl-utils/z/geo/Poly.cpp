@@ -156,14 +156,14 @@ void Poly::expand(float amount)
         if(len>1e-7f) v.pos += (dir/len)*amount;
     }
 }
-void Poly::rotate(const glm::vec3& center, const glm::vec3& xyzRot)
+void Poly::rotate(const glm::vec3& center, const glm::vec3& xyzRotRad)
 {
     for(size_t i = 0; i<verts.size(); i++) {
-        GeoUtils::rotatePoint(verts[i].pos, center, xyzRot);
+        GeoUtils::rotatePoint(verts[i].pos, center, xyzRotRad);
     }
     if(manualNormals) {
         for(size_t i = 0; i<verts.size(); i++) {
-            GeoUtils::rotatePoint(verts[i].normal, {0, 0, 0}, xyzRot);
+            GeoUtils::rotatePoint(verts[i].normal, {0, 0, 0}, xyzRotRad);
         }
     }
     super_updateNormals();

@@ -170,7 +170,9 @@ void Atlas::buildVariantFromDirs(Atlas* base, const std::vector<std::string>& di
 		map.clear();
 		auto bmap = base->getMap();
 
-		finalAtlasSurf = SDL_CreateRGBSurfaceWithFormat(0, base->getMapSize(), base->getMapSize(), 4, SDL_PIXELFORMAT_RGBA8888);
+		//Variant shares the base's layout and dimensions; mirror its mapSize so saveDump/getSrc work.
+		mapSize = base->getMapSize();
+		finalAtlasSurf = SDL_CreateRGBSurfaceWithFormat(0, mapSize, mapSize, 4, SDL_PIXELFORMAT_RGBA8888);
 		for(auto elem : bmap) {
 			auto ep = elem.first;
 			auto er = elem.second.r;

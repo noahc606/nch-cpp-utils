@@ -153,6 +153,13 @@ bool Input::isKeyPressed(SDL_Keycode kc, int firstRepeatWait, int repeatEvery) {
 }
 bool Input::isModKeyDown(SDL_Keymod km) { return (currentModKeys & km); }
 bool Input::isMouseDown(int mouseButton) { return mouseDownTime(mouseButton)>0; }
+bool Input::isMousePressed(int mouseButton, int firstRepeatWait, int repeatEvery) {
+	int time = mouseDownTime(mouseButton);
+	if(time==1 || (time>firstRepeatWait && time%repeatEvery==0)) {
+		return true;
+	}
+	return false;
+}
 bool Input::isJoystickButtonDown(int joyButton) { return joystickButtonDownTime(joyButton)>0; }
 bool Input::isJoystickHatDir(int dir) { return joystickHatDirTime(dir)>0; }
 
