@@ -10,6 +10,15 @@ sqlite3* SQLite::open(const std::string& dbPath) {
         Log::errorv(__PRETTY_FUNCTION__, (char*)sqlite3_errmsg16(ret), "Failed to open open database \"%s\"", dbPath.c_str());
         throw std::invalid_argument("");
     }
+
+    //Wait on contended locks instead of failing instantly with SQLITE_BUSY ("database is locked") —
+    //needed whenever one connection commits while another thread's connection reads the same file.
+    sqlite3_busy_timeout(ret, 5000);
+    //WAL lets readers proceed during writes (and vice versa), and synchronous=NORMAL skips the
+    //per-commit fsync (WAL guarantees integrity regardless; at worst a power cut loses the last
+    //commits). journal_mode is persistent per DB file but cheap to (re)apply on every open.
+    exec(ret, "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;");
+
     return ret;
 }
 void SQLite::close(sqlite3* db) {

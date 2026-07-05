@@ -79,6 +79,12 @@ void Mesh::draw(Shader* shader, Camera3D* cam) const
         }
     }
 
+    //Paged atlases carry the page (array layer) in the integer part of u; single-page (and absent) atlases
+    //keep raw pass-through UVs so REPEAT-dependent meshes (e.g. sphere seams with u slightly >1) still work.
+    bool atlasPaged = atlases.size()!=0 && atlases[0]->getPageCount()>1;
+    GLint atlasPagedLoc = glGetUniformLocation(shader->getID(), "atlasPaged");
+    if(atlasPagedLoc!=-1) glUniform1i(atlasPagedLoc, atlasPaged ? 1 : 0);
+
     VAO::bind(glVAO);
     assert(glIsVertexArray(glVAO) == GL_TRUE);
     glDrawElements(GL_TRIANGLES, drawnIndexCount, GL_UNSIGNED_INT, nullptr);
