@@ -1,4 +1,5 @@
 #include "GeoMesh.h"
+#include <cmath>
 #include "nch/opengl-utils/camera3d.h"
 #include "nch/opengl-utils/shader.h"
 #include "nch/opengl-utils/z/BufferObj.h"
@@ -27,6 +28,25 @@ void GeoMesh::addLine(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c
 void GeoMesh::addLine(const glm::vec3& a, const glm::vec3& b, const glm::vec3& colorA, const glm::vec3& colorB) {
     lineVerts.emplace_back(a, colorA);
     lineVerts.emplace_back(b, colorB);
+}
+void GeoMesh::addArrow(const glm::vec3& a, const glm::vec3& b, const glm::vec3& color) {
+    addArrow(a, b, color, color);
+}
+void GeoMesh::addArrow(const glm::vec3& a, const glm::vec3& b, const glm::vec3& colorA, const glm::vec3& colorB) {
+    addLine(a, b, colorA, colorB);
+    glm::vec3 d = b-a;
+    float len = glm::length(d);
+    if(len<1e-6f) return; //Degenerate: keep the (invisible) shaft only
+    d /= len;
+    glm::vec3 upRef = std::fabs(d.y)<0.9f ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
+    glm::vec3 u = glm::normalize(glm::cross(d, upRef));
+    glm::vec3 w = glm::normalize(glm::cross(d, u));
+    glm::vec3 back = b-d*(0.3f*len);
+    float side = 0.15f*len;
+    addLine(b, back+u*side, colorB);
+    addLine(b, back-u*side, colorB);
+    addLine(b, back+w*side, colorB);
+    addLine(b, back-w*side, colorB);
 }
 void GeoMesh::addTri(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, const glm::vec3& color) {
     triVerts.emplace_back(a, color);

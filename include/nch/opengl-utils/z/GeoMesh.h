@@ -27,6 +27,10 @@ public:
 
     void addLine(const glm::vec3& a, const glm::vec3& b, const glm::vec3& color);
     void addLine(const glm::vec3& a, const glm::vec3& b, const glm::vec3& colorA, const glm::vec3& colorB);
+    //Arrow from a to b: the shaft line plus a 4-fin head at b (fins span both perpendicular axes
+    //so the head reads from any view angle; sized ~30%/15% of the arrow length).
+    void addArrow(const glm::vec3& a, const glm::vec3& b, const glm::vec3& color);
+    void addArrow(const glm::vec3& a, const glm::vec3& b, const glm::vec3& colorA, const glm::vec3& colorB);
     void addTri(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, const glm::vec3& color);
     void addQuad(const glm::vec3 corners[4], const glm::vec3& color);
     void addBoxOutline(const glm::vec3 corners[8], const glm::vec3& color);
