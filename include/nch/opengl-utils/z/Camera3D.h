@@ -10,10 +10,12 @@
 
 namespace nch { class Camera3D {
 public:
+    //Note: Uses RHR for +X/+Y/+Z.
+    //XZ is the horizontal plane, and we assign +Z to north and -Z to south, thus -X for EAST and +X for WEST is correct.
     enum Direction {
         UNKNOWN = -1,
-        _WEST,  // -X
-        _EAST,  // +X
+        EAST,  // -X
+        WEST,  // +X
         DOWN,  // -Y
         UP,    // +Y
         SOUTH, // -Z
@@ -34,8 +36,8 @@ public:
     template<typename VecX> static VecX dirToVecX(int dir)
     {
         switch(dir) {
-            case _WEST:  return {-1, 0, 0};
-            case _EAST:  return { 1, 0, 0};
+            case EAST:  return {-1, 0, 0};
+            case WEST:  return { 1, 0, 0};
             case DOWN:  return { 0,-1, 0};
             case UP:    return { 0, 1, 0};
             case SOUTH: return { 0, 0,-1};
@@ -48,6 +50,7 @@ public:
     static nch::Vec3f dirToVec(int dir);
     static std::string dirToString(int dir);
     static int flippedDir(int dir);
+    static Vec3f getNearestAxisVec(nch::Vec3f v);
     std::string getInfo() const;
     nch::Vec3f getEstPos() const;
     nch::Vec3f getInterpolDelta() const;
@@ -77,6 +80,11 @@ public:
     std::vector<glm::vec4> computeCullingPlanes() const;
     glm::mat4 getCMatrix() const;
     nch::Vec3f getUp() const;
+    //The up vector the render view is actually built from (buildViewProj's 'rolledUp'): natural up rolled
+    //about the effective look axis, or the pinned basis up. Unlike getUp() - which only tracks the live up
+    //axis in free-orientation mode - this is correct in every mode, so anything reconstructing the render
+    //view outside of drawFromPos (fullscreen sky/post passes) must use it or it will ignore camera roll.
+    nch::Vec3f getRenderUp() const;
     nch::Vec3f getRight() const;
     nch::Vec3f getPerspectiveOffset() const;
     float getPerspectiveDir() const;
@@ -116,6 +124,17 @@ public:
     void setSensitivity(float s);
     void setOverrideMatrix(const glm::mat4& mat);
     void clearOverrideMatrix();
+    //Virtual-view overrides (portal/mirror render cameras). Unlike setOverrideMatrix — a raw matrix that
+    //ignores the per-mesh position offset, so it cannot express a scene camera — these participate in
+    //buildViewProj, so per-chunk offset rendering (drawFromPos/getCMatrixForOffset) and
+    //computeCullingPlanes all stay consistent. Both are inert until set.
+    //setBasis pins the exact view basis: 'forward' replaces rotVec and 'up' replaces the
+    //naturalUp/roll-derived up. setProjOverride replaces the internal glm::perspective (carrying e.g. an
+    //oblique near-plane clip or a mirror X-flip), bypassing fov/nearPlane/farPlane while set.
+    void setBasis(nch::Vec3f forward, nch::Vec3f up);
+    void clearBasis();
+    void setProjOverride(const glm::mat4& proj);
+    void clearProjOverride();
     void setPerspective(nch::Vec3f perspectiveOffset, float perspectiveDir);
 private:
     /**
@@ -153,6 +172,10 @@ private:
     glm::mat4 cMatrix;
     bool useOverrideMatrix = false;
     glm::mat4 overrideMatrix = glm::mat4(1.0f);
+    bool useBasisOverride = false;
+    Vec3f basisUp = {0.0f, 1.0f, 0.0f}; //See setBasis
+    bool useProjOverride = false;
+    glm::mat4 projOverride = glm::mat4(1.0f);
 
     mutable Vec3i64 regPos = 0; //Region pos
     mutable Vec3f subPos = 0;   //Sub pos (in [0, 31.9999])

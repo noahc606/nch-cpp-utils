@@ -1,5 +1,6 @@
 #include "MainLoopDriver.h"
 #include <assert.h>
+#include <chrono>
 #include <thread>
 #include "nch/cpp-utils/color.h"
 #include "nch/cpp-utils/log.h"
@@ -56,6 +57,21 @@ uint64_t MainLoopDriver::getTargetNSPT() {
 }
 uint64_t MainLoopDriver::getTargetNSPF() {
 	return 1000000000/(uint64_t)targetFPS;
+}
+int MainLoopDriver::getTargetFPS() { return targetFPS; }
+void MainLoopDriver::setTargetFPS(int newTargetFPS) {
+	if(newTargetFPS<10) newTargetFPS = 10;
+	if(newTargetFPS>1000) newTargetFPS = 1000;
+	if(newTargetFPS==targetFPS) return;
+
+	targetFPS = newTargetFPS;
+	nsPerFrame = 1000000000/(uint64_t)targetFPS;
+	//Rebase the pending frame deadline: one scheduled under an old longer period would otherwise
+	//delay the first frame after raising the cap.
+	uint64_t nowNS = Timer::getCurrentTimeNS();
+	if(nextFrameNS>nowNS+nsPerFrame) {
+		nextFrameNS = nowNS+nsPerFrame;
+	}
 }
 int MainLoopDriver::getCurrentTPS() { return currentTPS; }
 int MainLoopDriver::getCurrentFPS() { return currentFPS; }
@@ -264,7 +280,18 @@ void MainLoopDriver::mainLoop(void)
 	if(Timer::getCurrentTimeNS()>=nextFrameNS) {
 		Timer tim("draw");
 
-		nextFrameNS = Timer::getCurrentTimeNS()+nsPerFrame;
+		//Accumulate the deadline instead of rescheduling from 'now'. Scheduling from now folded every
+		//frame's lateness (sleep overshoot, a tick landing just before the deadline) permanently into
+		//the schedule, settling the achieved rate at 1/(nsPerFrame+overshoot) rather than the target.
+		//Accumulating lets a late frame be followed by a short one, keeping the average exact.
+		uint64_t nowNS = Timer::getCurrentTimeNS();
+		nextFrameNS += nsPerFrame;
+		//A whole period behind (hitch, or a cap this machine can't sustain): resync rather than paying
+		//the debt back as a burst of back-to-back frames.
+		if(nextFrameNS<nowNS) {
+			nextFrameNS = nowNS+nsPerFrame;
+		}
+
 		if(altDrawFunc!=nullptr) altDrawFunc();
 		if(fps==0) frameTimes.clear();
 
@@ -286,9 +313,23 @@ void MainLoopDriver::mainLoop(void)
 		bmTickTimes.clear();
 	}
 
-	//Sleep for ~1ms so CPU core usage not overused.
-	//This should not affect tickrate as 'currentNumTicksLeft' allows for ticks to "catch up"
-	Timer::sleep(1);
+	#ifdef EMSCRIPTEN
+		//Browser rAF paces the loop; just yield briefly as before.
+		Timer::sleep(1);
+	#else
+		//Sleep until the next deadline (tick or frame) so CPU isn't overused. The former fixed 1ms
+		//nap taxed every frame, capping achievable FPS at ~1000/(drawTimeMS+1). If a deadline is
+		//already due, don't sleep at all. Tick catch-up via 'currentNumTicksLeft' is unaffected.
+		uint64_t soonestNS;
+		{
+			const std::lock_guard<std::mutex> lock(mtx);
+			soonestNS = nextTickNS<nextFrameNS ? nextTickNS : nextFrameNS;
+		}
+		uint64_t nowNS = Timer::getCurrentTimeNS();
+		if(soonestNS>nowNS) {
+			std::this_thread::sleep_for(std::chrono::nanoseconds(soonestNS-nowNS));
+		}
+	#endif
 }
 void MainLoopDriver::ticker()
 {

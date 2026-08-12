@@ -34,6 +34,7 @@ public:
     TTF_Font* getFont() const;
 
     bool setScale(double scale);
+    void setGridlock(int px);
     void forcedNearestScaling(bool fns);
     bool setText(std::u16string text); bool setText(std::string text);
     void setWrapLength(int wl);
@@ -63,6 +64,7 @@ private:
     bool forceNearestScaling = false;
     TextShadow shadow;
     double scale = 1;
+    int gridlock = 1;
     std::u16string text = u"";
     TTF_Font* font = nullptr;
     Color textColor = Color(255, 255, 255);

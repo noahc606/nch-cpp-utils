@@ -15,6 +15,10 @@ public:
     
     static uint64_t getTargetNSPT();
     static uint64_t getTargetNSPF();
+    static int getTargetFPS();
+    //Change the FPS cap at runtime (clamped to [10, 1000]); takes effect on the next frame.
+    //Call from the tick/draw callbacks (the main-loop thread) — not from other threads.
+    static void setTargetFPS(int newTargetFPS);
     static int getCurrentTPS();
     static int getCurrentFPS();
     static std::string getPerformanceInfo();

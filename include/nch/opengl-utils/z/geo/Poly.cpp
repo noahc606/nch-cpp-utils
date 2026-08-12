@@ -234,6 +234,19 @@ static bool isEar(const std::vector<int>& indices, const std::vector<glm::vec2>&
     return true;
 }
 
+//Tri's constructor recomputes normals from winding, so a manual-normal source poly must have its
+//per-vertex normals restored onto each output tri.
+static Tri buildSplitTri(const std::vector<Vertex>& verts, bool manualNormals, int a, int b, int c) {
+    Tri tri(verts[a], verts[b], verts[c]);
+    if(manualNormals) {
+        tri.useManualNormals(true);
+        tri[0].normal = verts[a].normal;
+        tri[1].normal = verts[b].normal;
+        tri[2].normal = verts[c].normal;
+    }
+    return tri;
+}
+
 std::vector<Poly> Poly::split() const {
     int n = verts.size();
 
@@ -278,8 +291,7 @@ std::vector<Poly> Poly::split() const {
 
             if(isEar(indices, points2D, prev, curr, next)) {
                 //Create triangle from this ear
-                Tri tri(verts[indices[prev]], verts[indices[curr]], verts[indices[next]]);
-                result.push_back(tri);
+                result.push_back(buildSplitTri(verts, manualNormals, indices[prev], indices[curr], indices[next]));
 
                 //Remove the ear tip vertex
                 indices.erase(indices.begin() + curr);
@@ -294,8 +306,7 @@ std::vector<Poly> Poly::split() const {
             result.clear();
             result.reserve(n-2);
             for(int i = 1; i<n-1; i++) {
-                Tri tri(verts[0], verts[i], verts[i+1]);
-                result.push_back(tri);
+                result.push_back(buildSplitTri(verts, manualNormals, 0, i, i+1));
             }
             return result;
         }
@@ -303,8 +314,7 @@ std::vector<Poly> Poly::split() const {
 
     //Add final triangle
     if(indices.size()==3) {
-        Tri tri(verts[indices[0]], verts[indices[1]], verts[indices[2]]);
-        result.push_back(tri);
+        result.push_back(buildSplitTri(verts, manualNormals, indices[0], indices[1], indices[2]));
     }
 
     return result;
@@ -318,18 +328,21 @@ void Poly::super_type(int type) {
 }
 void Poly::super_updateNormals() {
     if(manualNormals) { return; }
-    if(verts.size()==3) {
-        normal = glm::cross((v(1).pos-v(0).pos), (v(2).pos-v(0).pos));
-        verts[0].normal = normal;
-        verts[1].normal = normal;
-        verts[2].normal = normal;
+    size_t n = verts.size();
+    if(n<3) { return; }
+    //Newell's formula: matches the CCW cross product for tris, but also handles quads whose first
+    //corner is collinear and 5+ vert polys (which previously left 'normal' uninitialized, breaking
+    //split()'s projection and simplyTex's dominant-axis pick).
+    normal = glm::vec3(0.0f);
+    for(size_t i = 0; i<n; i++) {
+        const glm::vec3& a = verts[i].pos;
+        const glm::vec3& b = verts[(i+1)%n].pos;
+        normal.x += (a.y-b.y)*(a.z+b.z);
+        normal.y += (a.z-b.z)*(a.x+b.x);
+        normal.z += (a.x-b.x)*(a.y+b.y);
     }
-    if(verts.size()==4) {
-        normal = Tri(v(0), v(1), v(2)).norm();
-        verts[0].normal = normal;
-        verts[1].normal = normal;
-        verts[2].normal = normal;
-        verts[3].normal = normal;
+    for(size_t i = 0; i<n; i++) {
+        verts[i].normal = normal;
     }
 }
 void Poly::super_updateColors() {

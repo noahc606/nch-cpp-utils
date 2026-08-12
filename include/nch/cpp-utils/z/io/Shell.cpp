@@ -18,7 +18,9 @@ using namespace nch;
 std::string Shell::exec(const char* cmd) {    
     std::array<char, 128> buffer;
     std::stringstream result;
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+
+    using PcloseFunc = int (*)(FILE*);
+    std::unique_ptr<FILE, PcloseFunc> pipe(popen(cmd, "r"), pclose);
     if(!pipe) {
         throw std::runtime_error("popen() failed!");
     }

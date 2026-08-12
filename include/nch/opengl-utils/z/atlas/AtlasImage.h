@@ -60,7 +60,15 @@ private:
     static std::vector<AtlasImage> sortedBySize(const std::map<std::string, SDL_Surface*>& collection);
     static SDL_Surface* buildSurfaceFromJSON(const std::string& jsonPath);
     //Compose one image from an "applied_elements" array (layered img + colormod); nullptr on failure.
-    static SDL_Surface* compositeFromElements(const nlohmann::json& appliedElements, const std::string& jsonDir);
+    static SDL_Surface* compositeFromElements(const nlohmann::json& appliedElems, const std::string& jsonDir);
+    //Return a mirrored copy of 'src' (horizontally and/or vertically), freeing 'src'; returns 'src' unchanged when neither flag is set.
+    static SDL_Surface* mirrorSurface(SDL_Surface* src, bool mirrorH, bool mirrorV);
+    /**
+     * @brief Return a copy of 'src' rotated clockwise, freeing 'src'.
+     * @param numTurnsCW Number of clockwise quarter turns (negative = counter-clockwise), taken mod 4.
+     * @return The rotated copy, or 'src' unchanged when the rotation is a no-op. Odd turn counts swap width and height.
+     */
+    static SDL_Surface* rotateSurface(SDL_Surface* src, int numTurnsCW);
     //Parse an "animation" block if present; true (and fills out) only when >=1 frame was built.
     static bool parseAnimationFromJSON(const std::string& jsonPath, AnimSpec& out);
 }; }

@@ -1,4 +1,6 @@
 #include "Mesh.h"
+
+#include <algorithm>
 #include <nch/cpp-utils/log.h>
 #include <nch/cpp-utils/timer.h>
 #include <nch/math-utils/chunkmath.h>
@@ -284,49 +286,78 @@ void Mesh::addPoly(const Poly& poly) {
 }
 void Mesh::remove(const glm::ivec3& key)
 {
-    std::multimap<std::tuple<int, int, int>, Mesh::MPoly>::iterator pit;
-    while((pit = polyMap.find({key.x, key.y, key.z}))!=polyMap.end()) {
-        polyMap.erase(pit);
+    remove(std::vector<glm::ivec3>{key});
+}
+void Mesh::remove(const std::vector<glm::ivec3>& keys)
+{
+    //Collect the removed polys' vertex ranges ([beg, end] inclusive - each poly's verts are
+    //contiguous) across all keys, then compact vertices/indices/indicesMap in ONE pass each.
+    //The old per-poly path rescanned + re-erased the entire index buffer for every removed poly,
+    //making bulk removals from large meshes (e.g. chunks dense with high-poly tiles) quadratic.
+    std::vector<std::pair<GLuint, GLuint>> ranges;
+    for(const glm::ivec3& key : keys) {
+        std::tuple<int, int, int> k = std::make_tuple(key.x, key.y, key.z);
+        polyMap.erase(k);
+        auto ir = indicesMap.equal_range(k);
+        for(auto it = ir.first; it!=ir.second; ++it) {
+            GLuint beg = it->second[0], end = it->second[0];
+            for(GLuint v : it->second) {
+                if(v<beg) beg = v;
+                if(v>end) end = v;
+            }
+            assert(end-beg+1==3 || end-beg+1==4);
+            ranges.push_back({beg, end});
+        }
+        indicesMap.erase(ir.first, ir.second);
     }
+    if(ranges.empty()) return;
+    std::sort(ranges.begin(), ranges.end());
 
-    std::multimap<std::tuple<int, int, int>, std::vector<GLuint>>::iterator iit;
-    while((iit = indicesMap.find({key.x, key.y, key.z}))!=indicesMap.end()) {
-        std::set<GLuint> verticesToRemove;
-        for(GLuint& vidx : iit->second) {
-            verticesToRemove.insert(vidx);
+    //removedBelow[i] = total verts removed by ranges[0..i-1]
+    std::vector<GLuint> removedBelow(ranges.size()+1, 0);
+    for(size_t i = 0; i<ranges.size(); i++) {
+        removedBelow[i+1] = removedBelow[i]+(ranges[i].second-ranges[i].first+1);
+    }
+    //Old vertex index -> new one, or -1 if it fell within a removed range.
+    auto shifted = [&](GLuint v) -> int64_t {
+        size_t lo = 0, hi = ranges.size(); //Binary search: count of ranges with beg<=v
+        while(lo<hi) {
+            size_t mid = (lo+hi)/2;
+            if(ranges[mid].first<=v) lo = mid+1; else hi = mid;
         }
-        GLuint beg = *verticesToRemove.begin();
-        GLuint end = *verticesToRemove.rbegin();
-        GLuint numVertsRemoved = end-beg+1;
-        assert(numVertsRemoved==3 || numVertsRemoved==4);
+        if(lo>0 && v<=ranges[lo-1].second) return -1;
+        return (int64_t)v-(int64_t)removedBelow[lo];
+    };
 
-        //Remove appropriate vertex indices.
-        int numIndicesRemoved = 0;
-        for(int i = indices.size()-1; i>=0; i--) {
-            if(indices[i]>=beg && indices[i]<=end) {
-                indices.erase(indices.begin()+i);
-                numIndicesRemoved++;
-            }
+    //Compact 'vertices' (single sweep over the sorted disjoint ranges)
+    {
+        std::vector<Vertex> nv;
+        nv.reserve(vertices.size()-removedBelow.back());
+        size_t r = 0;
+        for(size_t v = 0; v<vertices.size(); v++) {
+            while(r<ranges.size() && v>ranges[r].second) r++;
+            if(r<ranges.size() && v>=ranges[r].first) continue;
+            nv.push_back(vertices[v]);
         }
-        assert(numIndicesRemoved==3 || numIndicesRemoved==6);
-        //Shift the values of vertex indices greater than the ones removed.
-        {
-            //Indices vector
-            for(int i = indices.size()-1; i>=0; i--) {
-                if(indices[i]>end) indices[i] -= numVertsRemoved;
-            }
-            //Indices map
-            for(auto& elem : indicesMap) {
-                if(elem.second.at(0)>end) {
-                    for(int i = 0; i<elem.second.size(); i++) {
-                        elem.second.at(i) -= numVertsRemoved;
-                    }
-                }
-            }
+        vertices.swap(nv);
+    }
+    //Compact 'indices' (drop removed polys' indices, shift the rest)
+    {
+        std::vector<GLuint> ni;
+        ni.reserve(indices.size());
+        for(GLuint idx : indices) {
+            int64_t s = shifted(idx);
+            if(s>=0) ni.push_back((GLuint)s);
         }
-        //Remove appropriate vertices and element from 'indicesMap'.
-        vertices.erase(vertices.begin()+beg, vertices.begin()+end+1);
-        indicesMap.erase(iit);
+        indices.swap(ni);
+    }
+    //Shift surviving 'indicesMap' entries. Each entry's indices lie within one contiguous
+    //(non-removed) poly range, so they all shift by the same amount; first element is the min.
+    for(auto& elem : indicesMap) {
+        GLuint mn = elem.second[0];
+        GLuint shift = mn-(GLuint)shifted(mn);
+        if(shift==0) continue;
+        for(size_t i = 0; i<elem.second.size(); i++) elem.second[i] -= shift;
     }
 }
 

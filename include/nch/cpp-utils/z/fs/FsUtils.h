@@ -34,6 +34,7 @@ public:
     static std::vector<std::string> getDirContents(std::string dirPath);
     static std::vector<std::string> getManyDirContents(std::vector<std::string> dirPaths, ListSettings& lise, RecursionSettings& rese);
     static std::string getPathWithInferredExtension(std::string path);
+    static std::string getPathWithRequiredExtension(std::string path, std::string ext);
 
     static void setLogWarnings(bool lw);
 private:

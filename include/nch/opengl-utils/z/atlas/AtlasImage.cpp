@@ -12,61 +12,96 @@ using namespace nch;
 
 std::map<std::string, SDL_Surface*> AtlasImage::collectFromPaths(const std::vector<std::vector<std::string>>& objCollections, const std::vector<std::string>& collectionPrefixes, bool jsonFiles, const std::vector<std::string>& collectionRoots, std::map<std::string, AnimSpec>* outAnims) {
 	if(objCollections.size()!=collectionPrefixes.size()) throw std::invalid_argument("Expected number of 'objCollections' to == number of prefixes");
-	std::map<std::string, SDL_Surface*> ret;
 
-	for(size_t i = 0; i<objCollections.size(); i++) {
-		const std::vector<std::string>& objPaths = objCollections[i];
-		std::string prefix = nch::cat(StringUtils::trimmed(collectionPrefixes[i], "/"), "/");
-		if(prefix=="/") prefix = "";
+	//Flatten every (collection, path) pair so one loop covers all files
+	std::vector<std::pair<size_t, const std::string*>> items;
+	for(size_t i = 0; i<objCollections.size(); i++)
+		for(const std::string& obj : objCollections[i]) items.push_back({i, &obj});
 
-		for(std::string obj : objPaths) {
-			FilePath fp(obj);
-			SDL_Surface* surf = nullptr;
-			bool isJson = jsonFiles && fp.getExtension()=="json";
+	std::vector<std::string> prefixes(collectionPrefixes.size());
+	for(size_t i = 0; i<prefixes.size(); i++) {
+		prefixes[i] = nch::cat(StringUtils::trimmed(collectionPrefixes[i], "/"), "/");
+		if(prefixes[i]=="/") prefixes[i] = "";
+	}
 
-			if(isJson) {
-				surf = buildSurfaceFromJSON(obj);
-			} else {
-				SDL_Surface* rawSurf = IMG_Load(obj.c_str());
-				if(rawSurf==NULL) continue;
-				surf = SDL_ConvertSurfaceFormat(rawSurf, SDL_PIXELFORMAT_RGBA8888, 0);
-				SDL_FreeSurface(rawSurf);
+	//Roots must be cleaned the same way FilePath cleans each object path below, or a caller-supplied
+	//root spelled with a doubled slash ("bin//assets/...") fails to prefix-match its own files. The
+	//subdirectory part of the key would then silently vanish, collapsing "dir/img" onto "img" and
+	//dropping every deeper entry as a duplicate.
+	std::vector<std::string> roots(collectionRoots.size());
+	for(size_t i = 0; i<roots.size(); i++) roots[i] = StringUtils::trimmed(FilePath(collectionRoots[i]).get(), "/");
+
+	//Decode/composite in parallel (PNG decode dominates); results land in per-item slots.
+	//IMG_Init up front: IMG_Load lazily initializes format handlers, which must not race.
+	struct Loaded {
+		std::string key;
+		SDL_Surface* surf = nullptr;
+		AnimSpec anim;
+		bool hasAnim = false;
+	};
+	std::vector<Loaded> loaded(items.size());
+	IMG_Init(IMG_INIT_PNG|IMG_INIT_JPG);
+
+	#pragma omp parallel for schedule(dynamic)
+	for(size_t n = 0; n<items.size(); n++) {
+		size_t i = items[n].first;
+		const std::string& obj = *items[n].second;
+		Loaded& ld = loaded[n];
+
+		FilePath fp(obj);
+		SDL_Surface* surf = nullptr;
+		bool isJson = jsonFiles && fp.getExtension()=="json";
+
+		if(isJson) {
+			surf = buildSurfaceFromJSON(obj);
+		} else {
+			SDL_Surface* rawSurf = IMG_Load(obj.c_str());
+			if(rawSurf==NULL) continue;
+			surf = SDL_ConvertSurfaceFormat(rawSurf, SDL_PIXELFORMAT_ABGR8888, 0);
+			SDL_FreeSurface(rawSurf);
+		}
+
+		if(surf==NULL) continue;
+
+		if(surf->w>512 || surf->h>512) {
+			Log::warnv(__PRETTY_FUNCTION__, "skipping entry", "Image \"%s\" is too large (max 512x512) to be added to this atlas.", obj.c_str());
+			SDL_FreeSurface(surf);
+			continue;
+		}
+
+		//Keep subdirectory structure (relative to the collection root) within the key
+		std::string relDirs = "";
+		if(i<roots.size() && !roots[i].empty()) {
+			std::string parent = StringUtils::trimmed(fp.getParentDirPath(), "/");
+			const std::string& root = roots[i];
+			if(parent.rfind(root, 0)==0) {
+				relDirs = StringUtils::trimmed(parent.substr(root.size()), "/");
+				if(!relDirs.empty()) relDirs += "/";
 			}
+		}
+		ld.key = nch::cat(prefixes[i], relDirs, fp.getObjectName(false));
+		ld.surf = surf;
 
-			if(surf==NULL) continue;
-
-			if(surf->w>512 || surf->h>512) {
-				Log::warnv(__PRETTY_FUNCTION__, "skipping entry", "Image \"%s\" is too large (max 512x512) to be added to this atlas.", obj.c_str());
-				SDL_FreeSurface(surf);
-				continue;
-			}
-
-			//Keep subdirectory structure (relative to the collection root) within the key
-			std::string relDirs = "";
-			if(i<collectionRoots.size() && !collectionRoots[i].empty()) {
-				std::string parent = fp.getParentDirPath();
-				const std::string& root = collectionRoots[i];
-				if(parent.rfind(root, 0)==0) {
-					relDirs = StringUtils::trimmed(parent.substr(root.size()), "/");
-					if(!relDirs.empty()) relDirs += "/";
-				}
-			}
-			std::string key = nch::cat(prefix, relDirs, fp.getObjectName(false));
-			ret.insert({key, surf});
-
-			if(isJson && outAnims!=nullptr) {
-				AnimSpec spec;
-				if(parseAnimationFromJSON(obj, spec)) outAnims->insert({key, spec});
-			}
+		if(isJson && outAnims!=nullptr) {
+			ld.hasAnim = parseAnimationFromJSON(obj, ld.anim);
 		}
 	}
 
-
-
+	//Merge in original order (first key wins, matching the old serial loop); dropped duplicates are freed
+	std::map<std::string, SDL_Surface*> ret;
+	for(Loaded& ld : loaded) {
+		if(ld.surf==nullptr) continue;
+		if(!ret.insert({ld.key, ld.surf}).second) {
+			SDL_FreeSurface(ld.surf);
+			for(SDL_Surface* fs : ld.anim.frames) SDL_FreeSurface(fs);
+			continue;
+		}
+		if(ld.hasAnim && outAnims!=nullptr) outAnims->insert({ld.key, ld.anim});
+	}
 	return ret;
 }
 std::map<std::string, SDL_Surface*> AtlasImage::collectFromDirs(const std::vector<std::string>& dirPaths, const std::vector<std::string>& prefixes, bool jsonFiles, std::map<std::string, AnimSpec>* outAnims) {
-	FsUtils::ListSettings lise; lise.excludeSymlinkDirs = true; lise.includeHiddenEntries = false; lise.maxItemsToList = 99999;
+	FsUtils::ListSettings lise; lise.excludeSymlinkDirs = true; lise.includeHiddenEntries = false; lise.maxItemsToList = 100000;
 	FsUtils::RecursionSettings rese; rese.recursiveSearch = true;
 
 	std::vector<std::vector<std::string>> manyDirConts; manyDirConts.reserve(dirPaths.size());
@@ -79,7 +114,7 @@ std::map<std::string, SDL_Surface*> AtlasImage::collectFromDirs(const std::vecto
 }
 std::map<std::string, SDL_Surface*> AtlasImage::collectFromDir(const std::string& dirPath, const std::string& prefix, bool jsonFiles)
 {
-	FsUtils::ListSettings lise; lise.excludeSymlinkDirs = true; lise.includeHiddenEntries = false; lise.maxItemsToList = 99999;
+	FsUtils::ListSettings lise; lise.excludeSymlinkDirs = true; lise.includeHiddenEntries = false; lise.maxItemsToList = 100000;
 	FsUtils::RecursionSettings rese; rese.recursiveSearch = true;
 	auto dirConts = FsUtils::getDirContents(dirPath, lise, rese);
 
@@ -103,13 +138,13 @@ SDL_Surface* AtlasImage::buildSurfaceFromJSON(const std::string& jsonPath)
 
 	return compositeFromElements(j["applied_elements"], FilePath(jsonPath).getParentDirPath());
 }
-SDL_Surface* AtlasImage::compositeFromElements(const nlohmann::json& elems, const std::string& jsonDir)
+SDL_Surface* AtlasImage::compositeFromElements(const nlohmann::json& appliedElems, const std::string& jsonDir)
 {
-	if(!elems.is_array()) return nullptr;
+	if(!appliedElems.is_array()) return nullptr;
 
 	//Determine composite dimensions from first img
 	int w = 0, h = 0;
-	for(auto& elem : elems) {
+	for(auto& elem : appliedElems) {
 		if(elem.contains("img")) {
 			std::string imgPath = jsonDir+"/"+elem["img"].get<std::string>();
 			SDL_Surface* s = IMG_Load(imgPath.c_str());
@@ -121,10 +156,10 @@ SDL_Surface* AtlasImage::compositeFromElements(const nlohmann::json& elems, cons
 		return nullptr;
 	}
 
-	SDL_Surface* composite = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_RGBA8888);
+	SDL_Surface* composite = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_ABGR8888);
 	SDL_FillRect(composite, NULL, 0);
 
-	for(auto& elem : elems) {
+	for(auto& elem : appliedElems) {
 		//Parse colormod
 		Uint8 cr=255, cg=255, cb=255, ca=255;
 		if(elem.contains("colormod")) {
@@ -148,14 +183,19 @@ SDL_Surface* AtlasImage::compositeFromElements(const nlohmann::json& elems, cons
 				Log::warnv(__PRETTY_FUNCTION__, "skipping element", "Failed to load \"%s\"", imgPath.c_str());
 				continue;
 			}
-			layer = SDL_ConvertSurfaceFormat(rawLayer, SDL_PIXELFORMAT_RGBA8888, 0);
+			layer = SDL_ConvertSurfaceFormat(rawLayer, SDL_PIXELFORMAT_ABGR8888, 0);
 			SDL_FreeSurface(rawLayer);
 		} else {
-			layer = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_RGBA8888);
+			layer = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_ABGR8888);
 			SDL_FillRect(layer, NULL, SDL_MapRGBA(layer->format, 255, 255, 255, 255));
 		}
 
 		if(layer==NULL) continue;
+
+		bool mirrorH = elem.value("mirror_h", false);
+		bool mirrorV = elem.value("mirror_v", false);
+		layer = mirrorSurface(layer, mirrorH, mirrorV);
+		layer = rotateSurface(layer, elem.value("rotate_cw", 0)-elem.value("rotate_ccw", 0));
 
 		SDL_SetSurfaceColorMod(layer, cr, cg, cb);
 		SDL_SetSurfaceAlphaMod(layer, ca);
@@ -167,6 +207,64 @@ SDL_Surface* AtlasImage::compositeFromElements(const nlohmann::json& elems, cons
 	}
 
 	return composite;
+}
+SDL_Surface* AtlasImage::mirrorSurface(SDL_Surface* src, bool mirrorH, bool mirrorV)
+{
+	if(!mirrorH && !mirrorV) return src;
+
+	SDL_Surface* dst = SDL_CreateRGBSurfaceWithFormat(0, src->w, src->h, src->format->BitsPerPixel, src->format->format);
+	if(dst==NULL) return src;
+
+	SDL_LockSurface(src);
+	SDL_LockSurface(dst);
+	int bpp = src->format->BytesPerPixel;
+	for(int y = 0; y<src->h; y++) {
+		int sy = mirrorV ? (src->h-1-y) : y;
+		Uint8* srcRow = (Uint8*)src->pixels+sy*src->pitch;
+		Uint8* dstRow = (Uint8*)dst->pixels+y*dst->pitch;
+		for(int x = 0; x<src->w; x++) {
+			int sx = mirrorH ? (src->w-1-x) : x;
+			memcpy(dstRow+x*bpp, srcRow+sx*bpp, bpp);
+		}
+	}
+	SDL_UnlockSurface(dst);
+	SDL_UnlockSurface(src);
+
+	SDL_FreeSurface(src);
+	return dst;
+}
+SDL_Surface* AtlasImage::rotateSurface(SDL_Surface* src, int numTurnsCW)
+{
+	int turns = ((numTurnsCW%4)+4)%4;
+	if(turns==0) return src;
+
+	bool swapsDims = (turns==1 || turns==3);
+	int dw = swapsDims ? src->h : src->w;
+	int dh = swapsDims ? src->w : src->h;
+	SDL_Surface* dst = SDL_CreateRGBSurfaceWithFormat(0, dw, dh, src->format->BitsPerPixel, src->format->format);
+	if(dst==NULL) return src;
+
+	SDL_LockSurface(src);
+	SDL_LockSurface(dst);
+	int bpp = src->format->BytesPerPixel;
+	for(int y = 0; y<dh; y++) {
+		Uint8* dstRow = (Uint8*)dst->pixels+y*dst->pitch;
+		for(int x = 0; x<dw; x++) {
+			//Source pixel landing on (x, y) once rotated
+			int sx, sy;
+			switch(turns) {
+				case 1:  sx = y;           sy = src->h-1-x; break;
+				case 2:  sx = src->w-1-x;  sy = src->h-1-y; break;
+				default: sx = src->w-1-y;  sy = x;          break;
+			}
+			memcpy(dstRow+x*bpp, (Uint8*)src->pixels+sy*src->pitch+sx*bpp, bpp);
+		}
+	}
+	SDL_UnlockSurface(dst);
+	SDL_UnlockSurface(src);
+
+	SDL_FreeSurface(src);
+	return dst;
 }
 bool AtlasImage::parseAnimationFromJSON(const std::string& jsonPath, AnimSpec& out)
 {
@@ -277,11 +375,13 @@ void AtlasImage::buildGLTextureArray(const std::vector<SDL_Surface*>& pages)
 				glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, (GLint)i, w, h, 1, GL_RED, GL_UNSIGNED_BYTE, finalSurf->pixels);
 			} break;
 			case 3: case 4: {
-				//Upload a 4-channel layer...
-				finalSurf = SDL_ConvertSurfaceFormat(imgSurf, SDL_PIXELFORMAT_ABGR8888, 0);
-				if(finalSurf==NULL) {
-					Log::errorv(__PRETTY_FUNCTION__, "IMG Error", IMG_GetError());
-					return;
+				//Upload a 4-channel layer (pages built as ABGR8888 upload without conversion)...
+				if(imgSurf->format->format!=SDL_PIXELFORMAT_ABGR8888) {
+					finalSurf = SDL_ConvertSurfaceFormat(imgSurf, SDL_PIXELFORMAT_ABGR8888, 0);
+					if(finalSurf==NULL) {
+						Log::errorv(__PRETTY_FUNCTION__, "IMG Error", IMG_GetError());
+						return;
+					}
 				}
 				glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, (GLint)i, w, h, 1, GL_RGBA, GL_UNSIGNED_BYTE, finalSurf->pixels);
 			} break;
@@ -303,18 +403,21 @@ std::map<std::string, Rect> AtlasImage::buildSquareAtlas(const std::map<std::str
 	std::map<std::string, Rect> ret;
 	std::vector<AtlasImage> images = sortedBySize(collection);
 
-	int totalArea, maxDim; {
+	int64_t totalArea; int maxDim; {
 		totalArea = 0;
 		maxDim = 0;
 		for(auto& img : images) {
-			totalArea += (img.w+2*PAD)*(img.h+2*PAD);
+			totalArea += (int64_t)(img.w+2*PAD)*(img.h+2*PAD);
 			maxDim = std::max({maxDim, img.w+2*PAD, img.h+2*PAD});
 		}
 	}
 
 	int low, high; {
-		low = maxDim;
-		high = std::max(low*2, (int)std::ceil(std::sqrt(totalArea))*2);
+		//No packing can beat the total-area bound, so the search starts there instead of at
+		//the largest single image (saves several full re-packs on dense collections).
+		int areaBound = (int)std::ceil(std::sqrt((double)totalArea));
+		low = std::max(maxDim, areaBound);
+		high = std::max(low*2, areaBound*2);
 		while(low<high) {
 			int mid = (low+high)/2;
 			std::map<std::string, Rect> temp;

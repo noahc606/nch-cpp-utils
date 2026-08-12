@@ -27,6 +27,7 @@ Text::Text(Text&& obj) noexcept {
     forceNearestScaling = obj.forceNearestScaling;
     shadow = obj.shadow;
     scale = obj.scale;
+    gridlock = obj.gridlock;
     text = obj.text;
     font = obj.font;
     textColor = obj.textColor;
@@ -47,6 +48,7 @@ Text& Text::operator=(const Text& obj)
     forceNearestScaling = obj.forceNearestScaling;
     shadow = obj.shadow;
     scale = obj.scale;
+    gridlock = obj.gridlock;
     text = obj.text;
     font = obj.font;
     textColor = obj.textColor;
@@ -85,7 +87,7 @@ void Text::draw(int x, int y) const
 
     //Draw text
     SDL_Rect dst;
-    dst.x = x; dst.y = y;
+    dst.x = x/gridlock*gridlock; dst.y = y/gridlock*gridlock;
     dst.w = width*scale; dst.h = height*scale;
 
     if(darkenBackground) {
@@ -170,10 +172,8 @@ bool Text::setScale(double scale)
     updateTextTexture();
     return true;
 }
-void Text::forcedNearestScaling(bool fns)
-{
-    forceNearestScaling = fns;
-}
+void Text::setGridlock(int px) { if(px<=0) { Log::warnv(__PRETTY_FUNCTION__, "setting to default of 1", "Gridlock must be a positive number"); px = 1; } gridlock = px; }
+void Text::forcedNearestScaling(bool fns) { forceNearestScaling = fns; }
 
 bool Text::setText(std::u16string text)
 {

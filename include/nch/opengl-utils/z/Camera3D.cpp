@@ -2,11 +2,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <nch/cpp-utils/log.h>
-#include <nch/cpp-utils/timer.h>
 #include <nch/math-utils/consts.h>
 #include <nch/sdl-utils/input.h>
 #include <nch/sdl-utils/main-loop-driver.h>
 #include <cmath>
+#include <iomanip>
 #include <sstream>
 using namespace nch;
 
@@ -112,14 +112,14 @@ Vec3f Camera3D::dirToVec(int dir) {
 
 std::string Camera3D::dirToString(int dir)
 {
-    if(dir>=_WEST && dir<=NORTH) return dirStrings[dir];
+    if(dir>=EAST && dir<=NORTH) return dirStrings[dir];
     return dirStrings[UNKNOWN];
 }
 int Camera3D::flippedDir(int dir)
 {
     switch(dir) {
-        case _EAST:  return _WEST;
-        case _WEST:  return _EAST;
+        case EAST:  return WEST;
+        case WEST:  return EAST;
         case DOWN:  return UP;
         case UP:    return DOWN;
         case SOUTH: return NORTH;
@@ -128,13 +128,19 @@ int Camera3D::flippedDir(int dir)
 
     return UNKNOWN;
 }
+Vec3f Camera3D::getNearestAxisVec(nch::Vec3f v) {
+    float ax = std::abs(v.x), ay = std::abs(v.y), az = std::abs(v.z);
+    if(ax>=ay && ax>=az) return Vec3f(v.x>=0 ? 1 : -1, 0, 0);
+    if(ay>=az)           return Vec3f(0, v.y>=0 ? 1 : -1, 0);
+    return Vec3f(0, 0, v.z>=0 ? 1 : -1);
+}
 
 std::string Camera3D::getInfo() const {
     auto epos = getEstPos();
 
     std::stringstream ss;
-    ss << "Camera={xyz: [" << epos.x << ", " << epos.y << ", " << epos.z << "], ";
-    ss << "ypr: [" << yaw << ", " << pitch << ", " << roll << "], ";
+    ss << "Camera={xyz: [" << std::fixed << std::setprecision(2) << epos.x << ", " << epos.y << ", " << epos.z << "], ";
+    ss << "ypr: [" << std::fixed << std::setprecision(1) << yaw << ", " << pitch << ", " << roll << "], ";
     ss << "facing: " << Camera3D::dirToString(getFacingNESW()) << "}";
     return ss.str();
 }
@@ -206,6 +212,12 @@ std::vector<glm::vec4> Camera3D::computeCullingPlanes() const {
 Vec3f Camera3D::getUp() const {
     return up;
 }
+Vec3f Camera3D::getRenderUp() const {
+    if(useBasisOverride) return basisUp;
+    Vec3f effRot = (rotVec*perspectiveDir+extraRotVec).normalized();
+    glm::vec3 u = computeRolledUp(computeNaturalUp(), glm::vec3(effRot));
+    return Vec3f(u.x, u.y, u.z);
+}
 Vec3f Camera3D::getRight() const {
     Vec3f r = rotVec.cross(up);
     return r.normalized();
@@ -228,11 +240,11 @@ Vec3f Camera3D::getPerspectiveWorldOffset() const {
 
 int Camera3D::getFacingNESW() const
 {
-    if(yaw<=45) return _EAST;
+    if(yaw<=45) return WEST;
     if(yaw<=135) return NORTH;
-    if(yaw<=225) return _WEST;
+    if(yaw<=225) return EAST;
     if(yaw<=315) return SOUTH;
-    return _EAST;
+    return WEST;
 }
 
 void Camera3D::setFocused(bool focused) {
@@ -372,6 +384,24 @@ void Camera3D::setOverrideMatrix(const glm::mat4& mat) {
 void Camera3D::clearOverrideMatrix() {
     useOverrideMatrix = false;
 }
+void Camera3D::setBasis(Vec3f forward, Vec3f up) {
+    if(forward.length2()<1e-12 || up.length2()<1e-12) {
+        throw std::invalid_argument("setBasis vectors must be nonzero");
+    }
+    rotVec = forward.normalized();
+    basisUp = up.normalized();
+    useBasisOverride = true;
+}
+void Camera3D::clearBasis() {
+    useBasisOverride = false;
+}
+void Camera3D::setProjOverride(const glm::mat4& proj) {
+    projOverride = proj;
+    useProjOverride = true;
+}
+void Camera3D::clearProjOverride() {
+    useProjOverride = false;
+}
 
 void Camera3D::updateCamMatrix(Vec3f pos)
 {
@@ -380,11 +410,13 @@ void Camera3D::updateCamMatrix(Vec3f pos)
 }
 glm::mat4 Camera3D::buildViewProj(Vec3f pos, Vec3f effRot) const
 {
-    //Calculate 'rolledUp' from spherical-coordinate-derived natural up
+    //Calculate 'rolledUp' from spherical-coordinate-derived natural up (or the pinned basis, see setBasis)
     glm::vec3 forward = glm::vec3(effRot);
-    glm::vec3 rolledUp = computeRolledUp(computeNaturalUp(), forward);
+    glm::vec3 rolledUp = useBasisOverride ? glm::vec3(basisUp) : computeRolledUp(computeNaturalUp(), forward);
     glm::mat4 view = glm::lookAt((glm::vec3)pos, (glm::vec3)(pos+effRot), rolledUp);
-    glm::mat4 proj = glm::perspective(glm::radians(fov), ((float)sdlWinW/(float)sdlWinH), nearPlane, farPlane);
+    glm::mat4 proj = useProjOverride
+        ? projOverride
+        : glm::perspective(glm::radians(fov), ((float)sdlWinW/(float)sdlWinH), nearPlane, farPlane);
     return proj*view;
 }
 void Camera3D::updateRegAndSubPos() const

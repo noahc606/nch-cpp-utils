@@ -327,6 +327,17 @@ std::string FsUtils::getPathWithInferredExtension(std::string path) {
     }
     return res;
 }
+std::string FsUtils::getPathWithRequiredExtension(std::string path, std::string ext) {
+    FilePath pfp(path);
+    path = pfp.get();
+
+    std::string potentialFile = path;
+    if(ext!="") { potentialFile = path+"."+ext; }
+    if(!fileExists(potentialFile)) {
+        throw std::logic_error(StringUtils::cat("Found no file matching the provided path \"", path, "\" with extension \"", ext, "\""));
+    }
+    return potentialFile;
+}
 
 void FsUtils::setLogWarnings(bool lw) {
     logWarnings = lw;

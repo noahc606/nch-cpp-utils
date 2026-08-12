@@ -41,6 +41,7 @@ bool MaxRectsBin::insert(const Vec2i& imgDims, Rect& outRect) {
 
 void MaxRectsBin::placeRect(const Rect& placed) {
     std::vector<Rect> newFreeRects;
+    newFreeRects.reserve(freeRects.size()+4);
     for (auto& free : freeRects) {
         if (!rectsOverlap(free, placed)) {
             newFreeRects.push_back(free);

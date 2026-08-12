@@ -2,6 +2,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <sstream>
 
 namespace nch { class Log
@@ -12,6 +13,8 @@ public:
     virtual ~Log();
     /**/	
     template<typename ... T> static std::string getFormattedString(const std::string& format, T ... args) {
+        std::lock_guard<std::recursive_mutex> lock(rmtx);
+
         #pragma GCC diagnostic push
         #pragma GCC diagnostic ignored "-Wformat-security"
 
@@ -30,6 +33,8 @@ public:
 
     /* Normal logging (almost same as printf) */
     template<typename ... T> static void log(std::string format, T ... args) {
+        std::lock_guard<std::recursive_mutex> lock(rmtx);
+        if(consumeSuppression()) return;
 
         if(enabledBrackets) {
             if(enabledColors) logString("\033[1;37m");
@@ -40,14 +45,16 @@ public:
         logString(getFormattedString(format+"\n", args ... ));
         if(enabledColors) logString("\033[1;0m");
     }
-    template<typename ... T> static void log(std::string str) { log("%s", str.c_str()); }
-    template<typename ... T> static void log() { log(""); }
+    template<typename ... T> static void log(std::string str) { std::lock_guard<std::recursive_mutex> lock(rmtx); log("%s", str.c_str()); }
+    template<typename ... T> static void log() { std::lock_guard<std::recursive_mutex> lock(rmtx); log(""); }
     
     /* Debug (log only if debugging on) */
     template<typename ... T> static void debug(std::string format, T ... args) {
+        std::lock_guard<std::recursive_mutex> lock(rmtx);
         #ifdef NDEBUG
             return;
         #endif
+        if(consumeSuppression()) return;
         if(enabledBrackets) {
             if(enabledColors) logString("\033[1;36m");
             logString("[ Debug ] ");
@@ -61,6 +68,8 @@ public:
 
     /* Warning (log during bad program state) */
     template<typename ... T> static void warnv(std::string funcname, std::string resolution, std::string format, T ... args) {
+        std::lock_guard<std::recursive_mutex> lock(rmtx);
+        if(consumeSuppression()) return;
         if(enabledBrackets) {
             if(enabledColors) logString("\033[1;33m");
             logString("[Warning] ");
@@ -79,11 +88,13 @@ public:
         if(enabledColors) logString("\033[1;0m");
     }
     template<typename ... T> static void warn(std::string funcname, std::string format, T ... args) {
+        std::lock_guard<std::recursive_mutex> lock(rmtx);
         warnv(funcname, "ignoring issue", format, args ...);
     }
 
     /* Error (log during invalid program state) */
     template<typename ... T> static void error(std::string funcname, std::string format, T ... args) {
+        std::lock_guard<std::recursive_mutex> lock(rmtx);
         if(enabledBrackets) {
             if(enabledColors) logString("\033[1;31m");
             logString("[ ERROR ] ");
@@ -102,6 +113,7 @@ public:
         if(enabledColors) logString("\033[1;0m");
     }
     template<typename ... T> static void errorv(std::string funcname, std::string errorOrigin, std::string format, T ... args) {
+        std::lock_guard<std::recursive_mutex> lock(rmtx);
         if(enabledBrackets) {
             if(enabledColors) logString("\033[1;31m");
             logString("[ ERROR ] ");
@@ -127,18 +139,34 @@ public:
     static bool enabledBrackets;
     static bool enabledColors;
 
-    /* Optional sink fired alongside std::cout for every emitted chunk. Pass a
-       default-constructed std::function to disable. Not thread-coordinated on
-       its own — the sink itself must handle concurrent invocations. */
+    /*
+     * Optional sink fired alongside std::cout for every emitted cout chunk.
+     * Pass a default-constructed std::function to disable.
+     * Not thread-coordinated on its own, the sink itself must handle concurrent invocations.
+     */
     static void setSink(std::function<void(const std::string&)> sink);
+
+    /*
+     * Silence the next `amount` LINES of log/debug/warn output (one line = one log()/debug()/
+     * warnv()/warn() call, regardless of how many cout chunks it emits).
+     * error() and errorv() are never suppressed - a quieted operation must still be able to report
+     * that it failed.
+     */
+    static void suppressNext(int64_t amount = 1);
+    static void suppressClear();
 protected:
 
 private:
+	//Consumes one suppression if any remain; true = the caller should emit nothing.
+	static bool consumeSuppression();
+
 	static void logString(std::string s);
 	static void logSStream(std::stringstream& ss);
 
 	static bool logToFile;
 	static bool logDestroyed;
+    static std::recursive_mutex rmtx;
+    static int64_t suppressionsLeft;
 
 	static std::function<void(const std::string&)> sink_;
 };

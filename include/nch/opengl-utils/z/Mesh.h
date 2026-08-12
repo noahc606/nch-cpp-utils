@@ -64,6 +64,7 @@ public:
     void addPoly(const glm::ivec3& key, const Poly& poly);
     void addPoly(const Poly& poly);
     void remove(const glm::ivec3& key);
+    void remove(const std::vector<glm::ivec3>& keys);
     void reset();
 
     void setAtlases(const std::vector<Atlas*>& atlases);

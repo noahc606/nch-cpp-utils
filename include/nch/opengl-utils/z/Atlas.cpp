@@ -209,6 +209,7 @@ void Atlas::build() {
 }
 void Atlas::buildVariantFromDirs(Atlas* base, const std::vector<std::string>& dirPaths, const std::vector<std::string>& prefixes, GLuint slot)
 {
+	Timer tim("", false);
 	//Collect images to be placed in the atlas...
 	std::map<std::string, AtlasImage::AnimSpec> animSpecs;
 	auto collection = AtlasImage::collectFromDirs(dirPaths, prefixes, true, &animSpecs);
@@ -224,7 +225,7 @@ void Atlas::buildVariantFromDirs(Atlas* base, const std::vector<std::string>& di
 		mapSize = base->getMapSize();
 		pageCount = base->getPageCount();
 		for(int p = 0; p<pageCount; p++)
-			pageSurfs.push_back(SDL_CreateRGBSurfaceWithFormat(0, mapSize, mapSize, 4, SDL_PIXELFORMAT_RGBA8888));
+			pageSurfs.push_back(SDL_CreateRGBSurfaceWithFormat(0, mapSize, mapSize, 4, SDL_PIXELFORMAT_ABGR8888));
 		for(auto elem : bmap) {
 			auto ep = elem.first;
 			auto er = elem.second.r.r;
@@ -245,9 +246,11 @@ void Atlas::buildVariantFromDirs(Atlas* base, const std::vector<std::string>& di
 	buildAnims(animSpecs);
 	for(auto ps : pageSurfs) SDL_FreeSurface(ps);
 	for(auto& kv : collection) { SDL_FreeSurface(kv.second); }
+	Log::debug("Atlas \"%s\" (%s): built %zu entries in %fms.", dirPaths[0].c_str(), type.c_str(), map.size(), tim.getElapsedTimeMS());
 }
 void Atlas::buildFromDirs(const std::vector<std::string>& dirPaths, const std::vector<std::string>& prefixes, GLuint slot)
 {
+	Timer tim("", false);
 	//Collect images to be placed in the atlas...
 	std::map<std::string, AtlasImage::AnimSpec> animSpecs;
 	auto collection = AtlasImage::collectFromDirs(dirPaths, prefixes, true, &animSpecs);
@@ -260,7 +263,7 @@ void Atlas::buildFromDirs(const std::vector<std::string>& dirPaths, const std::v
 		if(pageCount>1) Log::log("Atlas \"%s\" spans %d pages of %dx%d.", dirPaths[0].c_str(), pageCount, mapSize, mapSize);
 
 		for(int p = 0; p<pageCount; p++)
-			pageSurfs.push_back(SDL_CreateRGBSurfaceWithFormat(0, mapSize, mapSize, 4, SDL_PIXELFORMAT_RGBA8888));
+			pageSurfs.push_back(SDL_CreateRGBSurfaceWithFormat(0, mapSize, mapSize, 4, SDL_PIXELFORMAT_ABGR8888));
 		for(auto elem : map) {
 			auto ep = elem.first;
 			auto er = elem.second.r.r;
@@ -279,6 +282,7 @@ void Atlas::buildFromDirs(const std::vector<std::string>& dirPaths, const std::v
 	buildAnims(animSpecs);
 	for(auto ps : pageSurfs) SDL_FreeSurface(ps);
 	for(auto& kv : collection) { SDL_FreeSurface(kv.second); }
+	Log::debug("Atlas \"%s\" (%s): built %zu entries in %fms.", dirPaths[0].c_str(), type.c_str(), map.size(), tim.getElapsedTimeMS());
 }
 void Atlas::buildFromSDL_Surface(SDL_Surface* surf, GLuint slot)
 {
@@ -323,19 +327,16 @@ void Atlas::buildAnims(std::map<std::string, AtlasImage::AnimSpec>& specs)
 					continue;
 				}
 
-				//Replicate the packed cell exactly (image + PAD edge bleed), then store GL-ready ABGR bytes.
-				SDL_Surface* padded = SDL_CreateRGBSurfaceWithFormat(0, cell.w, cell.h, 32, SDL_PIXELFORMAT_RGBA8888);
+				//Replicate the packed cell exactly (image + PAD edge bleed) straight into GL-ready
+				//ABGR bytes (the blit converts any source format into the padded surface's).
+				SDL_Surface* padded = SDL_CreateRGBSurfaceWithFormat(0, cell.w, cell.h, 32, SDL_PIXELFORMAT_ABGR8888);
 				SDL_FillRect(padded, NULL, 0);
 				AtlasImage::blitWithPadding(fs, padded, 0, 0);
 
-				SDL_Surface* conv = SDL_ConvertSurfaceFormat(padded, SDL_PIXELFORMAT_ABGR8888, 0);
-				SDL_FreeSurface(padded);
-				if(conv==NULL) continue;
-
 				std::vector<uint8_t> bytes((size_t)cell.w*cell.h*4);
 				for(int row = 0; row<cell.h; row++)
-					std::memcpy(bytes.data()+(size_t)row*cell.w*4, (uint8_t*)conv->pixels+(size_t)row*conv->pitch, (size_t)cell.w*4);
-				SDL_FreeSurface(conv);
+					std::memcpy(bytes.data()+(size_t)row*cell.w*4, (uint8_t*)padded->pixels+(size_t)row*padded->pitch, (size_t)cell.w*4);
+				SDL_FreeSurface(padded);
 
 				a.frameBytes.push_back(std::move(bytes));
 			}
