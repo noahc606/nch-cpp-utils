@@ -31,12 +31,12 @@ public:
         );
     }
     bool contains(int x, int y) const {
-        return (
-            r.x<=x && x<=r.x+r.w &&
-            r.y<=y && y<=r.y+r.h
-        );
+        return (r.x<=x && x<=r.x+r.w && r.y<=y && y<=r.y+r.h);
     };
-    
+    bool containsMouse(int x, int y) const {
+        return (r.x<=x && x<r.x+r.w && r.y<=y && y<r.y+r.h);
+    };
+
     bool operator==(const Rect& other) const {
         return (
             r.x==other.r.x &&

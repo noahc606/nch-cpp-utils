@@ -1,5 +1,4 @@
 #pragma once
-#include <glm/vec2.hpp>
 #include <vector>
 #include <string>
 #include "Vertex.h"
@@ -17,7 +16,7 @@ public:
     int getNumVerts() const;
     int vs() const;
     Vertex v(int idx) const;
-    glm::vec3 norm() const;
+    Vec3f norm() const;
     std::string toString() const;
     bool usingManualNormals() const;
     bool operator<(const Poly& other) const {
@@ -33,10 +32,10 @@ public:
         return false;
     }
 
-    void simplyTex(glm::vec2 uv0, glm::vec2 uv1);
+    void simplyTex(Vec2f uv0, Vec2f uv1);
     void expand(float amount);
-    void rotate(const glm::vec3& center, const glm::vec3& xyzRotRad);
-    void move(const glm::vec3& offset);
+    void rotate(const Vec3f& center, const Vec3f& xyzRotRad);
+    void move(const Vec3f& offset);
     void invertNorm();
     void useManualNormals(bool useManNormals);
     std::vector<Poly> split() const;
@@ -56,7 +55,7 @@ protected:
     void super_updateColors();
 
     std::vector<Vertex> verts;
-    glm::vec3 normal;
+    Vec3f normal;
     bool manualNormals = false;
 private:
     int type = PolyType::UNKNOWN;

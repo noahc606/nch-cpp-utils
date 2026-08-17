@@ -1,8 +1,13 @@
 #pragma once
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <sstream>
 #include <tuple>
+#ifdef GLM_ENABLE
+#include <glm/glm.hpp>
+#endif
 
 namespace nch { template <typename T> class Vec2
 {
@@ -18,6 +23,13 @@ public:
     }
     Vec2(T xy) { x = xy; y = xy; }
 
+#ifdef GLM_ENABLE
+    Vec2(const glm::ivec2& v)   { x = static_cast<T>(v.x); y = static_cast<T>(v.y); }
+    Vec2(const glm::i64vec2& v) { x = static_cast<T>(v.x); y = static_cast<T>(v.y); }
+    Vec2(const glm::fvec2& v)   { x = static_cast<T>(v.x); y = static_cast<T>(v.y); }
+    Vec2(const glm::dvec2& v)   { x = static_cast<T>(v.x); y = static_cast<T>(v.y); }
+#endif
+
     /** Getters **/
     //Functions
     T length2() const { return x*x+y*y; }
@@ -25,6 +37,9 @@ public:
     std::pair<T, T> pair() const { return std::make_pair(x, y); }
     T distance2To(const Vec2<T>& v) const { return (v.x-x)*(v.x-x) + (v.y-y)*(v.y-y); }
     T distanceTo(const Vec2<T>& v) const { return std::sqrt(distance2To(v)); }
+    Vec2<T> abs() const { return Vec2<T>(std::abs(x), std::abs(y)); }
+    Vec2<T> compMin(const Vec2<T>& v) const { return Vec2<T>(std::min(x, v.x), std::min(y, v.y)); }
+    Vec2<T> compMax(const Vec2<T>& v) const { return Vec2<T>(std::max(x, v.x), std::max(y, v.y)); }
     Vec2<int> toInt() const { return Vec2<int>(x, y); }
     Vec2<int64_t> toInt64() const { return Vec2<int64_t>(x, y); }
     Vec2<uint64_t> toUint64() const { return Vec2<uint64_t>(x, y); }
@@ -32,6 +47,13 @@ public:
     Vec2<double> toDouble() const { return Vec2<double>(x, y); }
     std::string toString() const { std::stringstream ss; ss << "(" << x << ", " << y << ")"; return ss.str(); }
     std::string toArrayString() const { std::stringstream ss; ss << "[" << x << "," << y << "]"; return ss.str(); }
+
+#ifdef GLM_ENABLE
+    operator glm::dvec2() const { return glm::dvec2(x, y); }
+    operator glm::fvec2() const { return glm::fvec2(x, y); }
+    operator glm::ivec2() const { return glm::ivec2(x, y); }
+    operator glm::i64vec2() const { return glm::i64vec2(x, y); }
+#endif
 
     /** Operations **/
     //Basic operations

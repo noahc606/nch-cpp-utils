@@ -1,11 +1,11 @@
 #pragma once
 #include <glm/glm.hpp>
-#include <glm/gtc/epsilon.hpp>
 #include <map>
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include "nch/math-utils/vec3.h"
+#include "nch/math-utils/vec4.h"
 #include "nch/opengl-utils/atlas.h"
 #include "nch/opengl-utils/camera3d.h"
 #include "nch/opengl-utils/geo.h"
@@ -38,8 +38,10 @@ public:
         bool operator==(const MPoly& other) const {
             if(verts.size() != other.verts.size()) return false;
             for(size_t i = 0; i<verts.size(); i++) {
-                if(!glm::all(glm::epsilonEqual(verts[i].pos, other.verts[i].pos, 0.0001f))) return false;
-                if(!glm::all(glm::epsilonEqual(verts[i].normal, other.verts[i].normal, 0.0001f))) return false;
+                Vec3f dp = (verts[i].pos-other.verts[i].pos).abs();
+                if(dp.x>=0.0001f || dp.y>=0.0001f || dp.z>=0.0001f) return false;
+                Vec3f dn = (verts[i].normal-other.verts[i].normal).abs();
+                if(dn.x>=0.0001f || dn.y>=0.0001f || dn.z>=0.0001f) return false;
             }
             return true;
         }
@@ -55,16 +57,16 @@ public:
     int getInternalIndicesSize();
     bool isBuilt();
     bool isChunkInFrustum(Camera3D* cam);
-    bool isChunkInFrustum(Camera3D* cam, const std::vector<glm::vec4>& cullingPlanes);
+    bool isChunkInFrustum(Camera3D* cam, const std::vector<Vec4f>& cullingPlanes);
     Vec3f getGeometricCenter();
-    std::vector<Poly> getPolysAt(glm::ivec3 key);
+    std::vector<Poly> getPolysAt(Vec3i key);
     Vec3i64 getChunkPos() const;
 
     void applyUpdates();
-    void addPoly(const glm::ivec3& key, const Poly& poly);
+    void addPoly(const Vec3i& key, const Poly& poly);
     void addPoly(const Poly& poly);
-    void remove(const glm::ivec3& key);
-    void remove(const std::vector<glm::ivec3>& keys);
+    void remove(const Vec3i& key);
+    void remove(const std::vector<Vec3i>& keys);
     void reset();
 
     void setAtlases(const std::vector<Atlas*>& atlases);

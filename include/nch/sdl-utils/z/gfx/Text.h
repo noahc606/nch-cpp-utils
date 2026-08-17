@@ -38,6 +38,7 @@ public:
     void forcedNearestScaling(bool fns);
     bool setText(std::u16string text); bool setText(std::string text);
     void setWrapLength(int wl);
+    void setLineSpacing(int ls);
     void setMaxLines(int ml);
     void setEveryLineCentered(bool elc);
     void setDarkBackground(bool db);
@@ -69,6 +70,7 @@ private:
     TTF_Font* font = nullptr;
     Color textColor = Color(255, 255, 255);
     int wrapLength = 9999;
+    int lineSpacing = 0; //Extra unscaled pixels inserted between wrapped lines.
     int maxLines = -1;
     bool everyLineCentered = false;
 };

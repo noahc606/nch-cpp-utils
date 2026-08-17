@@ -1,6 +1,5 @@
 #pragma once
 #include <GL/glew.h>
-#include <glm/glm.hpp>
 #include <vector>
 #include "nch/opengl-utils/z/geo/Vertex.h"
 
@@ -23,19 +22,19 @@ public:
     //The 8 corners of an axis-aligned box, indexed xi*4 + yi*2 + zi — the convention every
     //corners[8] parameter below expects. Callers transforming each corner (rotated structures)
     //build the array themselves in the same order.
-    static void boxCorners(const glm::vec3& min, const glm::vec3& size, glm::vec3 out[8]);
+    static void boxCorners(const Vec3f& min, const Vec3f& size, Vec3f out[8]);
 
-    void addLine(const glm::vec3& a, const glm::vec3& b, const glm::vec3& color);
-    void addLine(const glm::vec3& a, const glm::vec3& b, const glm::vec3& colorA, const glm::vec3& colorB);
+    void addLine(const Vec3f& a, const Vec3f& b, const Vec3f& color);
+    void addLine(const Vec3f& a, const Vec3f& b, const Vec3f& colorA, const Vec3f& colorB);
     //Arrow from a to b: the shaft line plus a 4-fin head at b (fins span both perpendicular axes
     //so the head reads from any view angle; sized ~30%/15% of the arrow length).
-    void addArrow(const glm::vec3& a, const glm::vec3& b, const glm::vec3& color);
-    void addArrow(const glm::vec3& a, const glm::vec3& b, const glm::vec3& colorA, const glm::vec3& colorB);
-    void addTri(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, const glm::vec3& color);
-    void addQuad(const glm::vec3 corners[4], const glm::vec3& color);
-    void addBoxOutline(const glm::vec3 corners[8], const glm::vec3& color);
-    void addBoxOutline(const glm::vec3& min, const glm::vec3& size, const glm::vec3& color);
-    void addBoxFill(const glm::vec3 corners[8], const glm::vec3& color);
+    void addArrow(const Vec3f& a, const Vec3f& b, const Vec3f& color);
+    void addArrow(const Vec3f& a, const Vec3f& b, const Vec3f& colorA, const Vec3f& colorB);
+    void addTri(const Vec3f& a, const Vec3f& b, const Vec3f& c, const Vec3f& color);
+    void addQuad(const Vec3f corners[4], const Vec3f& color);
+    void addBoxOutline(const Vec3f corners[8], const Vec3f& color);
+    void addBoxOutline(const Vec3f& min, const Vec3f& size, const Vec3f& color);
+    void addBoxFill(const Vec3f corners[8], const Vec3f& color);
 
     //Upload the staged vertices into fresh GL buffers (requires a current GL context).
     void applyUpdates();

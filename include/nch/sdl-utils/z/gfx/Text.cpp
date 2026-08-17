@@ -32,6 +32,7 @@ Text::Text(Text&& obj) noexcept {
     font = obj.font;
     textColor = obj.textColor;
     wrapLength = obj.wrapLength;
+    lineSpacing = obj.lineSpacing;
     maxLines = obj.maxLines;
     everyLineCentered = obj.everyLineCentered;
 }
@@ -53,6 +54,7 @@ Text& Text::operator=(const Text& obj)
     font = obj.font;
     textColor = obj.textColor;
     wrapLength = obj.wrapLength;
+    lineSpacing = obj.lineSpacing;
     maxLines = obj.maxLines;
     everyLineCentered = obj.everyLineCentered;
 
@@ -203,6 +205,15 @@ void Text::setWrapLength(int wl)
     if(text==u"") return;
     updateTextTexture();
 }
+void Text::setLineSpacing(int ls)
+{
+    if(ls<0) ls = 0;
+    if(ls==lineSpacing) return;
+    lineSpacing = ls;
+
+    if(text==u"") return;
+    updateTextTexture();
+}
 void Text::setMaxLines(int ml)
 {
     if(ml<1) ml = -1;
@@ -244,12 +255,17 @@ void Text::updateTextTexture()
     txtTex = nullptr;
 
     /* Use text width processing on some occassions */
-    if(maxLines>0 || everyLineCentered) {
+    if(maxLines>0 || everyLineCentered || lineSpacing>0) {
         int fontHeight = TTF_FontHeight(font);
+        int linePitch = fontHeight+lineSpacing;
         auto processed = getProcessedText(text, font, wrapLength, maxLines);
-        txtTex = GLSDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, wrapLength, processed.size()*fontHeight);
+        if(processed.empty()) { width = 0; height = 0; return; }
+
+        //Trailing line gets no extra spacing, so getHeight() stays the text's real extent. The +1 is
+        //the offset every line is blitted at — without it the last line's descenders fall off the edge.
+        txtTex = GLSDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, wrapLength, processed.size()*linePitch-lineSpacing+1);
         TexUtils::clearTexture(rend, txtTex);
-        
+
         for(int i = 0; i<processed.size(); i++) {
             auto elem = processed[i];
             SDL_Surface* lineSurf = TTF_RenderUNICODE_Blended(font, reinterpret_cast<const Uint16*>(elem.second.c_str()), {255, 255, 255, 255});
@@ -263,7 +279,7 @@ void Text::updateTextTexture()
 
             GLSDL_SetRenderTarget(rend, txtTex); {
                 SDL_Rect dst;
-                dst.y = (fontHeight)*i+1;
+                dst.y = linePitch*i+1;
                 dst.h = lineSurf->h;
                 dst.w = lineSurf->w;
                 if(everyLineCentered) {
@@ -288,6 +304,7 @@ void Text::updateTextTexture()
     
     
     //Set width and height, destroy the txtSurf.
+    if(txtTex==nullptr) { width = 0; height = 0; return; }
     int w, h;
     GLSDL_QueryTexture(txtTex, NULL, NULL, &w, &h);
     width = w;
@@ -391,7 +408,7 @@ std::vector<std::pair<int, std::u16string>> Text::getProcessedText(const std::u1
     if(!currentLine.empty()) pushLine(currentLine);
 
     //If too many lines, truncate and append ellipsis "..."
-    if(static_cast<int>(lines.size())>maxLines) {
+    if(maxLines>0 && static_cast<int>(lines.size())>maxLines) {
         lines.resize(maxLines);
         const std::u16string ellipsis = u"...";
         std::u16string& last = lines.back().second;

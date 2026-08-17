@@ -134,6 +134,27 @@ Vec3f Camera3D::getNearestAxisVec(nch::Vec3f v) {
     if(ay>=az)           return Vec3f(0, v.y>=0 ? 1 : -1, 0);
     return Vec3f(0, 0, v.z>=0 ? 1 : -1);
 }
+Vec3f Camera3D::getNaturalUpFrom(float yawDeg, float pitchDeg) {
+    float yr = yawDeg*(float)nch::rad_deg, pr = pitchDeg*(float)nch::rad_deg;
+    return Vec3f(-std::cos(pr)*std::cos(yr), std::sin(pr), -std::cos(pr)*std::sin(yr));
+}
+Vec2f Camera3D::getYawPitchFrom(nch::Vec3f fwd) {
+    Vec3f f = fwd.normalized();
+    float yawDeg = std::atan2(f.z, f.x)*(float)nch::deg_rad;
+    float pitchDeg = std::acos(glm::clamp(f.y, -1.0f, 1.0f))*(float)nch::deg_rad;
+    return Vec2f(yawDeg, pitchDeg);
+}
+float Camera3D::getRolledAngleAround(nch::Vec3f fwd, nch::Vec3f natUp, nch::Vec3f targetUp) {
+    //Project both ups onto the plane perpendicular to fwd, then the signed angle between them around fwd.
+    Vec3f a = natUp-fwd*natUp.dot(fwd);
+    Vec3f b = targetUp-fwd*targetUp.dot(fwd);
+    float la = a.length(), lb = b.length();
+    if(la<=1e-6f || lb<=1e-6f) return 0.0f;
+    a = a/la; b = b/lb;
+    float cosA = glm::clamp(a.dot(b), -1.0f, 1.0f);
+    float sinA = a.cross(b).dot(fwd);
+    return std::atan2(sinA, cosA)*(float)nch::deg_rad;
+}
 
 std::string Camera3D::getInfo() const {
     auto epos = getEstPos();
@@ -186,18 +207,18 @@ float Camera3D::getYaw() const { return yaw; }
 float Camera3D::getPitch() const { return pitch; }
 float Camera3D::getRoll() const { return roll; }
 float Camera3D::getLocalYaw() const {
-    glm::vec3 fl = forwardInBodyFrame();
+    Vec3f fl = getForwardInBodyFrame();
     return std::atan2(fl.z, fl.x) * (float)nch::deg_rad;
 }
 float Camera3D::getLocalPitch() const {
-    glm::vec3 fl = forwardInBodyFrame();
+    Vec3f fl = getForwardInBodyFrame();
     return std::acos(glm::clamp(fl.y, -1.0f, 1.0f)) * (float)nch::deg_rad;
 }
 float Camera3D::getSensitivity() const { return sensitivity; }
 glm::mat4 Camera3D::getCMatrix() const { return cMatrix; }
-std::vector<glm::vec4> Camera3D::computeCullingPlanes() const {
+std::vector<Vec4f> Camera3D::computeCullingPlanes() const {
     glm::mat4 mvp = getCMatrixForOffset({0, 0, 0});
-    std::vector<glm::vec4> planes(6);
+    std::vector<Vec4f> planes(6);
     planes[0] = {mvp[0][3]+mvp[0][0], mvp[1][3]+mvp[1][0], mvp[2][3]+mvp[2][0], mvp[3][3]+mvp[3][0]};
     planes[1] = {mvp[0][3]-mvp[0][0], mvp[1][3]-mvp[1][0], mvp[2][3]-mvp[2][0], mvp[3][3]-mvp[3][0]};
     planes[2] = {mvp[0][3]+mvp[0][1], mvp[1][3]+mvp[1][1], mvp[2][3]+mvp[2][1], mvp[3][3]+mvp[3][1]};
@@ -205,7 +226,8 @@ std::vector<glm::vec4> Camera3D::computeCullingPlanes() const {
     planes[4] = {mvp[0][3]+mvp[0][2], mvp[1][3]+mvp[1][2], mvp[2][3]+mvp[2][2], mvp[3][3]+mvp[3][2]};
     planes[5] = {mvp[0][3]-mvp[0][2], mvp[1][3]-mvp[1][2], mvp[2][3]-mvp[2][2], mvp[3][3]-mvp[3][2]};
     for(auto& plane : planes) {
-        plane /= glm::length(glm::vec3(plane));
+        float len = plane.vec3().length();
+        plane[0] /= len; plane[1] /= len; plane[2] /= len; plane[3] /= len;
     }
     return planes;
 }
@@ -501,42 +523,31 @@ void Camera3D::commitBasis(glm::vec3 forward, glm::vec3 upv)
     forward = glm::normalize(forward);
     upv = glm::normalize(upv);
     //Derive yaw/pitch from forward (same spherical convention as setRot), then the roll about forward
-    //that carries the camera's natural-up onto our target up (mirrors StarMath::rollAngleAroundForward).
-    float pitchDeg = std::acos(glm::clamp(forward.y, -1.0f, 1.0f)) * (float)nch::deg_rad;
-    float yawDeg = std::atan2(forward.z, forward.x) * (float)nch::deg_rad;
-    float pr = pitchDeg*(float)nch::rad_deg, yr = yawDeg*(float)nch::rad_deg;
-    glm::vec3 natUp(-std::cos(pr)*std::cos(yr), std::sin(pr), -std::cos(pr)*std::sin(yr));
-    glm::vec3 a = natUp - forward*glm::dot(natUp, forward);
-    glm::vec3 b = upv - forward*glm::dot(upv, forward);
-    float rollDeg = 0.0f;
-    float la = glm::length(a), lb = glm::length(b);
-    if(la>1e-6f && lb>1e-6f) {
-        a /= la; b /= lb;
-        float cosA = glm::clamp(glm::dot(a, b), -1.0f, 1.0f);
-        float sinA = glm::dot(glm::cross(a, b), forward);
-        rollDeg = std::atan2(sinA, cosA) * (float)nch::deg_rad;
-    }
-    setRot(yawDeg, pitchDeg, rollDeg);
+    //that carries the camera's natural-up onto our target up.
+    Vec3f fwd(forward.x, forward.y, forward.z);
+    Vec2f yawPitch = getYawPitchFrom(fwd);
+    float rollDeg = getRolledAngleAround(fwd, getNaturalUpFrom(yawPitch.x, yawPitch.y), Vec3f(upv.x, upv.y, upv.z));
+    setRot(yawPitch.x, yawPitch.y, rollDeg);
     up = Vec3f(upv.x, upv.y, upv.z); //setRot leaves 'up' alone; keep it as the live up axis
 }
 glm::vec3 Camera3D::rotateAbout(glm::vec3 v, glm::vec3 axis, float angRad)
 {
     return glm::vec3(glm::rotate(glm::mat4(1.0f), angRad, axis) * glm::vec4(v, 0.0f));
 }
-glm::vec3 Camera3D::forwardInBodyFrame() const
+Vec3f Camera3D::getForwardInBodyFrame() const
 {
     //Undo the minimal-arc rotation that maps model +Y onto 'up' (the same rotation the player mob applies
     //as its base rotation), i.e. rotate forward by the arc that takes 'up' back onto +Y. This expresses the
     //look direction in the body's own frame, so a derived yaw/pitch matches how a tilted body actually faces.
-    glm::vec3 f = glm::normalize(glm::vec3(rotVec));
-    glm::vec3 u = glm::normalize(glm::vec3(up));
-    glm::vec3 m(0.0f, 1.0f, 0.0f);
-    glm::vec3 axis = glm::cross(u, m);
-    float s = glm::length(axis);
-    float c = glm::clamp(glm::dot(u, m), -1.0f, 1.0f);
+    Vec3f f = rotVec.normalized();
+    Vec3f u = up.normalized();
+    Vec3f m(0.0f,1.0f,0.0f);
+    Vec3f axis = u.cross(m);
+    float s = axis.length();
+    float c = glm::clamp(u.dot(m), -1.0f, 1.0f);
     if(s<1e-6f) {
         if(c>=0.0f) return f;                   //up already +Y: body frame == world frame
-        return glm::vec3(f.x, -f.y, -f.z);      //up == -Y: 180° about +X (matches the mob's base rotation)
+        return {f.x, -f.y, -f.z};      //up == -Y: 180° about +X (matches the mob's base rotation)
     }
     return rotateAbout(f, axis/s, std::atan2(s, c));
 }
@@ -544,13 +555,8 @@ glm::vec3 Camera3D::computeNaturalUp() const
 {
     //Derived from spherical coordinate partial derivative w.r.t. pitch.
     //Always perpendicular to rotVec, so lookAt never degenerates at the poles.
-    float pitchRad = pitch*(float)nch::rad_deg;
-    float yawRad = yaw*(float)nch::rad_deg;
-    return glm::vec3(
-        -std::cos(pitchRad)*std::cos(yawRad),
-         std::sin(pitchRad),
-        -std::cos(pitchRad)*std::sin(yawRad)
-    );
+    Vec3f nu = getNaturalUpFrom(yaw, pitch);
+    return glm::vec3(nu.x, nu.y, nu.z);
 }
 glm::vec3 Camera3D::computeRolledUp(glm::vec3 naturalUp, glm::vec3 forward) const
 {

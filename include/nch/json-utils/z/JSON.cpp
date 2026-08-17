@@ -23,29 +23,60 @@ nlohmann::json JSON::loadFromFile(const std::string& path)
 
     return ret;
 }
-Vec3f JSON::parseVec3f(const nlohmann::json& jsonArray, const std::string& arrayKey, const std::string& context) {
-    if(!jsonArray.is_array() || jsonArray.size()<3) throw std::invalid_argument(nch::cat("Failed to parse '", arrayKey, "' from ", context));
-    Vec3f ret;
+bool JSON::saveToFile(const std::string& path, const nlohmann::json& j, int indent)
+{
     try {
-        ret.x = jsonArray.at(0).get<float>();
-        ret.y = jsonArray.at(1).get<float>();
-        ret.z = jsonArray.at(2).get<float>();
+        std::ofstream ofs(path, std::ios::trunc);
+        if(ofs.fail()) throw std::exception();
+        ofs << j.dump(indent);
+        ofs.close();
     } catch(...) {
-        throw std::invalid_argument(nch::cat("Failed to parse '", arrayKey, "' from ", context, " as a Vec3f"));
+        Log::error(__PRETTY_FUNCTION__, "Failed to write JSON to file @ \"%s\"", path.c_str());
+        return false;
+    }
+
+    return true;
+}
+nlohmann::json JSON::parse(const std::string& text, const std::string& context)
+{
+    nlohmann::json ret = nlohmann::json::parse(text, nullptr, false);
+    if(ret.is_discarded()) {
+        if(context!="") {
+            Log::error(__PRETTY_FUNCTION__, "Failed to parse JSON from %s: \"%s\"", context.c_str(), text.c_str());
+        } else {
+            Log::error(__PRETTY_FUNCTION__, "Failed to parse JSON from \"%s\"", text.c_str());
+        }
+        return nlohmann::json();
     }
 
     return ret;
 }
-Vec3i64 JSON::parseVec3i64(const nlohmann::json& jsonArray, const std::string& arrayKey, const std::string& context) {
-    if(!jsonArray.is_array() || jsonArray.size()<3) throw std::invalid_argument(nch::cat("Failed to parse '", arrayKey, "' from ", context));
-    Vec3i64 ret;
-    try {
-        ret.x = jsonArray.at(0).get<int64_t>();
-        ret.y = jsonArray.at(1).get<int64_t>();
-        ret.z = jsonArray.at(2).get<int64_t>();
-    } catch(...) {
-        throw std::invalid_argument(nch::cat("Failed to parse '", arrayKey, "' from ", context, " as a Vec3f"));
-    }
 
+bool JSON::has(const nlohmann::json& j, const std::string& key)
+{
+    if(!j.is_object()) return false;
+    auto itr = j.find(key);
+    return itr!=j.end() && !itr->is_null();
+}
+const nlohmann::json& JSON::getObject(const nlohmann::json& j, const std::string& key)
+{
+    static const nlohmann::json emptyObject = nlohmann::json::object();
+    if(!has(j, key)) return emptyObject;
+
+    const nlohmann::json& ret = j.at(key);
+    if(!ret.is_object()) return emptyObject;
     return ret;
+}
+const nlohmann::json& JSON::getArray(const nlohmann::json& j, const std::string& key)
+{
+    static const nlohmann::json emptyArray = nlohmann::json::array();
+    if(!has(j, key)) return emptyArray;
+
+    const nlohmann::json& ret = j.at(key);
+    if(!ret.is_array()) return emptyArray;
+    return ret;
+}
+std::string JSON::getOpt(const nlohmann::json& j, const std::string& key, const char* fallback)
+{
+    return getOpt<std::string>(j, key, std::string(fallback));
 }

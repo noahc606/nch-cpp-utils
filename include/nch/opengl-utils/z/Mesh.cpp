@@ -162,7 +162,7 @@ bool Mesh::isChunkInFrustum(Camera3D* cam)
     frustumCache.valid = true;
     return result;
 }
-bool Mesh::isChunkInFrustum(Camera3D* cam, const std::vector<glm::vec4>& cullingPlanes)
+bool Mesh::isChunkInFrustum(Camera3D* cam, const std::vector<Vec4f>& cullingPlanes)
 {
     //Offset from camera to chunk center in tile-world space
     Vec3f offset = ((cam->getRegPos()-chkPos)*32).toFloat()-subPos;
@@ -182,11 +182,11 @@ bool Mesh::isChunkInFrustum(Camera3D* cam, const std::vector<glm::vec4>& culling
     glm::vec3 worldCenter = glm::vec3(model*glm::vec4(16.0f, 16.0f, 16.0f, 1.0f));
 
     //Bounding sphere center translated into camera-relative space (rotation preserves the radius).
-    const glm::vec3 center(worldCenter.x - offset.x, worldCenter.y - offset.y, worldCenter.z - offset.z);
-    const float radius = glm::length(glm::vec3(16.0f*scale.x, 16.0f*scale.y, 16.0f*scale.z));
+    const Vec3f center(worldCenter.x - offset.x, worldCenter.y - offset.y, worldCenter.z - offset.z);
+    const float radius = Vec3f(16.0f*scale.x, 16.0f*scale.y, 16.0f*scale.z).length();
 
     for(int i = 0; i<6; i++) {
-        if(glm::dot(glm::vec3(cullingPlanes[i]), center)+cullingPlanes[i].w < -radius) return false;
+        if(cullingPlanes[i].vec3().dot(center)+cullingPlanes[i][3] < -radius) return false;
     }
     return true;
 }
@@ -201,7 +201,7 @@ Vec3f Mesh::getGeometricCenter() {
     float count = static_cast<float>(vertices.size());
     return {sum.x/count, sum.y/count, sum.z/count};
 }
-std::vector<Poly> Mesh::getPolysAt(glm::ivec3 key) {
+std::vector<Poly> Mesh::getPolysAt(Vec3i key) {
     std::vector<Poly> ret;
     
     auto range = polyMap.equal_range({key.x, key.y, key.z});
@@ -233,7 +233,7 @@ void Mesh::reset() {
     indices.clear();
     drawnIndexCount = 0;
 }
-void Mesh::addPoly(const glm::ivec3& key, const Poly& poly)
+void Mesh::addPoly(const Vec3i& key, const Poly& poly)
 {
     //If key is valid -> check if this MPoly already exists at this key
     MPoly newPoly(poly);
@@ -271,8 +271,8 @@ void Mesh::addPoly(const glm::ivec3& key, const Poly& poly)
             indices.insert   (indices.end(),          {vs+0, vs+1, vs+2, vs+0, vs+2, vs+3});
             indicesMap.insert({{key.x, key.y, key.z}, {vs+0, vs+1, vs+2, vs+0, vs+2, vs+3}});
         */
-        float l02 = glm::length(poly.v(0).light) + glm::length(poly.v(2).light);
-        float l13 = glm::length(poly.v(1).light) + glm::length(poly.v(3).light);
+        float l02 = poly.v(0).light.length() + poly.v(2).light.length();
+        float l13 = poly.v(1).light.length() + poly.v(3).light.length();
         std::vector<GLuint> order = (l13 > l02)
             ? std::vector<GLuint>{vs+0, vs+1, vs+3, vs+1, vs+2, vs+3}
             : std::vector<GLuint>{vs+0, vs+1, vs+2, vs+0, vs+2, vs+3};
@@ -284,18 +284,18 @@ void Mesh::addPoly(const glm::ivec3& key, const Poly& poly)
 void Mesh::addPoly(const Poly& poly) {
     addPoly({-1,-1,-1}, poly);
 }
-void Mesh::remove(const glm::ivec3& key)
+void Mesh::remove(const Vec3i& key)
 {
-    remove(std::vector<glm::ivec3>{key});
+    remove(std::vector<Vec3i>{key});
 }
-void Mesh::remove(const std::vector<glm::ivec3>& keys)
+void Mesh::remove(const std::vector<Vec3i>& keys)
 {
     //Collect the removed polys' vertex ranges ([beg, end] inclusive - each poly's verts are
     //contiguous) across all keys, then compact vertices/indices/indicesMap in ONE pass each.
     //The old per-poly path rescanned + re-erased the entire index buffer for every removed poly,
     //making bulk removals from large meshes (e.g. chunks dense with high-poly tiles) quadratic.
     std::vector<std::pair<GLuint, GLuint>> ranges;
-    for(const glm::ivec3& key : keys) {
+    for(const Vec3i& key : keys) {
         std::tuple<int, int, int> k = std::make_tuple(key.x, key.y, key.z);
         polyMap.erase(k);
         auto ir = indicesMap.equal_range(k);

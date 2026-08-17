@@ -4,39 +4,37 @@
 using namespace nch;
 
 Vertex::Vertex(){
-    light = glm::vec3(0.0f);
+    light = Vec3f(0.0f);
 }
-Vertex::Vertex(const glm::vec3& pos, const glm::vec3& norm, const glm::vec3& col, const glm::vec2& uv) {
+Vertex::Vertex(const Vec3f& pos, const Vec3f& norm, const Vec3f& col, const Vec2f& uv) {
     Vertex::pos = pos;
     Vertex::normal = norm;
     Vertex::color = col;
     Vertex::texUV = uv;
-    Vertex::light = glm::vec3(0.0f);
+    Vertex::light = Vec3f(0.0f);
 }
-Vertex::Vertex(const glm::vec3& pos, const glm::vec3& col, const glm::vec2& uv) {
+Vertex::Vertex(const Vec3f& pos, const Vec3f& col, const Vec2f& uv) {
     Vertex::pos = pos;
-    Vertex::normal = glm::vec3(0.0f);
+    Vertex::normal = Vec3f(0.0f);
     Vertex::color = col;
     Vertex::texUV = uv;
-    Vertex::light = glm::vec3(0.0f);
+    Vertex::light = Vec3f(0.0f);
 }
-Vertex::Vertex(const glm::vec3& pos, const glm::vec2& uv) {
+Vertex::Vertex(const Vec3f& pos, const Vec2f& uv) {
     Vertex::pos = pos;
-    Vertex::normal = glm::vec3(0.0f);
-    Vertex::color = glm::vec3(1.0f);
+    Vertex::normal = Vec3f(0.0f);
+    Vertex::color = Vec3f(1.0f);
     Vertex::texUV = uv;
-    Vertex::light = glm::vec3(0.0f);
+    Vertex::light = Vec3f(0.0f);
 }
-Vertex::Vertex(const glm::vec3& pos, const glm::vec3& col)
-: Vertex(pos, glm::vec3(0.0f), col, glm::vec2(0.0f)){}
+Vertex::Vertex(const Vec3f& pos, const Vec3f& col)
+: Vertex(pos, Vec3f(0.0f), col, Vec2f(0.0f)){}
 
-Vertex::Vertex(const glm::vec3& pos)
-: Vertex(pos, glm::vec3(0.0f)){}
-Vertex::Vertex(const nch::Vec3f& pos)
-: Vertex(pos, glm::vec3(0.0f)){}
+Vertex::Vertex(const Vec3f& pos)
+: Vertex(pos, Vec3f(0.0f)){}
 
 Vertex::Vertex(float x, float y, float z)
-: Vertex(glm::vec3(x, y, z)){}
+: Vertex(Vec3f(x, y, z)){}
 
 std::string Vertex::toString() const {
     auto compact = [](float f) {

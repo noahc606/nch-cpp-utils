@@ -202,7 +202,7 @@ void Draw::streamText(const std::string& drawnText, TTF_Font* font, const Color&
     glDeleteTextures(1, &texture);
 }
 
-void Draw::streamLine3D(const Color& col, glm::dvec3 p0, glm::dvec3 p1)
+void Draw::streamLine3D(const Color& col, Vec3f p0, Vec3f p1)
 {
     float cr = col.r/255.0f;
     float cg = col.g/255.0f;
@@ -227,7 +227,7 @@ void Draw::streamLine3D(const Color& col, glm::dvec3 p0, glm::dvec3 p1)
     VAO::destroy(vao);
 }
 
-void Draw::streamQuad3D(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3)
+void Draw::streamQuad3D(Vec3f p0, Vec3f p1, Vec3f p2, Vec3f p3)
 {
     std::vector<Vertex> verts = {
         {p0.x, p0.y, p0.z},
@@ -251,7 +251,7 @@ void Draw::streamQuad3D(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3)
     VAO::destroy(vao);
 }
 
-void Draw::streamQuad3D(const Color& col, glm::dvec3 p0, glm::dvec3 p1, glm::dvec3 p2, glm::dvec3 p3)
+void Draw::streamQuad3D(const Color& col, Vec3f p0, Vec3f p1, Vec3f p2, Vec3f p3)
 {
     float cr = col.r/255.0f;
     float cg = col.g/255.0f;

@@ -25,9 +25,9 @@ public:
     //Miscellaneous
     static void setTexModColor(const nch::Color& mod);
     static void streamText(const std::string& drawnText, TTF_Font* font, const nch::Color& color, float x, float y, GLuint projectionUniform, glm::mat4 projectionMatrix);
-    static void streamLine3D(const nch::Color& col, glm::dvec3 p0, glm::dvec3 p1);
-    static void streamQuad3D(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3);
-    static void streamQuad3D(const nch::Color& col, glm::dvec3 p0, glm::dvec3 p1, glm::dvec3 p2, glm::dvec3 p3);
+    static void streamLine3D(const nch::Color& col, nch::Vec3f p0, nch::Vec3f p1);
+    static void streamQuad3D(nch::Vec3f p0, nch::Vec3f p1, nch::Vec3f p2, nch::Vec3f p3);
+    static void streamQuad3D(const nch::Color& col, nch::Vec3f p0, nch::Vec3f p1, nch::Vec3f p2, nch::Vec3f p3);
     
 private:
     static nch::Color mod;

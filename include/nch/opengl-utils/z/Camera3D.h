@@ -6,6 +6,7 @@
 #include <vector>
 #include "nch/math-utils/vec2.h"
 #include "nch/math-utils/vec3.h"
+#include "nch/math-utils/vec4.h"
 #include "nch/opengl-utils/shader.h"
 
 namespace nch { class Camera3D {
@@ -51,6 +52,26 @@ public:
     static std::string dirToString(int dir);
     static int flippedDir(int dir);
     static Vec3f getNearestAxisVec(nch::Vec3f v);
+    /**
+     * @brief The "natural up" a camera produces for a given orientation (no roll).
+     * @param yawDeg Yaw in degrees.
+     * @param pitchDeg Pitch in degrees.
+     */
+    static nch::Vec3f getNaturalUpFrom(float yawDeg, float pitchDeg);
+    /**
+     * @brief Decompose a forward direction into yaw/pitch degrees (this camera's spherical convention).
+     * @param fwd Forward direction (need not be unit).
+     * @return (yawDeg, pitchDeg).
+     */
+    static nch::Vec2f getYawPitchFrom(nch::Vec3f fwd);
+    /**
+     * @brief Signed roll (deg) about fwd that carries natUp onto targetUp (both projected ⟂ fwd).
+     * @param fwd Forward axis (unit).
+     * @param natUp The camera's natural up for its orientation.
+     * @param targetUp The desired up.
+     * @return 0 if either projected up is degenerate.
+     */
+    static float getRolledAngleAround(nch::Vec3f fwd, nch::Vec3f natUp, nch::Vec3f targetUp);
     std::string getInfo() const;
     nch::Vec3f getEstPos() const;
     nch::Vec3f getInterpolDelta() const;
@@ -77,7 +98,7 @@ public:
     float getLocalYaw() const;
     float getLocalPitch() const;
     float getSensitivity() const;
-    std::vector<glm::vec4> computeCullingPlanes() const;
+    std::vector<Vec4f> computeCullingPlanes() const;
     glm::mat4 getCMatrix() const;
     nch::Vec3f getUp() const;
     //The up vector the render view is actually built from (buildViewProj's 'rolledUp'): natural up rolled
@@ -155,7 +176,7 @@ private:
     void commitBasis(glm::vec3 forward, glm::vec3 upv);
     //The forward look vector rotated into the body frame (undoing the minimal +Y->up rotation). Basis for
     //getLocalYaw/getLocalPitch.
-    glm::vec3 forwardInBodyFrame() const;
+    nch::Vec3f getForwardInBodyFrame() const;
     static glm::vec3 rotateAbout(glm::vec3 v, glm::vec3 axis, float angRad);
 
     bool focused = false;

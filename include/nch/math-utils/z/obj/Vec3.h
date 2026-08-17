@@ -1,6 +1,8 @@
 #pragma once
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <sstream>
 #include <tuple>
 #ifdef GLM_ENABLE
@@ -44,6 +46,9 @@ public:
     Vec3<T> getMidpoint(const Vec3<T>& v) const {
         return ((*this)+v)*0.5f;
     }
+    Vec3<T> abs() const { return Vec3<T>(std::abs(x), std::abs(y), std::abs(z)); }
+    Vec3<T> compMin(const Vec3<T>& v) const { return Vec3<T>(std::min(x, v.x), std::min(y, v.y), std::min(z, v.z)); }
+    Vec3<T> compMax(const Vec3<T>& v) const { return Vec3<T>(std::max(x, v.x), std::max(y, v.y), std::max(z, v.z)); }
     Vec3<float> toFloat() const { return Vec3<float>(x, y, z); }
     Vec3<double> toDouble() const { return Vec3<double>(x, y, z); }
     Vec3<long double> toLongDouble() const { return Vec3<long double>(x, y, z); }
@@ -89,7 +94,7 @@ public:
     }
     
     //Comparisons
-    bool operator==(const Vec3<T>& o) const { return o.x==x && o.y==y && o.z==z; };
+    bool operator==(const Vec3<T>& o) const { return o.x==x && o.y==y && o.z==z; }
     bool operator!=(const Vec3<T>& o) const { return !(o==(*this)); };
     bool operator<(const Vec3<T>& o) const { return std::tie(x, y, z) < std::tie(o.x, o.y, o.z); } //Exactly the same as std::tuple<T, T, T> less-than
 
@@ -97,6 +102,7 @@ public:
     Vec3<T>& operator+=(const Vec3<T>& v) { x+=v.x, y+=v.y, z+=v.z; return *this; }     //Add-set
     Vec3<T>& operator-=(const Vec3<T>& v) { x-=v.x, y-=v.y, z-=v.z; return *this; }     //Add-set
     Vec3<T>& operator*=(const T& r) { x*=r, y*=r, z*=r; return *this; }                 //Scale-set
+    Vec3<T>& operator/=(const T& r) { x/=r, y/=r, z/=r; return *this; }                 //Scale-set
     Vec3<T>& operator=(const Vec3<T>& v) { x = v.x; y = v.y; z = v.z; return (*this); }
 
     T& operator[](int idx) {

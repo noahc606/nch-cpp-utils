@@ -10,11 +10,11 @@ GeoMesh::~GeoMesh() {
     releaseBuffers();
 }
 
-void GeoMesh::boxCorners(const glm::vec3& min, const glm::vec3& size, glm::vec3 out[8]) {
+void GeoMesh::boxCorners(const Vec3f& min, const Vec3f& size, Vec3f out[8]) {
     for(int xi = 0; xi<2; xi++)
     for(int yi = 0; yi<2; yi++)
     for(int zi = 0; zi<2; zi++) {
-        out[xi*4+yi*2+zi] = glm::vec3(
+        out[xi*4+yi*2+zi] = Vec3f(
             min.x+(xi ? size.x : 0.0f),
             min.y+(yi ? size.y : 0.0f),
             min.z+(zi ? size.z : 0.0f)
@@ -22,42 +22,42 @@ void GeoMesh::boxCorners(const glm::vec3& min, const glm::vec3& size, glm::vec3 
     }
 }
 
-void GeoMesh::addLine(const glm::vec3& a, const glm::vec3& b, const glm::vec3& color) {
+void GeoMesh::addLine(const Vec3f& a, const Vec3f& b, const Vec3f& color) {
     addLine(a, b, color, color);
 }
-void GeoMesh::addLine(const glm::vec3& a, const glm::vec3& b, const glm::vec3& colorA, const glm::vec3& colorB) {
+void GeoMesh::addLine(const Vec3f& a, const Vec3f& b, const Vec3f& colorA, const Vec3f& colorB) {
     lineVerts.emplace_back(a, colorA);
     lineVerts.emplace_back(b, colorB);
 }
-void GeoMesh::addArrow(const glm::vec3& a, const glm::vec3& b, const glm::vec3& color) {
+void GeoMesh::addArrow(const Vec3f& a, const Vec3f& b, const Vec3f& color) {
     addArrow(a, b, color, color);
 }
-void GeoMesh::addArrow(const glm::vec3& a, const glm::vec3& b, const glm::vec3& colorA, const glm::vec3& colorB) {
+void GeoMesh::addArrow(const Vec3f& a, const Vec3f& b, const Vec3f& colorA, const Vec3f& colorB) {
     addLine(a, b, colorA, colorB);
-    glm::vec3 d = b-a;
-    float len = glm::length(d);
+    Vec3f d = b-a;
+    float len = d.length();
     if(len<1e-6f) return; //Degenerate: keep the (invisible) shaft only
     d /= len;
-    glm::vec3 upRef = std::fabs(d.y)<0.9f ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
-    glm::vec3 u = glm::normalize(glm::cross(d, upRef));
-    glm::vec3 w = glm::normalize(glm::cross(d, u));
-    glm::vec3 back = b-d*(0.3f*len);
+    Vec3f upRef = std::fabs(d.y)<0.9f ? Vec3f(0, 1, 0) : Vec3f(1, 0, 0);
+    Vec3f u = d.cross(upRef).normalized();
+    Vec3f w = d.cross(u).normalized();
+    Vec3f back = b-d*(0.3f*len);
     float side = 0.15f*len;
     addLine(b, back+u*side, colorB);
     addLine(b, back-u*side, colorB);
     addLine(b, back+w*side, colorB);
     addLine(b, back-w*side, colorB);
 }
-void GeoMesh::addTri(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, const glm::vec3& color) {
+void GeoMesh::addTri(const Vec3f& a, const Vec3f& b, const Vec3f& c, const Vec3f& color) {
     triVerts.emplace_back(a, color);
     triVerts.emplace_back(b, color);
     triVerts.emplace_back(c, color);
 }
-void GeoMesh::addQuad(const glm::vec3 corners[4], const glm::vec3& color) {
+void GeoMesh::addQuad(const Vec3f corners[4], const Vec3f& color) {
     addTri(corners[0], corners[1], corners[2], color);
     addTri(corners[0], corners[2], corners[3], color);
 }
-void GeoMesh::addBoxOutline(const glm::vec3 corners[8], const glm::vec3& color) {
+void GeoMesh::addBoxOutline(const Vec3f corners[8], const Vec3f& color) {
     //12 edges of a box over its 8 corners (corner index = xi*4 + yi*2 + zi).
     static const int edges[12][2] = {
         {0,4},{1,5},{2,6},{3,7}, {0,2},{1,3},{4,6},{5,7}, {0,1},{2,3},{4,5},{6,7}
@@ -66,12 +66,12 @@ void GeoMesh::addBoxOutline(const glm::vec3 corners[8], const glm::vec3& color) 
         addLine(corners[edges[e][0]], corners[edges[e][1]], color);
     }
 }
-void GeoMesh::addBoxOutline(const glm::vec3& min, const glm::vec3& size, const glm::vec3& color) {
-    glm::vec3 c[8];
+void GeoMesh::addBoxOutline(const Vec3f& min, const Vec3f& size, const Vec3f& color) {
+    Vec3f c[8];
     boxCorners(min, size, c);
     addBoxOutline(c, color);
 }
-void GeoMesh::addBoxFill(const glm::vec3 corners[8], const glm::vec3& color) {
+void GeoMesh::addBoxFill(const Vec3f corners[8], const Vec3f& color) {
     static const int faceCorners[6][4] = {
         {0, 2, 3, 1}, //-X
         {4, 6, 7, 5}, //+X
@@ -81,7 +81,7 @@ void GeoMesh::addBoxFill(const glm::vec3 corners[8], const glm::vec3& color) {
         {1, 5, 7, 3}, //+Z
     };
     for(int f = 0; f<6; f++) {
-        glm::vec3 q[4];
+        Vec3f q[4];
         for(int k = 0; k<4; k++) q[k] = corners[faceCorners[f][k]];
         addQuad(q, color);
     }
