@@ -57,15 +57,17 @@ const std::string& Atlas::getType() {
 }
 FRect Atlas::getSrc(const std::string& imgID) const {
 	auto itr = map.find(imgID);
-	if(itr!=map.end()) {
-		const Entry& e = itr->second;
-		FRect fr = FRect(e.r.r.x+AtlasImage::PAD_F, e.r.r.y+AtlasImage::PAD_F, e.r.r.w-2*AtlasImage::PAD_F, e.r.r.h-2*AtlasImage::PAD_F);
-		fr.scale(1.0f/mapSize);
-		fr.translate((float)e.page, 0.0f);
-		return fr;
-	}
+	if(itr!=map.end()) return srcOfEntry(itr->second);
 
-	throw std::runtime_error(nch::cat("Key \"", imgID, "\" does not exist within this atlas"));
+	//A miss must not throw: getSrc is reached from mesh builds and per-frame emits, where one bad
+	//asset string used to take the whole thing down instead of just looking wrong.
+	auto mitr = missingImgID.empty() ? map.end() : map.find(missingImgID);
+	warnMissingOnce(imgID, mitr!=map.end());
+	if(mitr!=map.end()) return srcOfEntry(mitr->second);
+	return FRect(0, 0, 1, 1);
+}
+void Atlas::setMissingImgID(const std::string& imgID) {
+	missingImgID = imgID;
 }
 std::map<std::string, Atlas::Entry> Atlas::getMap() {
 	return map;
@@ -132,6 +134,7 @@ void Atlas::destroy() {
 	if(id!=0) glDeleteTextures(1, &id);
 	type = "";
 	map.clear();
+	warnedMissing.clear();
 	mapSize = 0;
 	pageCount = 1;
 	anims.clear();
@@ -146,6 +149,22 @@ void Atlas::setMaxPageSizeOverride(int px) {
 int Atlas::animFPS = 25;
 void Atlas::setAnimFPS(int fps) {
 	animFPS = fps<1 ? 1 : fps;
+}
+FRect Atlas::srcOfEntry(const Entry& e) const
+{
+	FRect fr = FRect(e.r.r.x+AtlasImage::PAD_F, e.r.r.y+AtlasImage::PAD_F, e.r.r.w-2*AtlasImage::PAD_F, e.r.r.h-2*AtlasImage::PAD_F);
+	fr.scale(1.0f/mapSize);
+	fr.translate((float)e.page, 0.0f);
+	return fr;
+}
+void Atlas::warnMissingOnce(const std::string& imgID, bool substituted) const
+{
+	{
+		std::lock_guard<std::mutex> lock(warnedMissingMtx);
+		if(!warnedMissing.insert(imgID).second) return;
+	}
+	Log::warnv(__PRETTY_FUNCTION__, substituted ? "substituting the missing texture" : "returning the whole atlas",
+		"Key \"%s\" does not exist within this \"%s\" atlas", imgID.c_str(), type.c_str());
 }
 int Atlas::resolveMaxPageSize()
 {

@@ -1,10 +1,11 @@
 #include "Text.h"
-#include "TexUtils.h"
 #include <SDL2/SDL_blendmode.h>
 #include <SDL2/SDL_pixels.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_surface.h>
 #include <SDL2/SDL_ttf.h>
+#include <cctype>
+#include <climits>
 #include <codecvt>
 #include <cstddef>
 #include <locale>
@@ -13,6 +14,8 @@
 #include <string>
 using namespace nch;
 
+static const std::u16string ELLIPSIS = u"...";
+
 Text::Text() {
     initted = false;
     txtTex = nullptr;
@@ -20,7 +23,7 @@ Text::Text() {
 Text::Text(Text&& obj) noexcept {
     rend = obj.rend;
     txtTex = obj.txtTex; obj.txtTex = nullptr;
-    initted = obj.initted;
+    initted = obj.initted; obj.initted = false;
     darkenBackground = obj.darkenBackground;
     width = obj.width;
     height = obj.height;
@@ -28,13 +31,24 @@ Text::Text(Text&& obj) noexcept {
     shadow = obj.shadow;
     scale = obj.scale;
     gridlock = obj.gridlock;
-    text = obj.text;
+    text = std::move(obj.text);
     font = obj.font;
     textColor = obj.textColor;
     wrapLength = obj.wrapLength;
+    lineHeight = obj.lineHeight;
     lineSpacing = obj.lineSpacing;
+    tabWidth = obj.tabWidth;
     maxLines = obj.maxLines;
-    everyLineCentered = obj.everyLineCentered;
+    align = obj.align;
+    sentinel = obj.sentinel;
+    plainText = std::move(obj.plainText);
+    styleIds = std::move(obj.styleIds);
+    stylePalette = std::move(obj.stylePalette);
+    runs = std::move(obj.runs);
+    lineCount = obj.lineCount;
+    linePitch = obj.linePitch;
+    tabAdvance = obj.tabAdvance;
+    anyStyledRun = obj.anyStyledRun;
 }
 Text& Text::operator=(const Text& obj)
 {
@@ -44,8 +58,6 @@ Text& Text::operator=(const Text& obj)
     rend = obj.rend;
     initted = obj.initted;
     darkenBackground = obj.darkenBackground;
-    width = obj.width;
-    height = obj.height;
     forceNearestScaling = obj.forceNearestScaling;
     shadow = obj.shadow;
     scale = obj.scale;
@@ -54,11 +66,14 @@ Text& Text::operator=(const Text& obj)
     font = obj.font;
     textColor = obj.textColor;
     wrapLength = obj.wrapLength;
+    lineHeight = obj.lineHeight;
     lineSpacing = obj.lineSpacing;
+    tabWidth = obj.tabWidth;
     maxLines = obj.maxLines;
-    everyLineCentered = obj.everyLineCentered;
+    align = obj.align;
+    sentinel = obj.sentinel;
 
-    if(initted && obj.txtTex != nullptr) updateTextTexture();
+    updateTextTexture();
     return *this;
 }
 Text::~Text() { destroy(); }
@@ -70,10 +85,12 @@ void Text::init(GLSDL_Renderer* rend, TTF_Font* font, bool darkenBackground)
     }
     initted = true;
 
-    //Set renderer and font
     Text::rend = rend;
     Text::font = font;
     Text::darkenBackground = darkenBackground;
+
+    //A caller that set its text before init() would otherwise be left with nothing baked.
+    updateTextTexture();
 }
 
 void Text::destroy()
@@ -81,13 +98,17 @@ void Text::destroy()
     initted = false;
     if(txtTex!=nullptr) GLSDL_DestroyTexture(txtTex);
     txtTex = nullptr;
+    runs.clear();
+    anyStyledRun = false;
+    lineCount = 0;
+    width = 0;
+    height = 0;
 }
 
 void Text::draw(int x, int y) const
 {
     if(txtTex==nullptr) return;
 
-    //Draw text
     SDL_Rect dst;
     dst.x = x/gridlock*gridlock; dst.y = y/gridlock*gridlock;
     dst.w = width*scale; dst.h = height*scale;
@@ -99,33 +120,20 @@ void Text::draw(int x, int y) const
 
     GLSDL_SetTextureBlendMode(txtTex, SDL_BLENDMODE_BLEND);
 
-    #if ( (SDL_MAJOR_VERSION>2) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION>0) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION==0 && SDL_PATCHLEVEL>=12))
-    if(forceNearestScaling) {
-        //SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeNearest);
-    } else {
-        //SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeBest);
-    }
-    #endif
-
     if(shadow.enabled) {
         dst.x += (shadow.dx*scale); dst.y += (shadow.dy*scale);
 
-        if(shadow.customColor.a==0) {
-            GLSDL_SetTextureColorMod(txtTex, 255-textColor.r, 255-textColor.g, 255-textColor.b);
-        } else {
-            GLSDL_SetTextureColorMod(txtTex, shadow.customColor.r, shadow.customColor.g, shadow.customColor.b);
-        }
-
+        Color sc = getShadowColorFor(textColor);
+        GLSDL_SetTextureColorMod(txtTex, sc.r, sc.g, sc.b);
         GLSDL_SetTextureAlphaMod(txtTex, 255*shadow.fadeFactor);
-
-        GLSDL_RenderCopy(rend, txtTex, NULL, &dst );
+        GLSDL_RenderCopy(rend, txtTex, NULL, &dst);
 
         dst.x -= (shadow.dx*scale); dst.y -= (shadow.dy*scale);
     }
 
     GLSDL_SetTextureColorMod(txtTex, textColor.r, textColor.g, textColor.b);
     GLSDL_SetTextureAlphaMod(txtTex, textColor.a);
-    GLSDL_RenderCopy(rend, txtTex, NULL, &dst );
+    GLSDL_RenderCopy(rend, txtTex, NULL, &dst);
 }
 
 void Text::drawCentered(int x, int y, int w, int h) const
@@ -133,24 +141,62 @@ void Text::drawCentered(int x, int y, int w, int h) const
     draw(x+w/2-(int)getWidth()/2, y+h/2-(int)getHeight()/2);
 }
 
+void Text::drawFormatted(int x, int y) const
+{
+    if(txtTex==nullptr) return;
+    //Nothing carries a span, so the single-blit path renders the exact same pixels for less work.
+    if(!anyStyledRun) { draw(x, y); return; }
+
+    int bx = x/gridlock*gridlock;
+    int by = y/gridlock*gridlock;
+
+    if(darkenBackground) {
+        SDL_Rect bg = {bx, by, (int)(width*scale), (int)(height*scale)};
+        GLSDL_SetRenderDrawColor(rend, 255-textColor.r, 255-textColor.g, 255-textColor.b, 100);
+        GLSDL_RenderFillRect(rend, &bg);
+    }
+
+    //Highlights fill the whole line pitch so stacked highlighted lines read as one unbroken block.
+    GLSDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
+    for(const Run& r : runs) {
+        if(!r.style.hasBg) continue;
+        SDL_Rect hr;
+        hr.x = bx+(int)(r.src.x*scale);
+        hr.y = by+(int)(r.src.y*scale);
+        hr.w = (int)(r.src.w*scale);
+        hr.h = (int)(linePitch*scale);
+        GLSDL_SetRenderDrawColor(rend, r.style.bg.r, r.style.bg.g, r.style.bg.b, r.style.bg.a);
+        GLSDL_RenderFillRect(rend, &hr);
+    }
+
+    GLSDL_SetTextureBlendMode(txtTex, SDL_BLENDMODE_BLEND);
+    if(shadow.enabled) drawRunPass(bx, by, true);
+    drawRunPass(bx, by, false);
+}
+
+void Text::drawFormattedCentered(int x, int y, int w, int h) const
+{
+    drawFormatted(x+w/2-(int)getWidth()/2, y+h/2-(int)getHeight()/2);
+}
+
 void Text::stream(GLSDL_Renderer* rend, TTF_Font* font, std::string text, const Color& c, int x, int y, double scale)
 {
-    int textWidth = 0;
-    TTF_MeasureText(font, text.c_str(), 5000, &textWidth, NULL);
-    int textHeight = TTF_FontHeight(font);
-
-    SDL_Surface* txtSurf = TTF_RenderText_Blended(font, text.c_str(), {255, 255, 255});
+    SDL_Surface* txtSurf = TTF_RenderText_Blended(font, text.c_str(), {255, 255, 255, 255});
+    if(txtSurf==NULL) return;
     GLSDL_Texture* txtTex = GLSDL_CreateTextureFromSurface(rend, txtSurf);
 
-    SDL_Rect txtRect; txtRect.x = x; txtRect.y = y; txtRect.w = textWidth*scale; txtRect.h = textHeight*scale;
-#if ( (SDL_MAJOR_VERSION>2) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION>0) || (SDL_MAJOR_VERSION==2 && SDL_MINOR_VERSION==0 && SDL_PATCHLEVEL>=12))
-    //SDL_SetTextureScaleMode(txtTex, SDL_ScaleModeBest);
-#endif
-    GLSDL_SetTextureColorMod(txtTex, c.r, c.g, c.b);
-    GLSDL_RenderCopy(rend, txtTex, NULL, &txtRect);
+    if(txtTex!=NULL) {
+        SDL_Rect txtRect;
+        txtRect.x = x; txtRect.y = y;
+        txtRect.w = txtSurf->w*scale; txtRect.h = txtSurf->h*scale;
+        GLSDL_SetTextureBlendMode(txtTex, SDL_BLENDMODE_BLEND);
+        GLSDL_SetTextureColorMod(txtTex, c.r, c.g, c.b);
+        GLSDL_SetTextureAlphaMod(txtTex, c.a);
+        GLSDL_RenderCopy(rend, txtTex, NULL, &txtRect);
+        GLSDL_DestroyTexture(txtTex);
+    }
 
     SDL_FreeSurface(txtSurf);
-    GLSDL_DestroyTexture(txtTex);
 }
 
 bool Text::isInitialized() const { return initted; }
@@ -160,6 +206,13 @@ double Text::getUnscaledWidth() const { return width; }
 double Text::getHeight() const { return height*scale; }
 double Text::getUnscaledHeight() const { return height; }
 std::u16string Text::getText() const { return text; }
+std::u16string Text::getPlainText() const { return plainText; }
+int Text::getLineCount() const { return lineCount; }
+int Text::getLineHeight() const { return lineHeight; }
+int Text::getTabWidth() const { return tabWidth; }
+int Text::getLinePitch() const { return linePitch; }
+Text::Align Text::getAlign() const { return align; }
+char16_t Text::getSentinel() const { return sentinel; }
 GLSDL_Texture* Text::getTexture() const {
     if(!initted) return nullptr;
     return txtTex;
@@ -170,8 +223,8 @@ bool Text::setScale(double scale)
 {
     if(scale==Text::scale) return false;
 
+    //Scale is applied to the destination rect at draw time, so the baked texture is untouched.
     Text::scale = scale;
-    updateTextTexture();
     return true;
 }
 void Text::setGridlock(int px) { if(px<=0) { Log::warnv(__PRETTY_FUNCTION__, "setting to default of 1", "Gridlock must be a positive number"); px = 1; } gridlock = px; }
@@ -180,29 +233,35 @@ void Text::forcedNearestScaling(bool fns) { forceNearestScaling = fns; }
 bool Text::setText(std::u16string text)
 {
     if(text==Text::text) return false;
-    
-    //Update string and update unscaled width/height
+
     Text::text = text;
     updateTextTexture();
     return true;
 }
 bool Text::setText(std::string text)
 {
-    //Convert string to unicode and set text
-    std::string utf8_string = text;
     std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-    std::u16string utf16_string = convert.from_bytes(utf8_string);
-    const char16_t* unicodeText = utf16_string.c_str();
-
-    return setText(unicodeText);
+    return setText(convert.from_bytes(text));
 }
 
 void Text::setWrapLength(int wl)
 {
     if(wl==wrapLength) return;
     wrapLength = wl;
-
-    if(text==u"") return;
+    updateTextTexture();
+}
+void Text::setLineHeight(int px)
+{
+    if(px<0) px = 0;
+    if(px==lineHeight) return;
+    lineHeight = px;
+    updateTextTexture();
+}
+void Text::setTabWidth(int px)
+{
+    if(px<0) px = 0;
+    if(px==tabWidth) return;
+    tabWidth = px;
     updateTextTexture();
 }
 void Text::setLineSpacing(int ls)
@@ -210,8 +269,6 @@ void Text::setLineSpacing(int ls)
     if(ls<0) ls = 0;
     if(ls==lineSpacing) return;
     lineSpacing = ls;
-
-    if(text==u"") return;
     updateTextTexture();
 }
 void Text::setMaxLines(int ml)
@@ -219,25 +276,35 @@ void Text::setMaxLines(int ml)
     if(ml<1) ml = -1;
     if(ml==maxLines) return;
     maxLines = ml;
-
-    if(text==u"") return;
     updateTextTexture();
 }
 void Text::setEveryLineCentered(bool elc)
 {
-    if(elc==everyLineCentered) return;
-    everyLineCentered = elc;
-
-    if(text==u"") return;
+    setAlign(elc ? Align::CENTER : Align::LEFT);
+}
+void Text::setAlign(Align align)
+{
+    if(align==Text::align) return;
+    Text::align = align;
     updateTextTexture();
 }
-
+void Text::setSentinel(char16_t sentinel)
+{
+    if(sentinel==Text::sentinel) return;
+    Text::sentinel = sentinel;
+    updateTextTexture();
+}
 
 void Text::setDarkBackground(bool db) { darkenBackground = db; }
 void Text::setTextColor(Color tc) { textColor = tc; }
 void Text::setShadowing(bool hasShadow) { shadow.enabled = hasShadow; }
 void Text::setShadowRelPos(int shadowDX, int shadowDY) { shadow.dx = shadowDX; shadow.dy = shadowDY; }
-void Text::setShadowFadeFactor(float shadowFadeFactor) { shadow.fadeFactor = shadow.fadeFactor; }
+void Text::setShadowFadeFactor(float shadowFadeFactor)
+{
+    if(shadowFadeFactor<0.0f) shadowFadeFactor = 0.0f;
+    if(shadowFadeFactor>1.0f) shadowFadeFactor = 1.0f;
+    shadow.fadeFactor = shadowFadeFactor;
+}
 void Text::removeShadowCustomColor() { shadow.customColor = nch::Color(0, 0, 0, 0); }
 void Text::setShadowCustomColor(nch::Color shadowCustomColor)
 {
@@ -250,177 +317,490 @@ void Text::setShadowCustomColor(nch::Color shadowCustomColor)
 
 void Text::updateTextTexture()
 {
-    //Destroy the last texture if it exists and re-create it from the 'txtSurf'
     if(txtTex!=nullptr) GLSDL_DestroyTexture(txtTex);
     txtTex = nullptr;
+    runs.clear();
+    anyStyledRun = false;
+    lineCount = 0;
+    linePitch = 0;
+    tabAdvance = 0;
+    width = 0;
+    height = 0;
 
-    /* Use text width processing on some occassions */
-    if(maxLines>0 || everyLineCentered || lineSpacing>0) {
-        int fontHeight = TTF_FontHeight(font);
-        int linePitch = fontHeight+lineSpacing;
-        auto processed = getProcessedText(text, font, wrapLength, maxLines);
-        if(processed.empty()) { width = 0; height = 0; return; }
+    if(!initted || rend==nullptr || font==nullptr) return;
 
-        //Trailing line gets no extra spacing, so getHeight() stays the text's real extent. The +1 is
-        //the offset every line is blitted at — without it the last line's descenders fall off the edge.
-        txtTex = GLSDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, wrapLength, processed.size()*linePitch-lineSpacing+1);
-        TexUtils::clearTexture(rend, txtTex);
+    //An authored line height wins outright; otherwise lines sit exactly one glyph box apart. Note a
+    //pitch below the font height is legal and deliberately lets consecutive lines overlap.
+    linePitch = (lineHeight>0 ? lineHeight : TTF_FontHeight(font))+lineSpacing;
+    tabAdvance = getEffTabAdvance();
 
-        for(int i = 0; i<processed.size(); i++) {
-            auto elem = processed[i];
-            SDL_Surface* lineSurf = TTF_RenderUNICODE_Blended(font, reinterpret_cast<const Uint16*>(elem.second.c_str()), {255, 255, 255, 255});
-            if(lineSurf==NULL) continue;
-            GLSDL_Texture* lineTex = GLSDL_CreateTextureFromSurface(rend, lineSurf);
-            if(lineTex==NULL) {
-                Log::warn(__PRETTY_FUNCTION__, "Texture creation failed during text processing");
-                SDL_FreeSurface(lineSurf);
-                continue;
-            }
+    parseMarkup();
 
-            GLSDL_SetRenderTarget(rend, txtTex); {
-                SDL_Rect dst;
-                dst.y = linePitch*i+1;
-                dst.h = lineSurf->h;
-                dst.w = lineSurf->w;
-                if(everyLineCentered) {
-                    dst.x = (wrapLength/2-elem.first/2)+1;
-                } else {
-                    dst.x = 0;
-                }
-                GLSDL_RenderCopy(rend, lineTex, NULL, &dst);
-            } GLSDL_SetRenderTarget(rend, NULL);
+    std::vector<LineRange> lines;
+    layoutLines(lines);
+    lineCount = (int)lines.size();
 
-            GLSDL_DestroyTexture(lineTex);
-            SDL_FreeSurface(lineSurf);
-        }
-    } else {
-        //Create surface representing the current text
-        SDL_Surface* txtSurf = TTF_RenderUNICODE_Blended_Wrapped(font, reinterpret_cast<const Uint16*>(text.c_str()), {255, 255, 255, 255}, wrapLength);
-        if(txtSurf==NULL) return;
-        txtTex = GLSDL_CreateTextureFromSurface(rend, txtSurf);
-        SDL_FreeSurface(txtSurf);
+    SDL_Surface* surf = buildSurface(lines);
+    if(surf==nullptr) return;
+
+    txtTex = GLSDL_CreateTextureFromSurface(rend, surf);
+    SDL_FreeSurface(surf);
+    if(txtTex==nullptr) {
+        Log::warn(__PRETTY_FUNCTION__, "Texture creation failed");
+        width = 0; height = 0; runs.clear();
+        return;
     }
 
-    
-    
-    //Set width and height, destroy the txtSurf.
-    if(txtTex==nullptr) { width = 0; height = 0; return; }
     int w, h;
     GLSDL_QueryTexture(txtTex, NULL, NULL, &w, &h);
     width = w;
     height = h;
+
+    for(const Run& r : runs) {
+        if(r.style.hasFg || r.style.hasBg) { anyStyledRun = true; break; }
+    }
 }
 
-int Text::measureTextWidth(TTF_Font* font, const std::u16string& text) {
-    int w = 0, h = 0;
-    TTF_SizeUNICODE(font, reinterpret_cast<const Uint16*>(text.c_str()), &w, &h);
-    return w;
-}
+void Text::parseMarkup()
+{
+    plainText.clear();
+    styleIds.clear();
+    stylePalette.clear();
+    stylePalette.push_back(Style());
 
-std::vector<std::pair<int, std::u16string>> Text::getProcessedText(const std::u16string& text, TTF_Font* font, int maxWidth, int maxLines) {
-    auto isHighSurrogate = [](char16_t c){ return c>=0xD800 && c<=0xDBFF; };
-    auto isLowSurrogate  = [](char16_t c){ return c>=0xDC00 && c<=0xDFFF; };
+    //Nothing to translate at all, so hand the string straight over.
+    if(sentinel==0 && text.find(u'\\')==std::u16string::npos) { plainText = text; return; }
 
-    std::vector<std::pair<int, std::u16string>> lines;
-    std::u16string currentLine;
-    std::u16string currentWord;
+    plainText.reserve(text.size());
+    styleIds.reserve(text.size());
 
-    auto pushLine = [&](const std::u16string& l){
-        lines.emplace_back(measureTextWidth(font, l), l);
-    };
+    Style cur;
+    uint16_t curId = 0;
+    const size_t n = text.size();
+    size_t i = 0;
+    while(i<n) {
+        char16_t c = text[i];
 
-    //Append one word into lines/currentLine. Splits a very long word into fragments.
-    auto appendWordToBuffer = [&](std::u16string word) {
-        //First, try to append to existing currentLine with a space
-        if(!currentLine.empty()) {
-            std::u16string test = currentLine + u' '+word;
-            if(measureTextWidth(font, test)<=maxWidth) {
-                currentLine = std::move(test);
-                return;
+        //Two-character escapes, always honored. An unrecognized one is left exactly as written, so
+        //only "\n", "\t" and "\\" ever change meaning.
+        if(c==u'\\' && i+1<n) {
+            char16_t esc = 0;
+            switch(text[i+1]) {
+                case u'n':  esc = u'\n'; break;
+                case u't':  esc = u'\t'; break;
+                case u'\\': esc = u'\\'; break;
             }
-            //else push currentLine and continue with empty currentLine
-            pushLine(currentLine);
-            currentLine.clear();
-        }
-
-        //Now currentLine is empty. Split 'word' into fragments that fit maxWidth.
-        while(!word.empty()) {
-            // Binary search for the longest prefix that fits
-            int lo = 1;
-            int hi = static_cast<int>(word.size());
-            int best = 0;
-            while(lo<=hi) {
-                int mid = (lo + hi) / 2;
-
-                //Avoid splitting a surrogate pair: if prefix ends on a high surrogate, back it up.
-                if (mid>0 && isHighSurrogate(word[mid-1])) mid--;
-                if (mid<=0) { hi = mid-1; continue; }
-
-                std::u16string prefix = word.substr(0, mid);
-                if (measureTextWidth(font, prefix) <= maxWidth) {
-                    best = mid;
-                    lo = mid+1;
-                } else {
-                    hi = mid-1;
-                }
-            }
-
-            if(best == 0) {
-                //No prefix fits: take the smallest valid unit (1 or 2 code units if surrogate pair)
-                int take = 1;
-                if(isHighSurrogate(word[0]) && word.size()>1) take = 2;
-                std::u16string part = word.substr(0, take);
-                pushLine(part);
-                word.erase(0, take);
+            if(esc!=0) {
+                plainText.push_back(esc); styleIds.push_back(curId);
+                i += 2;
                 continue;
             }
-
-            if(best >= static_cast<int>(word.size())) {
-                currentLine = std::move(word); //whole remainder fits so keep it in currentLine
-                break;
-            } else {
-                //push this fragment as a full line and continue
-                std::u16string part = word.substr(0, best);
-                pushLine(part);
-                word.erase(0, best);
-            }
         }
-    };
 
-    //Parse input text into words (split on spaces/newlines). Respect explicit newlines.
-    for(char16_t c : text) {
-        if(c==u' ' || c==u'\n') {
-            if(!currentWord.empty()) {
-                appendWordToBuffer(std::move(currentWord));
-                currentWord.clear();
+        if(sentinel!=0 && c==sentinel) {
+            if(i+1<n && text[i+1]==sentinel) {
+                plainText.push_back(sentinel); styleIds.push_back(curId);
+                i += 2;
+                continue;
             }
-            if(c==u'\n') {
-                if (!currentLine.empty()) {
-                    pushLine(currentLine);
-                    currentLine.clear();
+            if(i+1<n && text[i+1]==u'[') {
+                size_t close = text.find(u']', i+2);
+                if(close!=std::u16string::npos) {
+                    std::u16string body = text.substr(i+2, close-(i+2));
+                    if(body.empty()) cur = Style();
+                    else applySpanAttribs(cur, body);
+                    curId = internStyle(stylePalette, cur);
+                    i = close+1;
+                    continue;
                 }
             }
-        } else {
-            currentWord.push_back(c);
+            //A sentinel that opens nothing stays literal, so opting in never mangles ordinary text.
         }
-    }
-    if(!currentWord.empty()) appendWordToBuffer(std::move(currentWord));
-    if(!currentLine.empty()) pushLine(currentLine);
 
-    //If too many lines, truncate and append ellipsis "..."
-    if(maxLines>0 && static_cast<int>(lines.size())>maxLines) {
+        plainText.push_back(c); styleIds.push_back(curId);
+        i++;
+    }
+
+    //Markup that resolved to nothing but the default style costs nothing to forget.
+    if(stylePalette.size()<=1) styleIds.clear();
+}
+
+void Text::layoutLines(std::vector<LineRange>& lines) const
+{
+    lines.clear();
+    const size_t n = plainText.size();
+    const int maxW = getEffWrapLength();
+
+    //Trailing blanks at a break would skew a centered or right-aligned line, so they never survive.
+    //Leading ones are untouched, which is what keeps a tab-indented line indented.
+    auto pushTrimmed = [&](size_t start, size_t len) {
+        while(len>0 && isBreakSpace(plainText[start+len-1])) len--;
+        LineRange lr; lr.start = start; lr.len = len;
+        lines.push_back(lr);
+    };
+
+    size_t segStart = 0;
+    while(true) {
+        size_t nl = plainText.find(u'\n', segStart);
+        size_t segEnd = (nl==std::u16string::npos ? n : nl);
+
+        size_t cur = segStart;
+        while(true) {
+            size_t remaining = segEnd-cur;
+            if(remaining==0) { pushTrimmed(cur, 0); break; }
+
+            size_t fit = measureFitCount(font, plainText, cur, remaining, maxW, tabAdvance);
+            if(fit>=remaining) { pushTrimmed(cur, remaining); break; }
+
+            //Prefer the last blank at or before the overflow point; otherwise hard-split the word.
+            size_t brk = std::u16string::npos;
+            for(size_t j = cur+fit; j>cur; j--) {
+                if(isBreakSpace(plainText[j-1])) { brk = j-1; break; }
+            }
+
+            if(brk!=std::u16string::npos && brk>cur) {
+                pushTrimmed(cur, brk-cur);
+                cur = brk+1;
+                //Swallow the rest of the blank run, or the next line starts visibly indented.
+                while(cur<segEnd && isBreakSpace(plainText[cur])) cur++;
+                if(cur>=segEnd) break;
+            } else {
+                size_t cut = (fit>0 ? fit : 1);
+                if(cur+cut<segEnd && isLowSurrogate(plainText[cur+cut])) cut = (cut>1 ? cut-1 : cut+1);
+                if(cur+cut>segEnd) cut = segEnd-cur;
+                pushTrimmed(cur, cut);
+                cur += cut;
+            }
+        }
+
+        if(segEnd>=n) break;
+        segStart = segEnd+1;
+    }
+
+    if(maxLines>0 && (int)lines.size()>maxLines) {
         lines.resize(maxLines);
-        const std::u16string ellipsis = u"...";
-        std::u16string& last = lines.back().second;
-        int ellW = measureTextWidth(font, ellipsis);
-        int w = measureTextWidth(font, last);
-        while (!last.empty() && w+ellW>maxWidth) {
-            last.pop_back();
-            w = measureTextWidth(font, last);
+        LineRange& last = lines.back();
+        int ellW = measureWidth(font, ELLIPSIS, 0, ELLIPSIS.size(), tabAdvance);
+        while(last.len>0 && measureWidth(font, plainText, last.start, last.len, tabAdvance)+ellW>maxW) {
+            last.len--;
+            if(last.len>0 && isLowSurrogate(plainText[last.start+last.len])) last.len--;
         }
-        last += ellipsis;
-        lines.back().first = measureTextWidth(font, last);
+        last.ellipsized = true;
+    }
+}
+
+void Text::buildLinePieces(const LineRange& line, std::vector<LinePiece>& out) const
+{
+    out.clear();
+
+    const size_t end = line.start+line.len;
+    size_t i = line.start;
+    while(i<end) {
+        uint16_t id = (i<styleIds.size() ? styleIds[i] : 0);
+
+        if(plainText[i]==u'\t') {
+            LinePiece p;
+            p.styleId = id;
+            p.isTab = true;
+            p.w = tabAdvance;
+            out.push_back(p);
+            i++;
+            continue;
+        }
+
+        size_t j = i;
+        while(j<end && plainText[j]!=u'\t' && (j<styleIds.size() ? styleIds[j] : 0)==id) j++;
+
+        LinePiece p;
+        p.styleId = id;
+        p.txt = plainText.substr(i, j-i);
+        p.w = measureWidth(font, p.txt, 0, p.txt.size(), tabAdvance);
+        out.push_back(p);
+        i = j;
     }
 
-    return lines;
+    if(line.ellipsized) {
+        LinePiece p;
+        p.styleId = (line.len>0 && line.start+line.len-1<styleIds.size()) ? styleIds[line.start+line.len-1] : 0;
+        p.txt = ELLIPSIS;
+        p.w = measureWidth(font, ELLIPSIS, 0, ELLIPSIS.size(), tabAdvance);
+        out.push_back(p);
+    }
+}
+
+SDL_Surface* Text::buildSurface(const std::vector<LineRange>& lines)
+{
+    const int fontHeight = TTF_FontHeight(font);
+    const int n = (int)lines.size();
+    if(n<=0) return nullptr;
+
+    std::vector<std::vector<LinePiece>> allPieces(n);
+    std::vector<int> lineWidths(n, 0);
+    int maxW = 0;
+    for(int i = 0; i<n; i++) {
+        buildLinePieces(lines[i], allPieces[i]);
+        int lw = 0;
+        for(const LinePiece& p : allPieces[i]) lw += p.w;
+        lineWidths[i] = lw;
+        if(lw>maxW) maxW = lw;
+    }
+
+    //A trailing line adds only its own glyph box, so getHeight() stays the text's real extent.
+    const int totalH = (n-1)*linePitch+fontHeight;
+    //Text with no drawable glyph at all reports 0x0, which keeps getHeight() usable as an
+    //emptiness test. A blank line among non-blank ones still occupies its full pitch.
+    if(maxW<=0 || totalH<=0) { width = 0; height = 0; return nullptr; }
+    width = maxW;
+    height = totalH;
+
+    //One line of one style needs no compositing - its own surface already is the whole texture.
+    if(n==1 && allPieces[0].size()==1 && !allPieces[0][0].isTab) {
+        const LinePiece& only = allPieces[0][0];
+        SDL_Surface* single = renderRunSurface(font, only.txt, 0, only.txt.size());
+        if(single==nullptr) { width = 0; height = 0; return nullptr; }
+        Run r;
+        r.src = {0, 0, single->w, single->h};
+        r.style = stylePalette[only.styleId<stylePalette.size() ? only.styleId : 0];
+        runs.push_back(r);
+        return single;
+    }
+
+    SDL_Surface* surf = SDL_CreateRGBSurfaceWithFormat(0, maxW, totalH, 32, SDL_PIXELFORMAT_ARGB8888);
+    if(surf==nullptr) {
+        Log::warn(__PRETTY_FUNCTION__, "Surface creation failed");
+        width = 0; height = 0;
+        return nullptr;
+    }
+    SDL_FillRect(surf, NULL, 0);
+
+    for(int i = 0; i<n; i++) {
+        int x = 0;
+        switch(align) {
+            case Align::CENTER: x = (maxW-lineWidths[i])/2; break;
+            case Align::RIGHT:  x = maxW-lineWidths[i]; break;
+            case Align::LEFT:   break;
+        }
+        const int lineTop = i*linePitch;
+
+        for(const LinePiece& p : allPieces[i]) {
+            if(p.isTab) {
+                //Pure advance over transparent pixels, but it still belongs to whatever span it sits
+                //in so a highlight reads as one unbroken bar across the gap.
+                Run r;
+                r.src = {x, lineTop, p.w, fontHeight};
+                r.style = stylePalette[p.styleId<stylePalette.size() ? p.styleId : 0];
+                runs.push_back(r);
+                x += p.w;
+                continue;
+            }
+            if(p.txt.empty() || p.w<=0) { x += p.w; continue; }
+
+            SDL_Surface* ps = renderRunSurface(font, p.txt, 0, p.txt.size());
+            if(ps!=nullptr) {
+                //Runs never overlap, so copying rather than blending keeps their alpha intact.
+                SDL_SetSurfaceBlendMode(ps, SDL_BLENDMODE_NONE);
+                SDL_Rect dst = {x, lineTop, ps->w, ps->h};
+                SDL_BlitSurface(ps, NULL, surf, &dst);
+
+                Run r;
+                r.src = {x, lineTop, ps->w, ps->h};
+                r.style = stylePalette[p.styleId<stylePalette.size() ? p.styleId : 0];
+                runs.push_back(r);
+
+                SDL_FreeSurface(ps);
+            }
+            x += p.w;
+        }
+    }
+
+    return surf;
+}
+
+void Text::drawRunPass(int bx, int by, bool shadowPass) const
+{
+    for(const Run& r : runs) {
+        Color fg = (r.style.hasFg ? r.style.fg : textColor);
+
+        SDL_Rect src = r.src;
+        SDL_Rect dst;
+        dst.x = bx+(int)(r.src.x*scale);
+        dst.y = by+(int)(r.src.y*scale);
+        dst.w = (int)(r.src.w*scale);
+        dst.h = (int)(r.src.h*scale);
+
+        if(shadowPass) {
+            dst.x += (int)(shadow.dx*scale);
+            dst.y += (int)(shadow.dy*scale);
+            Color sc = getShadowColorFor(fg);
+            GLSDL_SetTextureColorMod(txtTex, sc.r, sc.g, sc.b);
+            GLSDL_SetTextureAlphaMod(txtTex, 255*shadow.fadeFactor);
+        } else {
+            GLSDL_SetTextureColorMod(txtTex, fg.r, fg.g, fg.b);
+            GLSDL_SetTextureAlphaMod(txtTex, fg.a);
+        }
+
+        GLSDL_RenderCopy(rend, txtTex, &src, &dst);
+    }
+}
+
+Color Text::getShadowColorFor(const Color& fg) const
+{
+    if(shadow.customColor.a==0) return Color(255-fg.r, 255-fg.g, 255-fg.b, 255);
+    return shadow.customColor;
+}
+
+int Text::getEffWrapLength() const
+{
+    //A non-positive wrap length means "break on explicit newlines only", matching SDL_ttf.
+    return wrapLength>0 ? wrapLength : INT_MAX;
+}
+
+int Text::getEffTabAdvance() const
+{
+    if(tabWidth>0) return tabWidth;
+
+    //Four spaces is the conventional stop, and deriving it tracks the font instead of a magic number.
+    int spaceW = measureWidth(font, u" ", 0, 1, 0);
+    if(spaceW<=0) spaceW = TTF_FontHeight(font)/4;
+    return spaceW*4>0 ? spaceW*4 : 1;
+}
+
+bool Text::Style::matches(const Style& o) const
+{
+    return hasFg==o.hasFg && hasBg==o.hasBg && fg==o.fg && bg==o.bg;
+}
+
+bool Text::isLowSurrogate(char16_t c) { return c>=0xDC00 && c<=0xDFFF; }
+
+bool Text::isBreakSpace(char16_t c) { return c==u' ' || c==u'\t'; }
+
+int Text::measureWidth(TTF_Font* font, const std::u16string& txt, size_t start, size_t len, int tabAdvance)
+{
+    if(len==0 || start>=txt.size()) return 0;
+    const size_t end = (start+len<txt.size()) ? start+len : txt.size();
+
+    //A tab has no glyph to measure, so the string is measured in the runs between tabs.
+    int total = 0;
+    size_t i = start;
+    while(i<end) {
+        if(txt[i]==u'\t') { total += tabAdvance; i++; continue; }
+
+        size_t j = i;
+        while(j<end && txt[j]!=u'\t') j++;
+        std::u16string sub = txt.substr(i, j-i);
+        int w = 0, h = 0;
+        TTF_SizeUNICODE(font, reinterpret_cast<const Uint16*>(sub.c_str()), &w, &h);
+        total += w;
+        i = j;
+    }
+    return total;
+}
+
+size_t Text::measureFitCount(TTF_Font* font, const std::u16string& txt, size_t start, size_t len, int maxWidth, int tabAdvance)
+{
+    if(len==0 || start>=txt.size()) return 0;
+    const size_t end = (start+len<txt.size()) ? start+len : txt.size();
+
+    int budget = maxWidth;
+    size_t i = start;
+    while(i<end) {
+        if(txt[i]==u'\t') {
+            if(tabAdvance>budget) return i-start;
+            budget -= tabAdvance;
+            i++;
+            continue;
+        }
+
+        size_t j = i;
+        while(j<end && txt[j]!=u'\t') j++;
+        std::u16string sub = txt.substr(i, j-i);
+
+        int extent = 0, count = 0;
+        if(TTF_MeasureUNICODE(font, reinterpret_cast<const Uint16*>(sub.c_str()), budget, &extent, &count)!=0) {
+            return len;
+        }
+        if(count<0) count = 0;
+        size_t fit = (size_t)count;
+        if(fit>sub.size()) fit = sub.size();
+
+        if(fit<sub.size()) {
+            //Never report a boundary that lands between the halves of a surrogate pair.
+            if(isLowSurrogate(sub[fit])) fit = (fit>0 ? fit-1 : 0);
+            return (i-start)+fit;
+        }
+
+        budget -= extent;
+        i = j;
+    }
+    return end-start;
+}
+
+SDL_Surface* Text::renderRunSurface(TTF_Font* font, const std::u16string& txt, size_t start, size_t len)
+{
+    if(len==0) return nullptr;
+    std::u16string sub = txt.substr(start, len);
+    //Always baked white: every color, span colors included, is a draw-time modulation.
+    return TTF_RenderUNICODE_Blended(font, reinterpret_cast<const Uint16*>(sub.c_str()), {255, 255, 255, 255});
+}
+
+void Text::applySpanAttribs(Style& style, const std::u16string& body)
+{
+    size_t i = 0;
+    while(i<body.size()) {
+        while(i<body.size() && body[i]==u' ') i++;
+        size_t j = i;
+        while(j<body.size() && body[j]!=u' ') j++;
+        if(j<=i) { i = j; continue; }
+
+        //Attribute names and hex values are ASCII by construction; anything else cannot be either.
+        std::string tok;
+        tok.reserve(j-i);
+        for(size_t k = i; k<j; k++) tok.push_back(body[k]<128 ? (char)body[k] : '?');
+        i = j;
+
+        std::string key, val;
+        size_t eq = tok.find('=');
+        if(eq!=std::string::npos) {
+            key = tok.substr(0, eq);
+            val = tok.substr(eq+1);
+        } else if(tok[0]=='#') {
+            key = "fg";
+            val = tok.substr(1);
+        } else {
+            Log::warnv(__PRETTY_FUNCTION__, "ignoring it", "Unrecognized span attribute \"%s\"", tok.c_str());
+            continue;
+        }
+
+        for(size_t k = 0; k<key.size(); k++) key[k] = (char)std::tolower((unsigned char)key[k]);
+        bool isFg = (key=="fg" || key=="color");
+        bool isBg = (key=="bg" || key=="hl" || key=="highlight");
+        if(!isFg && !isBg) {
+            Log::warnv(__PRETTY_FUNCTION__, "ignoring it", "Unrecognized span attribute \"%s\"", tok.c_str());
+            continue;
+        }
+
+        if(val=="none" || val=="-") {
+            if(isFg) style.hasFg = false;
+            else     style.hasBg = false;
+            continue;
+        }
+
+        try {
+            Color c = Color::fromStringB16(val);
+            if(isFg) { style.fg = c; style.hasFg = true; }
+            else     { style.bg = c; style.hasBg = true; }
+        } catch(...) {
+            Log::warnv(__PRETTY_FUNCTION__, "ignoring it", "Unparseable span color \"%s\"", val.c_str());
+        }
+    }
+}
+
+uint16_t Text::internStyle(std::vector<Style>& palette, const Style& style)
+{
+    for(size_t i = 0; i<palette.size(); i++) {
+        if(palette[i].matches(style)) return (uint16_t)i;
+    }
+    if(palette.size()>=0xFFFF) return 0;
+    palette.push_back(style);
+    return (uint16_t)(palette.size()-1);
 }

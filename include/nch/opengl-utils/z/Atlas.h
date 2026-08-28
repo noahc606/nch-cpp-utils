@@ -3,7 +3,9 @@
 #include <SDL2/SDL.h>
 #include <cstdint>
 #include <map>
+#include <mutex>
 #include <nch/sdl-utils/rect.h>
+#include <set>
 #include <string>
 #include <vector>
 #include "nch/opengl-utils/shader.h"
@@ -38,6 +40,7 @@ public:
         id = obj.id;
         type = obj.type;
         map = obj.map;
+        missingImgID = obj.missingImgID;
         mapSize = obj.mapSize;
         pageCount = obj.pageCount;
         anims = std::move(obj.anims);
@@ -53,8 +56,19 @@ public:
     /**
      * @brief UV rect for an image, with its page (texture array layer) index folded into u:
      *        u ∈ [page, page+1), v ∈ [0, 1). Single-page atlases return u ∈ [0, 1) as before.
+     *
+     * Never throws: a key this atlas doesn't hold resolves to setMissingImgID()'s image, or to the
+     * whole atlas when none is set. Each missing key is logged once.
      */
     nch::FRect getSrc(const std::string& imgID) const;
+    /**
+     * @brief Declare the image getSrc() falls back on, so one bad key renders as an obvious
+     *        placeholder instead of taking down whatever was building a mesh out of it.
+     * @param imgID Key of an image in this atlas, in getSrc()'s format. Leave unset (or name a key
+     *        the atlas lacks) to keep the whole-atlas fallback, which is uglier on screen but makes
+     *        a wrong key unmistakable while debugging.
+     */
+    void setMissingImgID(const std::string& imgID);
     std::map<std::string, Entry> getMap();
     int getMapSize();
     int getPageCount();
@@ -85,6 +99,11 @@ private:
     void build();
     //min(GL_MAX_TEXTURE_SIZE, override if set)
     static int resolveMaxPageSize();
+    //UV rect of one packed entry, with its page folded into u (see getSrc).
+    nch::FRect srcOfEntry(const Entry& e) const;
+    //Log a getSrc() miss the first time each key misses - an unresolved key can be asked for every
+    //frame (a particle emit), so logging every one would bury everything else.
+    void warnMissingOnce(const std::string& imgID, bool substituted) const;
 
     void buildVariantFromDirs(Atlas* base, const std::vector<std::string>& dirPaths, const std::vector<std::string>& prefixes, GLuint slot);
     void buildFromDirs(const std::vector<std::string>& dirPaths, const std::vector<std::string>& prefixes, GLuint slot);
@@ -112,6 +131,9 @@ private:
     GLuint id = 0;
     std::string type = "";
     std::map<std::string, Entry> map;
+    std::string missingImgID = "";
+    mutable std::set<std::string> warnedMissing;
+    mutable std::mutex warnedMissingMtx;
     int mapSize = 0;
     int pageCount = 1;
     std::vector<Anim> anims;

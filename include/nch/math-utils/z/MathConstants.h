@@ -11,6 +11,6 @@ static constexpr double m_Gm = 1e9; //Meters per gigameter.
 static constexpr double m_km = 1e3; //Meters per kilometer.
 static constexpr double Gm_m = 1e-9; //Gigameters per meter.
 static constexpr double Gm_km = 1e-6; //Gigameters per kilometer.
-static constexpr double Gm_ly = 9460730472.5808; //Gigameters per light year. Divide a Gm quantity by this to get light years.
+static constexpr double Gm_ly = 9460730.4725808; //Gigameters per light year. Divide a Gm quantity by this to get light years.
 static constexpr double G_for_Gm = G/(m_Gm*m_Gm*m_Gm); //Gravitational constant scaled for Gm: Gm³/(kg·s²). 1 Gm³ = 1e27 m³.
 }

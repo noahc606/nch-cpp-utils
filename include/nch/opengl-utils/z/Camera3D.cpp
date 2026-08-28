@@ -2,6 +2,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <nch/cpp-utils/log.h>
+#include <nch/math-utils/chunkmath.h>
 #include <nch/math-utils/consts.h>
 #include <nch/sdl-utils/input.h>
 #include <nch/sdl-utils/main-loop-driver.h>
@@ -299,6 +300,14 @@ void Camera3D::setPos(Vec3f pos) {
     Camera3D::regPos = Vec3i64(0, 0, 0);
     Camera3D::lPos = pos;
     updateRegAndSubPos();
+}
+void Camera3D::setPos(Vec3i64 regPos, Vec3f subPos) {
+    Camera3D::regPos = regPos;
+    Camera3D::lPos = subPos;
+    updateRegAndSubPos();
+}
+void Camera3D::setPos(Vec3d pos) {
+    setPos(nch::chunked3D(pos), nch::subbed3D(pos).toFloat());
 }
 void Camera3D::setVel(Vec3f vel) {
     Camera3D::vel = vel;

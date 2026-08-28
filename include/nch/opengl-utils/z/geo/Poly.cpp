@@ -165,6 +165,11 @@ void Poly::rotate(const Vec3f& center, const Vec3f& xyzRotRad)
         for(size_t i = 0; i<verts.size(); i++) {
             GeoUtils::rotatePoint(verts[i].normal, {0, 0, 0}, xyzRotRad);
         }
+        //super_updateNormals() no-ops under manual normals, so the winding-derived poly normal has to
+        //be turned by hand — otherwise norm() keeps reporting where the face pointed before the
+        //rotation, and everything picking an axis off it (simplyTex's box map, a caller classifying
+        //the face to a direction) works from the old orientation.
+        GeoUtils::rotatePoint(normal, {0, 0, 0}, xyzRotRad);
     }
     super_updateNormals();
 }

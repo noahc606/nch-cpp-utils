@@ -108,18 +108,14 @@ int FilePath::getNumDirsDown()
 
 std::string FilePath::getExtension()
 {
-    if(!StringUtils::aContainsB(cleanpath, ".")) return "";
+    //Must be scoped to the object name: a dot anywhere in the path ("/a.b/c") says nothing about 'c' having an extension.
+    std::string objName = getObjectName(true);
 
-    std::string ret = "";
-    for(int i = cleanpath.size()-1; i>=0; i--) {
-        if(cleanpath[i]=='.') {
-            break;
-        } else if(cleanpath[i]=='/') {
-            break;
-        } else {
-            ret = cleanpath[i]+ret;
-        }
-    }
+    //A dot leading the object name marks it hidden (".gitignore"), it doesn't start an extension.
+    size_t dotIdx = objName.find_last_of('.');
+    if(dotIdx==std::string::npos || dotIdx==0) return "";
+
+    std::string ret = objName.substr(dotIdx+1);
     std::transform(ret.begin(), ret.end(), ret.begin(), ::tolower);
     return ret;
 }

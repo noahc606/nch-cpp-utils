@@ -119,6 +119,12 @@ public:
     void setWindow(SDL_Window* win);
     void setWindow(nch::Vec2i virtualWinDims);
     void setPos(nch::Vec3f pos);
+    //The precise entry points for a camera far from the origin, mirroring Mesh::setPos. setPos(Vec3f)
+    //has to hold the ABSOLUTE position in a float before splitting it, and a float's steps are ~3cm a
+    //few hundred km out - enough that every move jitters the whole view. These two never form that
+    //absolute float. 'subPos' need not be pre-wrapped into [0, 32); it is folded into regPos here.
+    void setPos(nch::Vec3i64 regPos, nch::Vec3f subPos);
+    void setPos(nch::Vec3d pos);
     void setVel(nch::Vec3f vel);
     void setRot(float yaw, float pitch, float roll = 0);
     //Free-orientation mode: when enabled, subtickRotation tracks a full (forward, up) basis instead of
