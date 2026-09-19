@@ -214,6 +214,9 @@ std::vector<Poly> Mesh::getPolysAt(Vec3i key) {
 Vec3i64 Mesh::getChunkPos() const {
     return chkPos;
 }
+Vec3f Mesh::getSubPos() const {
+    return subPos;
+}
 
 void Mesh::applyUpdates()
 {

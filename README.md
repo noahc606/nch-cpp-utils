@@ -1,7 +1,7 @@
 # NCH-CPP-Utils
 Noah's Utilities for C++, SDL2, OpenGL, and more.
 
-This repo contains shared C++ code for some of my other projects. It is a collection of 8 modules - each may or may not be included depending on what is needed.
+This repo contains shared C++ code for some of my other projects. It is a collection of 9 modules - each may or may not be included depending on what is needed.
 
 # NCH Library Modules & Inter-Dependencies
 - math-utils: none
@@ -12,6 +12,7 @@ This repo contains shared C++ code for some of my other projects. It is a collec
 - xml-utils: Depends on cpp-utils + math-utils
 - json-utils: cDepends on cpp-utils + math-utils
 - opengl-utils: Depends on cpp-utils + math-utils + sdl-utils + json-utils
+- sqlite3-utils: Depends on cpp-utils + json-utils
 
 # Using the Library
 Copy or symlink "nch" within this repo's "include" directory into your own project's "include" directory. Make sure your CMake/make/whatever setup globs every .cpp and .h file within your include folder. Then, use "#include <nch/...-utils/...>" and "using namespace nch;" within your C++ code.

@@ -55,10 +55,7 @@ void Camera3D::drawFromPos(Shader* sdr, Vec3f offset)
     double tickProgress = (double)(currTimeNS-lastTickTimeNS)/MainLoopDriver::getTargetNSPT();
     Vec3f iLPos = lPos+vel*(float)tickProgress+offset;
 
-    Vec3f savedRotVec = rotVec;
-    rotVec = rotVec * perspectiveDir;
     updateCamMatrix(iLPos);
-    rotVec = savedRotVec;
 
     const std::string& uniCamPos = sdr->getUniformCamPos();
     const std::string& uniCamMat = sdr->getUniformCamMatrix();
@@ -89,7 +86,7 @@ glm::mat4 Camera3D::getCMatrixForOffset(Vec3f offset) const
 }
 void Camera3D::drawSkybox(Shader* sdr)
 {
-    //For skybox rendering, put camera @ origin while keeping rotation
+    //For skybox rendering, put camera @ origin while keeping the RENDER rotation (perspectiveDir included).
     updateCamMatrix({0, 0, 0});
     const std::string& uniCamPos = sdr->getUniformCamPos();
     const std::string& uniCamMat = sdr->getUniformCamMatrix();
@@ -237,8 +234,12 @@ Vec3f Camera3D::getUp() const {
 }
 Vec3f Camera3D::getRenderUp() const {
     if(useBasisOverride) return basisUp;
-    Vec3f effRot = (rotVec*perspectiveDir+extraRotVec).normalized();
-    glm::vec3 u = computeRolledUp(computeNaturalUp(), glm::vec3(effRot));
+    //Roll axis is the camera's OWN look direction, never the perspectiveDir-flipped one. 'roll' is stored
+    //about that axis (commitBasis measures it there), and a roll about -f is the same roll negated about
+    //+f, so rolling about the flipped forward banked a reversed third-person view opposite to the
+    //first-person one. The flip is a 180-degree turn about up, which leaves up itself alone. Invisible
+    //while roll is 0 (an upright +Y up); off by twice the roll once the camera is banked at all.
+    glm::vec3 u = computeRolledUp(computeNaturalUp(), glm::vec3(getEffectiveRot()));
     return Vec3f(u.x, u.y, u.z);
 }
 Vec3f Camera3D::getRight() const {
@@ -437,14 +438,19 @@ void Camera3D::clearProjOverride() {
 void Camera3D::updateCamMatrix(Vec3f pos)
 {
     if(useOverrideMatrix) { cMatrix = overrideMatrix; return; }
-    cMatrix = buildViewProj(pos, getEffectiveRot());
+    //perspectiveDir flips where the camera FACES (a third-person-reversed view looks back at its owner),
+    //so the render matrix has to carry it - this is the same effRot getCMatrixForOffset builds, which is
+    //what keeps the two from drifting apart. It used to be applied by drawFromPos alone, which left
+    //drawSkybox facing 180 degrees away from everything else drawn in the same pass.
+    cMatrix = buildViewProj(pos, (rotVec*perspectiveDir+extraRotVec).normalized());
 }
 glm::mat4 Camera3D::buildViewProj(Vec3f pos, Vec3f effRot) const
 {
-    //Calculate 'rolledUp' from spherical-coordinate-derived natural up (or the pinned basis, see setBasis)
-    glm::vec3 forward = glm::vec3(effRot);
-    glm::vec3 rolledUp = useBasisOverride ? glm::vec3(basisUp) : computeRolledUp(computeNaturalUp(), forward);
-    glm::mat4 view = glm::lookAt((glm::vec3)pos, (glm::vec3)(pos+effRot), rolledUp);
+    //Up is the spherical-coordinate natural up rolled about the camera's own look axis, or the pinned
+    //basis (see setBasis) - exactly getRenderUp(), which is shared here so the matrix and everything
+    //reconstructing a view from that getter (sky, SSAO, billboards) can't bank differently.
+    Vec3f ru = getRenderUp();
+    glm::mat4 view = glm::lookAt((glm::vec3)pos, (glm::vec3)(pos+effRot), glm::vec3(ru.x, ru.y, ru.z));
     glm::mat4 proj = useProjOverride
         ? projOverride
         : glm::perspective(glm::radians(fov), ((float)sdlWinW/(float)sdlWinH), nearPlane, farPlane);

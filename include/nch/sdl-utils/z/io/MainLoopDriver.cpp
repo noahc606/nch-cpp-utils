@@ -30,6 +30,9 @@ int MainLoopDriver::currentFPS = 0, MainLoopDriver::currentTPS = 0;
 std::vector<double> MainLoopDriver::frameTimes, MainLoopDriver::tickTimes;
 std::map<std::string, nch::Color> MainLoopDriver::bmLabelColors;
 std::map<std::string, std::vector<double>> MainLoopDriver::bmFrameTimes, MainLoopDriver::bmTickTimes;
+std::vector<SDL_Vertex> MainLoopDriver::bmVerts;
+std::vector<int> MainLoopDriver::bmInds;
+std::vector<int> MainLoopDriver::bmStackTops;
 
 std::mutex MainLoopDriver::mtx;
 int MainLoopDriver::currentNumTicksLeft = 0;
@@ -91,62 +94,88 @@ void MainLoopDriver::drawPerformanceBenchmark(GLSDL_Renderer* sdlRend, int bmHei
 	GLSDL_GetRenderDrawBlendMode(sdlRend, &oldBlendMode);
 	GLSDL_SetRenderDrawBlendMode(sdlRend, SDL_BLENDMODE_BLEND);
 
-	//Tick and frame rectangles
-	{
-		Color col1(255, 0, 255);
-		SDL_Rect tickRect = {windowWidth-targetTPS, windowHeight-bmHeight, targetTPS, bmHeight};
-		GLSDL_SetRenderDrawColor(sdlRend, col1.r, col1.g, col1.b, 191);
-		GLSDL_RenderFillRect(sdlRend, &tickRect);
+	//One graph per column, on one baseline: the raw TOTAL goes down first and the instrumented ops
+	//stack over it. The colored stack is the known footprint, so whatever raw line still shows above it
+	//is the part of that frame/tick nothing accounts for yet — which is the thing worth looking at.
+	int bottom = windowHeight;
+	int tickX = windowWidth-targetTPS;
+	int frameX = 0;
 
-		Color col0(0, 255, 255);
-		SDL_Rect frameRect = {0, windowHeight-bmHeight, targetFPS, bmHeight};
-		GLSDL_SetRenderDrawColor(sdlRend, col0.r, col0.g, col0.b, 191);
-		GLSDL_RenderFillRect(sdlRend, &frameRect);
-	}
+	bmVerts.clear();
+	bmInds.clear();
 
+	drawPane(frameX, bottom, targetFPS, bmHeight, Color(0, 255, 255));
+	drawPane(tickX,  bottom, targetTPS, bmHeight, Color(255, 0, 255));
 
 	//Frame times
 	double idealMSPF = 1000.0/targetFPS;
-	for(int i = 0; i<frameTimes.size()&&i<targetFPS; i++) {
-		int lineHeight = (bmHeight*frameTimes[i]/idealMSPF)+1;
-
-		GLSDL_SetRenderDrawColor(sdlRend, 255, 0, 0, 255);
-		GLSDL_RenderDrawLine(sdlRend, i, windowHeight-lineHeight, i, windowHeight);
-
-		lineHeight = windowHeight;
-		int lineSize = 0;
-		for(const auto& bm : bmFrameTimes) {
-			lineSize = 0;
-			try { lineSize = (bmHeight*bm.second.at(i)/idealMSPF)+1; } catch(...){}
-			Color lineColor = Color(255, 255, 255);
-			try { lineColor = bmLabelColors.at(bm.first); } catch(...){}
-			lineHeight -= lineSize;
-			GLSDL_SetRenderDrawColor(sdlRend, lineColor.r, lineColor.g, lineColor.b, 255);
-			GLSDL_RenderDrawLine(sdlRend, i, lineHeight, i, lineHeight+lineSize);
-		}
-	}
+	drawRawRow(frameTimes, targetFPS, frameX, bottom, bmHeight, idealMSPF, Color(255, 0, 0));
+	drawBreakdownRow(bmFrameTimes, targetFPS, frameX, bottom, bmHeight, idealMSPF);
 	//Tick times
 	double idealMSPT = 1000.0/targetTPS;
-	for(int i = 0; i<tickTimes.size()&&i<targetTPS; i++) {
-		int lineHeight = (bmHeight*tickTimes[i]/idealMSPT)+1;
+	drawRawRow(tickTimes, targetTPS, tickX, bottom, bmHeight, idealMSPT, Color(0, 255, 0));
+	drawBreakdownRow(bmTickTimes, targetTPS, tickX, bottom, bmHeight, idealMSPT);
 
-		GLSDL_SetRenderDrawColor(sdlRend, 0, 255, 0, 255);
-		GLSDL_RenderDrawLine(sdlRend, windowWidth-targetTPS+i, windowHeight-lineHeight, windowWidth-targetTPS+i, windowHeight);
-
-		lineHeight = windowHeight;
-		int lineSize = 0;
-		for(const auto& bm : bmTickTimes) {
-			lineSize = 0;
-			try { lineSize = (bmHeight*bm.second.at(i)/idealMSPT)+1; } catch(...){}
-			Color lineColor = Color(255, 255, 255);
-			try { lineColor = bmLabelColors.at(bm.first); } catch(...){}
-			lineHeight -= lineSize;
-			GLSDL_SetRenderDrawColor(sdlRend, lineColor.r, lineColor.g, lineColor.b, 255);
-			GLSDL_RenderDrawLine(sdlRend, windowWidth-targetTPS+i, lineHeight, windowWidth-targetTPS+i, lineHeight+lineSize);
-		}
-	}
+	flushBars(sdlRend);
 
 	GLSDL_SetRenderDrawBlendMode(sdlRend, oldBlendMode);
+}
+void MainLoopDriver::pushBar(int x0, int top, int w, int h, const nch::Color& color, uint8_t alpha) {
+	if(w<=0 || h<=0) return;
+
+	SDL_Color c = {color.r, color.g, color.b, alpha};
+	float x1 = (float)x0, x2 = (float)(x0+w);
+	float y1 = (float)top, y2 = (float)(top+h);
+	int base = (int)bmVerts.size();
+
+	SDL_Vertex v;
+	v.color = c;
+	v.tex_coord = {0, 0};
+	v.position = {x1, y1}; bmVerts.push_back(v);
+	v.position = {x2, y1}; bmVerts.push_back(v);
+	v.position = {x2, y2}; bmVerts.push_back(v);
+	v.position = {x1, y2}; bmVerts.push_back(v);
+
+	bmInds.push_back(base+0); bmInds.push_back(base+1); bmInds.push_back(base+2);
+	bmInds.push_back(base+2); bmInds.push_back(base+3); bmInds.push_back(base+0);
+}
+void MainLoopDriver::flushBars(GLSDL_Renderer* sdlRend) {
+	if(bmInds.empty()) return;
+	//Untextured, so the per-vertex colors carry both graphs' palettes through the one call.
+	GLSDL_RenderGeometry(sdlRend, nullptr, bmVerts.data(), (int)bmVerts.size(), bmInds.data(), (int)bmInds.size());
+}
+void MainLoopDriver::drawPane(int x0, int bottom, int w, int bmHeight, const nch::Color& color) {
+	pushBar(x0, bottom-bmHeight, w, bmHeight, color, 191);
+}
+void MainLoopDriver::drawRawRow(const std::vector<double>& times, int maxSamples,
+	int x0, int bottom, int bmHeight, double idealMS, const nch::Color& color)
+{
+	int numSamples = (int)times.size()<maxSamples ? (int)times.size() : maxSamples;
+	for(int i = 0; i<numSamples; i++) {
+		int lineSize = (int)(bmHeight*times[i]/idealMS)+1;
+		pushBar(x0+i, bottom-lineSize, 1, lineSize, color, 255);
+	}
+}
+void MainLoopDriver::drawBreakdownRow(const std::map<std::string, std::vector<double>>& bmTimes,
+	int maxSamples, int x0, int bottom, int bmHeight, double idealMS)
+{
+	//Label-outer over each label's own samples, against one running stack top per index. Sample-outer
+	//visited every label at every index, so at a high FPS cap most of the work was skipping labels with
+	//no sample there yet, and each label's color was looked up again for every sample.
+	bmStackTops.assign(maxSamples, bottom);
+
+	for(const auto& bm : bmTimes) {
+		Color lineColor(255, 255, 255);
+		auto colItr = bmLabelColors.find(bm.first);
+		if(colItr!=bmLabelColors.end()) lineColor = colItr->second;
+
+		int numSamples = (int)bm.second.size()<maxSamples ? (int)bm.second.size() : maxSamples;
+		for(int i = 0; i<numSamples; i++) {
+			int lineSize = (int)(bmHeight*bm.second[i]/idealMS)+1;
+			bmStackTops[i] -= lineSize;
+			pushBar(x0+i, bmStackTops[i], 1, lineSize, lineColor, 255);
+		}
+	}
 }
 void MainLoopDriver::performanceBenchmarkDrawOp(Timer& timer, const nch::Color& color) {
 	const std::string lbl = timer.getDesc();
@@ -170,7 +199,9 @@ void MainLoopDriver::performanceBenchmarkDrawOp(Timer& timer, const nch::Color& 
 	vecItr->second.push_back(timer.getElapsedTimeMS());
 }
 void MainLoopDriver::performanceBenchmarkTickOp(Timer& timer, const nch::Color& color) {
-	const std::string lbl = timer.getDesc();
+	performanceBenchmarkTickOp(timer.getDesc(), timer.getElapsedTimeMS(), color);
+}
+void MainLoopDriver::performanceBenchmarkTickOp(const std::string& lbl, double ms, const nch::Color& color) {
 	auto vecItr = bmTickTimes.find(lbl);
 	if(vecItr==bmTickTimes.end()) {
 		std::vector<double> times;
@@ -188,7 +219,7 @@ void MainLoopDriver::performanceBenchmarkTickOp(Timer& timer, const nch::Color& 
 	if(tps==0) {
 		vecItr->second.clear();
 	}
-	vecItr->second.push_back(timer.getElapsedTimeMS());
+	vecItr->second.push_back(ms);
 }
 
 void MainLoopDriver::quit() {

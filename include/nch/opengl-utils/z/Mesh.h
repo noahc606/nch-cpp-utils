@@ -61,6 +61,10 @@ public:
     Vec3f getGeometricCenter();
     std::vector<Poly> getPolysAt(Vec3i key);
     Vec3i64 getChunkPos() const;
+    //Sub-chunk offset of the mesh origin. draw() renders a model-local vertex 'p' at world position
+    //(getChunkPos()*32 + getSubPos() + p), so anything reconstructing that world position outside of
+    //draw() (e.g. a light-space matrix) needs both halves.
+    Vec3f getSubPos() const;
 
     void applyUpdates();
     void addPoly(const Vec3i& key, const Poly& poly);
