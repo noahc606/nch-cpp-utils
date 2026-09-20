@@ -245,7 +245,8 @@ void Draw::streamQuad3D(Vec3f p0, Vec3f p1, Vec3f p2, Vec3f p3)
     VAO::linkAttrib(vbo, 3, 2, GL_FLOAT, sizeof(Vertex), (void*)(9*sizeof(float)));
     
     VBO::bind(vbo);
-    glDrawArrays(GL_QUADS, 0, 4);
+    //GL_QUADS is gone from the core profile. A 4-vertex fan is the same two triangles (0,1,2)+(0,2,3).
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
     VBO::destroy(vbo);
     VAO::destroy(vao);
@@ -272,7 +273,8 @@ void Draw::streamQuad3D(const Color& col, Vec3f p0, Vec3f p1, Vec3f p2, Vec3f p3
     VAO::linkAttrib(vbo, 3, 2, GL_FLOAT, sizeof(Vertex), (void*)(9*sizeof(float)));
     
     VBO::bind(vbo);
-    glDrawArrays(GL_QUADS, 0, 4);
+    //GL_QUADS is gone from the core profile. A 4-vertex fan is the same two triangles (0,1,2)+(0,2,3).
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
     VBO::destroy(vbo);
     VAO::destroy(vao);
