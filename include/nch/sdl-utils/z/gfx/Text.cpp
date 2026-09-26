@@ -314,6 +314,12 @@ void Text::setShadowCustomColor(nch::Color shadowCustomColor)
     shadow.customColor.b = scc.b;
     shadow.customColor.a = 255;
 }
+void Text::setShadowDarkenFactor(float factor)
+{
+    if(factor<0.0f) factor = 0.0f;
+    if(factor>1.0f) factor = 1.0f;
+    shadow.darkenFactor = factor;
+}
 
 void Text::updateTextTexture()
 {
@@ -645,6 +651,10 @@ void Text::drawRunPass(int bx, int by, bool shadowPass) const
 
 Color Text::getShadowColorFor(const Color& fg) const
 {
+    if(shadow.darkenFactor>0) {
+        float f = shadow.darkenFactor;
+        return Color((int)(fg.r*f), (int)(fg.g*f), (int)(fg.b*f), 255);
+    }
     if(shadow.customColor.a==0) return Color(255-fg.r, 255-fg.g, 255-fg.b, 255);
     return shadow.customColor;
 }

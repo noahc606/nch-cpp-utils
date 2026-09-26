@@ -17,6 +17,7 @@ public:
         int dy = 4;
         float fadeFactor = 0.8;
         nch::Color customColor = nch::Color(0, 0, 0, 0);
+        float darkenFactor = 0; //>0: each run's shadow is its own color scaled by this (overrides customColor).
     };
 
     Text();
@@ -86,6 +87,11 @@ public:
     void setShadowFadeFactor(float shadowFadeFactor);
     void removeShadowCustomColor();
     void setShadowCustomColor(nch::Color shadowCustomColor);
+    /**
+     * @brief Derive every run's shadow from that run's own color, scaled by 'factor' (0.5 = half as
+     * bright), so span-colored text keeps a shadow that matches it. 0 turns the mode back off.
+     */
+    void setShadowDarkenFactor(float factor);
     void updateTextTexture();
 
 private:

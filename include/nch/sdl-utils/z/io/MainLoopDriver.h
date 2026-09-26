@@ -7,6 +7,7 @@
 #include <vector>
 #include "nch/cpp-utils/color.h"
 #include "nch/cpp-utils/timer.h"
+#include "nch/sdl-utils/text.h"
 
 namespace nch { class MainLoopDriver {
 public:
@@ -25,7 +26,14 @@ public:
     static uint64_t getNumTicksPassedTotal();
     static bool hasQuit();
     
-    static void drawPerformanceBenchmark(GLSDL_Renderer* sdlRend, int bmHeight, int windowWidth, int windowHeight, void* ttfFont = nullptr);
+    /**
+     * @brief Draw the frame graph (bottom-left) and the tick graph (bottom-right). Call between GLSDL_GL_SaveState()
+     * and GLSDL_GL_RestoreState().
+     * @param font Font to bake each graph's legend from, or nullptr for no legends. The labels are baked once and
+     * rebaked only when a different font is passed.
+     * @param textScale Scale the legend text is drawn at.
+     */
+    static void drawPerformanceBenchmark(GLSDL_Renderer* sdlRend, int bmHeight, int windowWidth, int windowHeight, TTF_Font* font = nullptr, double textScale = 1.0);
     static void performanceBenchmarkDrawOp(nch::Timer& timer, const nch::Color& color);
     static void performanceBenchmarkTickOp(nch::Timer& timer, const nch::Color& color);
     //Same, for a contribution that isn't one Timer's lifetime — work spread over several calls in a tick
@@ -53,6 +61,34 @@ private:
     static void drawBreakdownRow(const std::map<std::string, std::vector<double>>& bmTimes,
         int maxSamples, int x0, int bottom, int bmHeight, double idealMS);
 
+    //One graph's legend: a name for every label it has ever stacked. Outlives the samples, which are cleared
+    //every second, so a label that hasn't reported yet this second doesn't blink out of it.
+    struct Legend {
+        std::map<std::string, nch::Text> labelTexts;
+        nch::Text rawText; //The raw row's own entry: the time nothing accounts for.
+    };
+    //A legend name waiting for the bar batch to be flushed, so it draws over it.
+    struct LegendLine {
+        const nch::Text* txt = nullptr;
+        int x = 0;
+        int y = 0;
+    };
+    //Rebuild the legends from scratch when <font> or <sdlRend> changed since the last call (a resource reload
+    //frees the old font), and make sure both exist.
+    static void prepLegends(GLSDL_Renderer* sdlRend, TTF_Font* font);
+    //Free both legends and every texture baked for them.
+    static void releaseLegends();
+    //Bake <txt> as <label> the first time it's seen, and keep it drawing at <textScale>.
+    static void prepLegendText(nch::Text& txt, const std::string& label, double textScale);
+    //Name every label of <bmTimes>, bottom-up in the order the breakdown stacks them, under the raw row's own
+    //entry. <anchorX> is the legend's left edge, or its right edge when <rightAligned>.
+    static void layoutLegend(Legend& legend, const std::map<std::string, std::vector<double>>& bmTimes,
+        const nch::Color& rawColor, const nch::Color& paneColor, int anchorX, int bottom, bool rightAligned, double textScale);
+    //One entry sitting on <bottom>: a <color> swatch pushed into the bar batch, framed in <paneColor> because a
+    //dark bar color only reads against the pane it's drawn on, with <txt> queued beside it. Returns its top.
+    static int pushLegendLine(const nch::Text& txt, const nch::Color& color, const nch::Color& paneColor,
+        int anchorX, int bottom, bool rightAligned);
+
     static void ticker();
     static void events();
 
@@ -79,6 +115,13 @@ private:
     static std::vector<int> bmInds;
     //One running stack top per sample index, so a breakdown can be walked label-outer.
     static std::vector<int> bmStackTops;
+    //Heap-held and freed by releaseLegends() rather than static objects: freeing a texture needs a GL save state,
+    //and exit-time destructors run after the context is already gone.
+    static Legend* bmFrameLegend;
+    static Legend* bmTickLegend;
+    static std::vector<LegendLine> bmLegendLines;
+    static GLSDL_Renderer* bmRend;
+    static TTF_Font* bmLegendFont;
     //Objects used by ticker
 	static std::mutex mtx;
 	static int currentNumTicksLeft;

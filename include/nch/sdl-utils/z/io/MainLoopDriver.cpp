@@ -33,6 +33,11 @@ std::map<std::string, std::vector<double>> MainLoopDriver::bmFrameTimes, MainLoo
 std::vector<SDL_Vertex> MainLoopDriver::bmVerts;
 std::vector<int> MainLoopDriver::bmInds;
 std::vector<int> MainLoopDriver::bmStackTops;
+MainLoopDriver::Legend* MainLoopDriver::bmFrameLegend = nullptr;
+MainLoopDriver::Legend* MainLoopDriver::bmTickLegend = nullptr;
+std::vector<MainLoopDriver::LegendLine> MainLoopDriver::bmLegendLines;
+GLSDL_Renderer* MainLoopDriver::bmRend = nullptr;
+TTF_Font* MainLoopDriver::bmLegendFont = nullptr;
 
 std::mutex MainLoopDriver::mtx;
 int MainLoopDriver::currentNumTicksLeft = 0;
@@ -89,7 +94,7 @@ bool MainLoopDriver::hasQuit() {
 	return !running;
 }
 
-void MainLoopDriver::drawPerformanceBenchmark(GLSDL_Renderer* sdlRend, int bmHeight, int windowWidth, int windowHeight, void* ttfFont) {
+void MainLoopDriver::drawPerformanceBenchmark(GLSDL_Renderer* sdlRend, int bmHeight, int windowWidth, int windowHeight, TTF_Font* font, double textScale) {
 	SDL_BlendMode oldBlendMode;
 	GLSDL_GetRenderDrawBlendMode(sdlRend, &oldBlendMode);
 	GLSDL_SetRenderDrawBlendMode(sdlRend, SDL_BLENDMODE_BLEND);
@@ -100,23 +105,38 @@ void MainLoopDriver::drawPerformanceBenchmark(GLSDL_Renderer* sdlRend, int bmHei
 	int bottom = windowHeight;
 	int tickX = windowWidth-targetTPS;
 	int frameX = 0;
+	Color framePane(0, 255, 255), frameRaw(255, 0, 0);
+	Color tickPane(255, 0, 255), tickRaw(0, 255, 0);
 
 	bmVerts.clear();
 	bmInds.clear();
+	bmLegendLines.clear();
 
-	drawPane(frameX, bottom, targetFPS, bmHeight, Color(0, 255, 255));
-	drawPane(tickX,  bottom, targetTPS, bmHeight, Color(255, 0, 255));
+	drawPane(frameX, bottom, targetFPS, bmHeight, framePane);
+	drawPane(tickX,  bottom, targetTPS, bmHeight, tickPane);
 
 	//Frame times
 	double idealMSPF = 1000.0/targetFPS;
-	drawRawRow(frameTimes, targetFPS, frameX, bottom, bmHeight, idealMSPF, Color(255, 0, 0));
+	drawRawRow(frameTimes, targetFPS, frameX, bottom, bmHeight, idealMSPF, frameRaw);
 	drawBreakdownRow(bmFrameTimes, targetFPS, frameX, bottom, bmHeight, idealMSPF);
 	//Tick times
 	double idealMSPT = 1000.0/targetTPS;
-	drawRawRow(tickTimes, targetTPS, tickX, bottom, bmHeight, idealMSPT, Color(0, 255, 0));
+	drawRawRow(tickTimes, targetTPS, tickX, bottom, bmHeight, idealMSPT, tickRaw);
 	drawBreakdownRow(bmTickTimes, targetTPS, tickX, bottom, bmHeight, idealMSPT);
 
+	//Legends face each other from beside their graphs: the frame graph's on its right, the tick graph's on its left.
+	if(font!=nullptr) {
+		prepLegends(sdlRend, font);
+		int gap = (int)(4*textScale);
+		layoutLegend(*bmFrameLegend, bmFrameTimes, frameRaw, framePane, frameX+targetFPS+gap, bottom, false, textScale);
+		layoutLegend(*bmTickLegend, bmTickTimes, tickRaw, tickPane, tickX-gap, bottom, true, textScale);
+	}
+
+	//Swatches ride the bars' batch; the names go on top of it.
 	flushBars(sdlRend);
+	for(const LegendLine& ll : bmLegendLines) {
+		ll.txt->draw(ll.x, ll.y);
+	}
 
 	GLSDL_SetRenderDrawBlendMode(sdlRend, oldBlendMode);
 }
@@ -176,6 +196,68 @@ void MainLoopDriver::drawBreakdownRow(const std::map<std::string, std::vector<do
 			pushBar(x0+i, bmStackTops[i], 1, lineSize, lineColor, 255);
 		}
 	}
+}
+void MainLoopDriver::prepLegends(GLSDL_Renderer* sdlRend, TTF_Font* font) {
+	if(font!=bmLegendFont || sdlRend!=bmRend) {
+		releaseLegends();
+		bmRend = sdlRend;
+		bmLegendFont = font;
+	}
+	if(bmFrameLegend==nullptr) bmFrameLegend = new Legend();
+	if(bmTickLegend==nullptr) bmTickLegend = new Legend();
+}
+void MainLoopDriver::releaseLegends() {
+	delete bmFrameLegend; bmFrameLegend = nullptr;
+	delete bmTickLegend; bmTickLegend = nullptr;
+	bmLegendLines.clear();
+}
+void MainLoopDriver::prepLegendText(Text& txt, const std::string& label, double textScale) {
+	if(!txt.isInitialized()) {
+		//Text first, so init() bakes once rather than baking an empty string and then the label.
+		txt.setText(label);
+		txt.setShadowing(true);
+		txt.setShadowRelPos(1, 1);
+		txt.setShadowCustomColor(Color(0, 0, 0));
+		txt.init(bmRend, bmLegendFont);
+	}
+	txt.setScale(textScale);
+}
+void MainLoopDriver::layoutLegend(Legend& legend, const std::map<std::string, std::vector<double>>& bmTimes,
+	const nch::Color& rawColor, const nch::Color& paneColor, int anchorX, int bottom, bool rightAligned, double textScale)
+{
+	for(const auto& bm : bmTimes) {
+		prepLegendText(legend.labelTexts[bm.first], bm.first, textScale);
+	}
+	prepLegendText(legend.rawText, "untimed", textScale);
+
+	int y = bottom;
+	for(const auto& lt : legend.labelTexts) {
+		Color lineColor(255, 255, 255);
+		auto colItr = bmLabelColors.find(lt.first);
+		if(colItr!=bmLabelColors.end()) lineColor = colItr->second;
+		y = pushLegendLine(lt.second, lineColor, paneColor, anchorX, y, rightAligned);
+	}
+	pushLegendLine(legend.rawText, rawColor, paneColor, anchorX, y, rightAligned);
+}
+int MainLoopDriver::pushLegendLine(const Text& txt, const nch::Color& color, const nch::Color& paneColor,
+	int anchorX, int bottom, bool rightAligned)
+{
+	int lineH = (int)txt.getHeight();
+	int top = bottom-lineH;
+	int swatch = lineH-2;
+	int border = swatch/6>1 ? swatch/6 : 1;
+	int gap = lineH/4;
+
+	int swatchX = rightAligned ? anchorX-swatch : anchorX;
+	pushBar(swatchX, top+1, swatch, swatch, paneColor, 191);
+	pushBar(swatchX+border, top+1+border, swatch-2*border, swatch-2*border, color, 255);
+
+	LegendLine ll;
+	ll.txt = &txt;
+	ll.x = rightAligned ? swatchX-gap-(int)txt.getWidth() : swatchX+swatch+gap;
+	ll.y = top;
+	bmLegendLines.push_back(ll);
+	return top;
 }
 void MainLoopDriver::performanceBenchmarkDrawOp(Timer& timer, const nch::Color& color) {
 	const std::string lbl = timer.getDesc();
@@ -274,6 +356,13 @@ void MainLoopDriver::start(SDL_Renderer* rend, void (*tickFunc)(), uint64_t targ
 			while(running) mainLoop();
 			tickerThread.detach();
 		#endif
+	}
+
+	//The legends' textures go while the context they were made in is still alive.
+	if(bmRend!=nullptr) {
+		GLSDL_GL_SaveState(bmRend);
+		releaseLegends();
+		GLSDL_GL_RestoreState(bmRend);
 	}
 
 	//Quit once main loop has finished.
