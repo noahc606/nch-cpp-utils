@@ -1,5 +1,6 @@
 #include "AtlasImage.h"
 #include <SDL2/SDL_image.h>
+#include <algorithm>
 #include <assert.h>
 #include <nch/cpp-utils/color.h>
 #include <nch/cpp-utils/filepath.h>
@@ -11,6 +12,10 @@
 #include <stdexcept>
 #include "MaxRectsBin.h"
 using namespace nch;
+
+constexpr int AtlasImage::MAX_MIP_LEVEL; //C++14: std::min/max bind it by reference, which needs a definition
+int AtlasImage::filterMipLevels = AtlasImage::MAX_MIP_LEVEL;
+float AtlasImage::filterAnisotropy = 16;
 
 std::map<std::string, SDL_Surface*> AtlasImage::collectFromPaths(const std::vector<std::vector<std::string>>& objCollections, const std::vector<std::string>& collectionPrefixes, bool jsonFiles, const std::vector<std::string>& collectionRoots, std::map<std::string, AnimSpec>* outAnims) {
 	if(objCollections.size()!=collectionPrefixes.size()) throw std::invalid_argument("Expected number of 'objCollections' to == number of prefixes");
@@ -461,18 +466,29 @@ bool AtlasImage::parseAnimation(const nlohmann::json& doc, const std::string& js
 	return !out.frames.empty();
 }
 
+void AtlasImage::setFiltering(int mipLevels, float anisotropy)
+{
+	filterMipLevels = std::max(0, std::min(mipLevels, MAX_MIP_LEVEL));
+	filterAnisotropy = std::max(1.0f, anisotropy);
+}
+void AtlasImage::applyFiltering(GLenum target)
+{
+	//Anisotropy params (1 = off)
+	GLfloat maxAnisotropy = 1;
+	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy);
+	glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, std::max(1.0f, std::min(filterAnisotropy, maxAnisotropy)));
+	//Set wrapping parameters
+	glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	//Set filtering parameters: crisp texels up close, mipmapped when minified (a plain GL_NEAREST
+	//min filter never reads the mipmaps, so thin repeating detail shimmers in and out at a distance)
+	glTexParameteri(target, GL_TEXTURE_MIN_FILTER, filterMipLevels>0 ? GL_NEAREST_MIPMAP_LINEAR : GL_NEAREST);
+	glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, filterMipLevels);
+}
 void AtlasImage::buildGLTexture(SDL_Surface* imgSurf)
 {
-	//Anisotropy params
-	GLfloat maxAnisotropy;
-	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
-	//Set wrapping parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	//Set filtering parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	applyFiltering(GL_TEXTURE_2D);
 
 	/* Create GL texture after converting SDL surface to the proper pixel format */
 	{
@@ -510,16 +526,7 @@ void AtlasImage::buildGLTextureArray(const std::vector<SDL_Surface*>& pages)
 	assert(!pages.empty());
 	int w = pages[0]->w, h = pages[0]->h;
 
-	//Anisotropy params
-	GLfloat maxAnisotropy;
-	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy);
-	glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
-	//Set wrapping parameters
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	//Set filtering parameters
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	applyFiltering(GL_TEXTURE_2D_ARRAY);
 
 	/* Allocate all layers, then upload each page after converting to the proper pixel format */
 	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, w, h, (GLsizei)pages.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
@@ -676,6 +683,62 @@ void AtlasImage::blitWithPadding(SDL_Surface* src, SDL_Surface* dst, int dstX, i
 	SDL_Rect srcBR = {imgW-1, imgH-1, 1, 1};
 	SDL_Rect dstBR = {dstX+PAD+imgW, dstY+PAD+imgH, PAD, PAD};
 	SDL_BlitScaled(src, &srcBR, dst, &dstBR);
+
+	bleedIntoTransparent(dst, {dstX, dstY, imgW+2*PAD, imgH+2*PAD});
+}
+void AtlasImage::bleedIntoTransparent(SDL_Surface* dst, const SDL_Rect& cell)
+{
+	//Every atlas page is byte-addressable RGBA; anything else is left alone
+	if(dst->format->format!=SDL_PIXELFORMAT_RGBA32) return;
+	SDL_Rect full = {0, 0, dst->w, dst->h};
+	SDL_Rect r;
+	if(!SDL_IntersectRect(&cell, &full, &r)) return;
+
+	if(SDL_MUSTLOCK(dst)) SDL_LockSurface(dst);
+	auto px = [&](int i) { return (uint8_t*)dst->pixels+(size_t)(r.y+i/r.w)*dst->pitch+(size_t)(r.x+i%r.w)*4; };
+
+	//Colored = has a real color, either its own or one already bled into it
+	std::vector<uint8_t> colored((size_t)r.w*r.h);
+	std::vector<int> pending;
+	for(int i = 0; i<r.w*r.h; i++) {
+		colored[i] = px(i)[3]>0;
+		if(!colored[i]) pending.push_back(i);
+	}
+
+	//Grow the colored region one ring per pass: each pending pixel takes the mean of its colored
+	//8-neighbours as they stood at the start of the pass
+	struct Fill { int i; uint8_t rgb[3]; };
+	std::vector<Fill> fills;
+	while(!pending.empty()) {
+		fills.clear();
+		std::vector<int> stillPending;
+		for(int i : pending) {
+			int x = i%r.w, y = i/r.w;
+			int sum[3] = {0, 0, 0}, n = 0;
+			for(int dy = -1; dy<=1; dy++)
+			for(int dx = -1; dx<=1; dx++) {
+				int nx = x+dx, ny = y+dy;
+				if((dx==0 && dy==0) || nx<0 || ny<0 || nx>=r.w || ny>=r.h) continue;
+				int ni = ny*r.w+nx;
+				if(!colored[ni]) continue;
+				uint8_t* np = px(ni);
+				for(int c = 0; c<3; c++) sum[c] += np[c];
+				n++;
+			}
+			if(n==0) { stillPending.push_back(i); continue; }
+			fills.push_back({i, {(uint8_t)(sum[0]/n), (uint8_t)(sum[1]/n), (uint8_t)(sum[2]/n)}});
+		}
+		if(fills.empty()) break;
+
+		for(const Fill& f : fills) {
+			uint8_t* p = px(f.i);
+			for(int c = 0; c<3; c++) p[c] = f.rgb[c];
+			colored[f.i] = 1;
+		}
+		pending = std::move(stillPending);
+	}
+
+	if(SDL_MUSTLOCK(dst)) SDL_UnlockSurface(dst);
 }
 std::vector<AtlasImage> AtlasImage::sortedBySize(const std::map<std::string, SDL_Surface*>& collection)
 {

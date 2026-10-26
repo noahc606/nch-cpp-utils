@@ -54,12 +54,17 @@ void Poly::simplyTex(Vec2f uv0, Vec2f uv1)
     Vec2f ouv1 = uv1;
     if(verts.size()<3) return;
 
+    //Geometry turned before texturing lands a hair off its exact values (a 45° face's normal, a vertex
+    //at -1e-8 instead of 0), and each comparison below would otherwise flip on that noise: a tie going
+    //to the other axis, a grid cell floored one lower, an extent of 1 ceiled to 2.
+    const float eps = 1e-4f;
+
     //Determine dominant axis (6 planes: +X, -X, +Y, -Y, +Z, -Z). //0=X, 1=Y, 2=Z.
     int dominantAxis = 0; {
         Vec3f absNorm = normal.abs();
-        if(absNorm.y>=absNorm.x && absNorm.y>=absNorm.z) {
+        if(absNorm.y+eps>=absNorm.x && absNorm.y+eps>=absNorm.z) {
             dominantAxis = 1;
-        } else if(absNorm.z>=absNorm.x && absNorm.z>=absNorm.y) {
+        } else if(absNorm.z+eps>=absNorm.x) {
             dominantAxis = 2;
         }
     }
@@ -99,7 +104,7 @@ void Poly::simplyTex(Vec2f uv0, Vec2f uv1)
             if(points2D[i].x>maxX) maxX = points2D[i].x;
             if(points2D[i].y>maxY) maxY = points2D[i].y;
         }
-        extent = { std::ceil(maxX-minX), std::ceil(maxY-minY) };
+        extent = { std::ceil(maxX-minX-eps), std::ceil(maxY-minY-eps) };
     }
     //Transform UV0 from extent
     if(extent.x!=0) uv0.x = uv1.x-(uv1.x-uv0.x)/extent.x;
@@ -112,6 +117,7 @@ void Poly::simplyTex(Vec2f uv0, Vec2f uv1)
         bool switchV = false;
         if(dominantAxis==0 && normal.x<0) { switchV = true; }
         if(dominantAxis==0 && normal.x>0) { switchU = true; switchV = true; }
+        if(dominantAxis==1 && normal.y<0) { switchU = true; }
         if(dominantAxis==2 && normal.z>0) { switchV = true; }
         if(dominantAxis==2 && normal.z<0) { switchU = true; switchV = true; }
         if(switchU) { std::swap(uv0.x, uv1.x); }
@@ -127,7 +133,7 @@ void Poly::simplyTex(Vec2f uv0, Vec2f uv1)
         if(u<minU) minU = u; if(v<minV) minV = v;
         if(u>maxU) maxU = u; if(v>maxV) maxV = v;
     }
-    float uGrid = std::floor(minU), vGrid = std::floor(minV);
+    float uGrid = std::floor(minU+eps), vGrid = std::floor(minV+eps);
 
     //Map each vertex to UV coordinates
     for(size_t i = 0; i<verts.size(); i++) {

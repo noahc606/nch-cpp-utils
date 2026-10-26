@@ -6,9 +6,7 @@
 #include <SDL2/SDL_ttf.h>
 #include <cctype>
 #include <climits>
-#include <codecvt>
 #include <cstddef>
-#include <locale>
 #include <nch/cpp-utils/log.h>
 #include <nch/cpp-utils/string-utils.h>
 #include <string>
@@ -181,7 +179,8 @@ void Text::drawFormattedCentered(int x, int y, int w, int h) const
 
 void Text::stream(GLSDL_Renderer* rend, TTF_Font* font, std::string text, const Color& c, int x, int y, double scale)
 {
-    SDL_Surface* txtSurf = TTF_RenderText_Blended(font, text.c_str(), {255, 255, 255, 255});
+    //UTF8, not Text: TTF_RenderText reads each byte as Latin-1, garbling anything past ASCII.
+    SDL_Surface* txtSurf = TTF_RenderUTF8_Blended(font, text.c_str(), {255, 255, 255, 255});
     if(txtSurf==NULL) return;
     GLSDL_Texture* txtTex = GLSDL_CreateTextureFromSurface(rend, txtSurf);
 
@@ -240,8 +239,8 @@ bool Text::setText(std::u16string text)
 }
 bool Text::setText(std::string text)
 {
-    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-    return setText(convert.from_bytes(text));
+    //Never wstring_convert: it throws on the first malformed byte, and a label is no reason to crash.
+    return setText(StringUtils::utf8ToUtf16(text));
 }
 
 void Text::setWrapLength(int wl)
@@ -697,9 +696,8 @@ int Text::measureWidth(TTF_Font* font, const std::u16string& txt, size_t start, 
 
         size_t j = i;
         while(j<end && txt[j]!=u'\t') j++;
-        std::u16string sub = txt.substr(i, j-i);
         int w = 0, h = 0;
-        TTF_SizeUNICODE(font, reinterpret_cast<const Uint16*>(sub.c_str()), &w, &h);
+        TTF_SizeUTF8(font, StringUtils::utf16ToUtf8(txt, i, j-i).c_str(), &w, &h);
         total += w;
         i = j;
     }
@@ -726,16 +724,17 @@ size_t Text::measureFitCount(TTF_Font* font, const std::u16string& txt, size_t s
         std::u16string sub = txt.substr(i, j-i);
 
         int extent = 0, count = 0;
-        if(TTF_MeasureUNICODE(font, reinterpret_cast<const Uint16*>(sub.c_str()), budget, &extent, &count)!=0) {
+        if(TTF_MeasureUTF8(font, StringUtils::utf16ToUtf8(sub).c_str(), budget, &extent, &count)!=0) {
             return len;
         }
-        if(count<0) count = 0;
-        size_t fit = (size_t)count;
-        if(fit>sub.size()) fit = sub.size();
+        //'count' is in code points: walk it back into code units, a surrogate pair being one point.
+        size_t fit = 0;
+        for(int k = 0; k<count && fit<sub.size(); k++) {
+            fit++;
+            if(fit<sub.size() && isLowSurrogate(sub[fit])) fit++;
+        }
 
         if(fit<sub.size()) {
-            //Never report a boundary that lands between the halves of a surrogate pair.
-            if(isLowSurrogate(sub[fit])) fit = (fit>0 ? fit-1 : 0);
             return (i-start)+fit;
         }
 
@@ -748,9 +747,9 @@ size_t Text::measureFitCount(TTF_Font* font, const std::u16string& txt, size_t s
 SDL_Surface* Text::renderRunSurface(TTF_Font* font, const std::u16string& txt, size_t start, size_t len)
 {
     if(len==0) return nullptr;
-    std::u16string sub = txt.substr(start, len);
-    //Always baked white: every color, span colors included, is a draw-time modulation.
-    return TTF_RenderUNICODE_Blended(font, reinterpret_cast<const Uint16*>(sub.c_str()), {255, 255, 255, 255});
+    //Always baked white: every color, span colors included, is a draw-time modulation. UTF8, never
+    //UNICODE: SDL_ttf reads UNICODE as UCS-2 and draws each half of a surrogate pair as a missing glyph.
+    return TTF_RenderUTF8_Blended(font, StringUtils::utf16ToUtf8(txt, start, len).c_str(), {255, 255, 255, 255});
 }
 
 void Text::applySpanAttribs(Style& style, const std::u16string& body)

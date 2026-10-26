@@ -16,8 +16,13 @@ namespace nch {
  */
 class SQLDB {
 public:
-    //Throws if the file can't be opened, matching SQLite::open (whose pragmas this applies too).
-    SQLDB(const std::string& dbPath);
+    enum Access {
+        READ_WRITE, //SQLite::open: created if missing, WAL + synchronous=NORMAL applied
+        READ_ONLY,  //SQLite::openReadOnly: an existing file, immutable, never written (see there)
+    };
+
+    //Throws if the file can't be opened, matching SQLite::open/openReadOnly (whose behavior this takes on).
+    SQLDB(const std::string& dbPath, Access access = READ_WRITE);
     ~SQLDB();
     SQLDB(const SQLDB&) = delete;
     SQLDB& operator=(const SQLDB&) = delete;

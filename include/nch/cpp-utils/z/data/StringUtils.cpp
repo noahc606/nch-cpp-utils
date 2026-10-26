@@ -299,6 +299,89 @@ std::u16string StringUtils::u16ReplacedAllAWithB(std::u16string str, const std::
     return str;
 }
 
+std::u16string StringUtils::utf8ToUtf16(const std::string& s)
+{
+    std::u16string ret;
+    ret.reserve(s.size());
+
+    const size_t n = s.size();
+    size_t i = 0;
+    while(i<n) {
+        unsigned char c = (unsigned char)s[i];
+        if(c<0x80) { ret.push_back((char16_t)c); i++; continue; }
+
+        int extra = 0;
+        uint32_t cp = 0;
+        uint32_t minCp = 0;
+        if((c&0xE0)==0xC0)      { extra = 1; cp = c&0x1F; minCp = 0x80; }
+        else if((c&0xF0)==0xE0) { extra = 2; cp = c&0x0F; minCp = 0x800; }
+        else if((c&0xF8)==0xF0) { extra = 3; cp = c&0x07; minCp = 0x10000; }
+        else                    { ret.push_back(u'�'); i++; continue; }
+
+        //A truncated sequence swallows only the bytes that belonged to it, so the next lead byte still decodes.
+        size_t j = i+1;
+        for(; j<n && j<=i+extra; j++) {
+            unsigned char cc = (unsigned char)s[j];
+            if((cc&0xC0)!=0x80) break;
+            cp = (cp<<6)|(cc&0x3F);
+        }
+        if(j!=i+1+extra || cp<minCp || cp>0x10FFFF || (cp>=0xD800 && cp<=0xDFFF)) {
+            ret.push_back(u'�');
+            i = j;
+            continue;
+        }
+        i = j;
+
+        if(cp<0x10000) {
+            ret.push_back((char16_t)cp);
+        } else {
+            cp -= 0x10000;
+            ret.push_back((char16_t)(0xD800+(cp>>10)));
+            ret.push_back((char16_t)(0xDC00+(cp&0x3FF)));
+        }
+    }
+    return ret;
+}
+std::string StringUtils::utf16ToUtf8(const std::u16string& s, size_t start, size_t len)
+{
+    std::string ret;
+    if(start>=s.size()) return ret;
+    const size_t end = (len>s.size()-start) ? s.size() : start+len;
+    ret.reserve(end-start);
+
+    for(size_t i = start; i<end; i++) {
+        uint32_t cp = s[i];
+        if(cp>=0xD800 && cp<=0xDBFF && i+1<end && s[i+1]>=0xDC00 && s[i+1]<=0xDFFF) {
+            cp = 0x10000+((cp-0xD800)<<10)+(s[i+1]-0xDC00);
+            i++;
+        } else if(cp>=0xD800 && cp<=0xDFFF) {
+            cp = 0xFFFD;
+        }
+
+        if(cp<0x80) {
+            ret.push_back((char)cp);
+        } else if(cp<0x800) {
+            ret.push_back((char)(0xC0|(cp>>6)));
+            ret.push_back((char)(0x80|(cp&0x3F)));
+        } else if(cp<0x10000) {
+            ret.push_back((char)(0xE0|(cp>>12)));
+            ret.push_back((char)(0x80|((cp>>6)&0x3F)));
+            ret.push_back((char)(0x80|(cp&0x3F)));
+        } else {
+            ret.push_back((char)(0xF0|(cp>>18)));
+            ret.push_back((char)(0x80|((cp>>12)&0x3F)));
+            ret.push_back((char)(0x80|((cp>>6)&0x3F)));
+            ret.push_back((char)(0x80|(cp&0x3F)));
+        }
+    }
+    return ret;
+}
+std::string StringUtils::removedUtf8BOM(const std::string& s)
+{
+    if(s.size()>=3 && (unsigned char)s[0]==0xEF && (unsigned char)s[1]==0xBB && (unsigned char)s[2]==0xBF) return s.substr(3);
+    return s;
+}
+
 int StringUtils::parseCmdArg(const std::vector<std::string>& args, std::string argLabel, int defaultValue, int errorValue)
 {
     if(!validateCmdArgLabel(argLabel)) { return errorValue; }

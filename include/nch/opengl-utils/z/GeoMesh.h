@@ -48,8 +48,10 @@ public:
      * debug passes this was extracted from).
      * @param triAlpha alphaMod for the fill pass (e.g. a small pulsing value keeps lines readable).
      * @param lineAlpha alphaMod for the line pass.
+     * @param depthTest Depth-test against what's already drawn (GL_LEQUAL, left on) instead of drawing over it.
+     *                  For outlines that belong to a solid mesh, so its far-side edges stay hidden.
      */
-    void draw(nch::Shader* sdr, nch::Camera3D* cam, float triAlpha = 1.0f, float lineAlpha = 1.0f) const;
+    void draw(nch::Shader* sdr, nch::Camera3D* cam, float triAlpha = 1.0f, float lineAlpha = 1.0f, bool depthTest = false) const;
 
 private:
     //Build a VAO/VBO pair from verts and link the standard nch::Vertex attribs; count 0 if empty.

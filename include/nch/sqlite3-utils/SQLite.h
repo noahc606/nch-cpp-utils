@@ -13,6 +13,13 @@
 class SQLite {
 public:
     static sqlite3* open(const std::string& dbPath);
+    /*
+     * Open an existing file read-only AND immutable: no locks taken, no pragmas, no -wal/-shm sidecars,
+     * not one byte written - so any number of processes can read it at once. Right only while nothing
+     * writes the file; a writer has to replace it whole (write elsewhere, then rename) instead.
+     * Throws (std::invalid_argument) if the file can't be opened.
+     */
+    static sqlite3* openReadOnly(const std::string& dbPath);
     static void close(sqlite3* db);
     static std::string getName(sqlite3* db);
     static void exec(sqlite3 *db, const std::string& query);
@@ -73,6 +80,9 @@ public:
         return true;
     }
 private:
+    //A file path as an SQLite "file:" URI, query not included.
+    static std::string toFileURI(const std::string& dbPath);
+
     static inline int bindParams(sqlite3_stmt* stmt, int) {
         return SQLITE_OK;
     }

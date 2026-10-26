@@ -12,6 +12,7 @@ std::recursive_mutex Log::rmtx;
 int64_t Log::suppressionsLeft = 0;
 
 std::function<void(const std::string&)> Log::sink_;
+std::ostream* Log::consoleStream = &std::cout;
 
 Log::Log(){}
 Log::~Log(){}
@@ -30,13 +31,17 @@ void Log::throwException() {
 void Log::logString(std::string s) {
 	std::lock_guard<std::recursive_mutex> lock(rmtx);
 
-	std::cout << s;
+	if(consoleStream!=nullptr) *consoleStream << s;
 	if(sink_) sink_(s);
 }
 
 void Log::setSink(std::function<void(const std::string&)> s) {
 	std::lock_guard<std::recursive_mutex> lock(rmtx);
 	sink_ = std::move(s);
+}
+void Log::setConsoleStream(std::ostream* os) {
+	std::lock_guard<std::recursive_mutex> lock(rmtx);
+	consoleStream = os;
 }
 void Log::suppressNext(int64_t amount) {
 	std::lock_guard<std::recursive_mutex> lock(rmtx);

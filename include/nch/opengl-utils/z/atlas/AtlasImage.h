@@ -15,6 +15,10 @@ public:
 
     static constexpr int PAD = 8;
     static constexpr float PAD_F = PAD;
+    //Deepest mip level sampled: at level N one texel spans 2^N pixels, so PAD keeps a cell's own edge
+    //bleed under every texel its image samples only while 2^N <= PAD. Past that, neighbours bleed in.
+    static constexpr int MAX_MIP_LEVEL = 3;
+    static_assert((1<<MAX_MIP_LEVEL)<=PAD, "MAX_MIP_LEVEL would sample texels spanning past PAD");
     //Ceiling on the cartesian product of one JSON's wildcards, so a typo can't try to build millions.
     static constexpr int MAX_WILDCARD_EXPANSIONS = 4096;
 
@@ -44,6 +48,12 @@ public:
     static std::map<std::string, SDL_Surface*> collectFromPaths(const std::vector<std::vector<std::string>>& objCollections, const std::vector<std::string>& collectionPrefixes, bool jsonFiles, const std::vector<std::string>& collectionRoots = {}, std::map<std::string, AnimSpec>* outAnims = nullptr);
     static std::map<std::string, SDL_Surface*> collectFromDirs(const std::vector<std::string>& dirPaths, const std::vector<std::string>& prefixes = {}, bool jsonFiles = false, std::map<std::string, AnimSpec>* outAnims = nullptr);
     static std::map<std::string, SDL_Surface*> collectFromDir(const std::string& dirPath, const std::string& prefix = "", bool jsonFiles = false);
+    /**
+     * @brief Texture filtering every atlas texture built from here on takes; one already built keeps its own.
+     * @param mipLevels Mip levels sampled below the base image, clamped to [0, MAX_MIP_LEVEL]; 0 = none.
+     * @param anisotropy Max anisotropic filtering samples, clamped to what the GPU supports; <=1 = off.
+     */
+    static void setFiltering(int mipLevels, float anisotropy);
     static void buildGLTexture(SDL_Surface* surf);
     /**
      * @brief Upload pages as the layers of the currently bound GL_TEXTURE_2D_ARRAY.
@@ -60,7 +70,19 @@ public:
     static std::map<std::string, Entry> buildPagedAtlas(const std::map<std::string, SDL_Surface*>& collection, int maxPageSize, int& outSize, int& outPageCount);
     static void blitWithPadding(SDL_Surface* src, SDL_Surface* dst, int dstX, int dstY);
 private:
+    static int filterMipLevels;
+    static float filterAnisotropy;
+    //Wrapping + filtering (from setFiltering) on the texture currently bound to 'target'.
+    static void applyFiltering(GLenum target);
     static bool tryPackMaxRects(int size, const std::vector<AtlasImage>& images, std::map<std::string, nch::Rect>& atlas);
+    /**
+     * @brief Give every fully transparent pixel in 'cell' the color of its nearest visible ones, alpha untouched.
+     *
+     * Images store their holes as (0,0,0,0), and anything that averages texels (mipmaps, anisotropic
+     * taps) pulls that black into the visible edges around them. Confined to the cell, so a neighbouring
+     * image's colors never flow in. A cell with nothing visible is left as it is.
+     */
+    static void bleedIntoTransparent(SDL_Surface* dst, const SDL_Rect& cell);
     //Collection -> AtlasImage list sorted largest-first (better packing).
     static std::vector<AtlasImage> sortedBySize(const std::map<std::string, SDL_Surface*>& collection);
     /**

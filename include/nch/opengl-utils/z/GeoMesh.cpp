@@ -101,7 +101,7 @@ bool GeoMesh::isBuilt() const {
     return lineVtxCount>0 || triVtxCount>0;
 }
 
-void GeoMesh::draw(Shader* sdr, Camera3D* cam, float triAlpha, float lineAlpha) const {
+void GeoMesh::draw(Shader* sdr, Camera3D* cam, float triAlpha, float lineAlpha, bool depthTest) const {
     if(lineVtxCount==0 && triVtxCount==0) return;
 
     cam->drawFromPos(sdr);
@@ -109,7 +109,8 @@ void GeoMesh::draw(Shader* sdr, Camera3D* cam, float triAlpha, float lineAlpha) 
     glUniform1i(sdr->getUniformLoc("useLightEffects"), 0);
     glUniform1i(sdr->getUniformLoc("isLightSource"), 0);
     glEnable(GL_BLEND);
-    glDisable(GL_DEPTH_TEST);
+    if(depthTest) { glEnable(GL_DEPTH_TEST); glDepthFunc(GL_LEQUAL); }
+    else          { glDisable(GL_DEPTH_TEST); }
     glDisable(GL_CULL_FACE);
 
     if(triVtxCount>0) {

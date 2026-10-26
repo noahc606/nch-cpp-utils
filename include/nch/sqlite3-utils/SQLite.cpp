@@ -1,6 +1,8 @@
 #include "SQLite.h"
 #include <nch/cpp-utils/log.h>
 #include <nch/cpp-utils/string-utils.h>
+#include <cctype>
+#include <stdexcept>
 #include <vector>
 using namespace nch;
 
@@ -19,6 +21,29 @@ sqlite3* SQLite::open(const std::string& dbPath) {
     //commits). journal_mode is persistent per DB file but cheap to (re)apply on every open.
     exec(ret, "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;");
 
+    return ret;
+}
+sqlite3* SQLite::openReadOnly(const std::string& dbPath) {
+    sqlite3* ret = nullptr;
+    std::string uri = toFileURI(dbPath)+"?immutable=1";
+    if(sqlite3_open_v2(uri.c_str(), &ret, SQLITE_OPEN_READONLY | SQLITE_OPEN_URI, nullptr)!=SQLITE_OK) {
+        Log::errorv(__PRETTY_FUNCTION__, (ret!=nullptr ? sqlite3_errmsg(ret) : "out of memory"), "Failed to open database \"%s\" read-only", dbPath.c_str());
+        sqlite3_close(ret);
+        throw std::invalid_argument(nch::cat("can't open \"", dbPath, "\""));
+    }
+    return ret;
+}
+std::string SQLite::toFileURI(const std::string& dbPath) {
+    //'?', '#' and '%' would end or escape the path; a Windows drive path needs a leading '/' to read as absolute.
+    std::string ret = "file:";
+    if(dbPath.size()>=2 && dbPath[1]==':' && std::isalpha((unsigned char)dbPath[0])) ret += "/";
+    for(char c : dbPath) {
+        if(c=='?')      ret += "%3f";
+        else if(c=='#') ret += "%23";
+        else if(c=='%') ret += "%25";
+        else if(c=='\\') ret += "/";
+        else            ret += c;
+    }
     return ret;
 }
 void SQLite::close(sqlite3* db) {

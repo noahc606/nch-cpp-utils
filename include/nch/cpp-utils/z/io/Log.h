@@ -145,6 +145,11 @@ public:
      * Not thread-coordinated on its own, the sink itself must handle concurrent invocations.
      */
     static void setSink(std::function<void(const std::string&)> sink);
+    /*
+     * The console stream every chunk is echoed to, std::cout by default. nullptr echoes nothing. A
+     * command-line tool whose stdout carries its results points this at std::cerr.
+     */
+    static void setConsoleStream(std::ostream* os);
 
     /*
      * Silence the next `amount` LINES of log/debug/warn output (one line = one log()/debug()/
@@ -169,5 +174,6 @@ private:
     static int64_t suppressionsLeft;
 
 	static std::function<void(const std::string&)> sink_;
+	static std::ostream* consoleStream;
 };
 }

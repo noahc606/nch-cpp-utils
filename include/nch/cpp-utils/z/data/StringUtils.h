@@ -65,6 +65,21 @@ public:
     static std::string replacedAllAWithB(std::string str, const std::string& a, const std::string& b);
     static std::u16string u16ReplacedAllAWithB(std::u16string str, const std::u16string& a, const std::u16string& b);
 
+    /**
+     * @brief Decode UTF-8 into UTF-16, never throwing: a malformed, overlong or truncated sequence, a
+     * surrogate code point and anything past U+10FFFF each become one U+FFFD. Text that was cut on a
+     * byte boundary or read from a file in another encoding still shows, rather than taking down
+     * whatever drew it.
+     */
+    static std::u16string utf8ToUtf16(const std::string& s);
+    /**
+     * @brief Encode the UTF-16 slice [start, start+len) as UTF-8. A surrogate pair becomes its one
+     * code point; a lone surrogate becomes U+FFFD.
+     */
+    static std::string utf16ToUtf8(const std::u16string& s, size_t start = 0, size_t len = std::u16string::npos);
+    //Strips a leading UTF-8 byte order mark, which editors on Windows like to write.
+    static std::string removedUtf8BOM(const std::string& s);
+
     static int parseCmdArg(const std::vector<std::string>& args, std::string argLabel, int defaultValue, int errorValue);
     static std::string parseCmdArg(const std::vector<std::string>& args, std::string argLabel, std::string defaultValue, std::string errorValue);
     /// @brief If calling with arg=="--test", an arg "--test=false" makes this return false. Use cmdArgExistsAndNotFalse() for this.

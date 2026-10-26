@@ -74,6 +74,13 @@ public:
     static float getRolledAngleAround(nch::Vec3f fwd, nch::Vec3f natUp, nch::Vec3f targetUp);
     std::string getInfo() const;
     nch::Vec3f getEstPos() const;
+    /**
+     * @brief Stamp the time every camera interpolates to until the next call. Call once at the top of each
+     * frame: otherwise each drawFromPos reads the clock itself, and a mesh drawn later in the frame sees a
+     * camera further along its velocity than one drawn earlier - at speed, later passes visibly lag.
+     * Without it (or once it predates the camera's last tick) the current time is used.
+     */
+    static void beginFrame();
     nch::Vec3f getInterpolDelta() const;
     nch::Vec3f getEstInterpolPos() const;
     nch::Vec3i64 getRegPos() const;
@@ -174,6 +181,9 @@ private:
     //'effRot' must already include the perspectiveDir flip where applicable.
     glm::mat4 buildViewProj(nch::Vec3f pos, nch::Vec3f effRot) const;
     void updateRegAndSubPos() const;
+    //How far the frame (see beginFrame) is between the last tick and the next, clamped to [0, 1]: a
+    //camera whose ticks stop (a paused game) holds still instead of extrapolating its velocity forever.
+    double getTickProgress() const;
     glm::vec3 computeNaturalUp() const;
     glm::vec3 computeRolledUp(glm::vec3 naturalUp, glm::vec3 forward) const;
     //Free-orientation helpers (see setFreeOrientation). subtickFreeOrientation integrates the mouse
@@ -190,6 +200,7 @@ private:
     uint64_t ticksSinceLastUnfocus = 0;
     uint64_t lastTickTimeNS = 0;
     uint64_t tickTimeNS = 0;
+    static uint64_t frameTimeNS; //See beginFrame
 
     SDL_Window* sdlWin = nullptr; int sdlWinW = 1; int sdlWinH = 1;
     float fov = 65.0f;          //[F]ield [o]f [v]iew, in degrees.    

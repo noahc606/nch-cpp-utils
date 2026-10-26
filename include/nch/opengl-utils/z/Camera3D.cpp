@@ -14,6 +14,7 @@ using namespace nch;
 const std::vector<std::string> Camera3D::dirStrings = {
     "east", "west", "down", "up", "south", "north", "unknown",
 };
+uint64_t Camera3D::frameTimeNS = 0;
 
 Camera3D::Camera3D() {}
 Camera3D::Camera3D(SDL_Window* win) : Camera3D() {
@@ -51,9 +52,7 @@ void Camera3D::drawFromPos(Shader* sdr, Vec3f offset)
 
     //Find interpolated position ('ipos') between two ticks:
     //Uses current position, tick progress, and current velocity.
-    uint64_t currTimeNS = Timer::getCurrentTimeNS();
-    double tickProgress = (double)(currTimeNS-lastTickTimeNS)/MainLoopDriver::getTargetNSPT();
-    Vec3f iLPos = lPos+vel*(float)tickProgress+offset;
+    Vec3f iLPos = lPos+vel*(float)getTickProgress()+offset;
 
     updateCamMatrix(iLPos);
 
@@ -78,9 +77,7 @@ glm::mat4 Camera3D::getCMatrixForOffset(Vec3f offset) const
     //Must match the render matrix drawFromPos produces (perspective offset + dir flip included), or
     //anything derived from this — frustum culling planes, world->screen projection — is wrong whenever
     //a third-person perspective is active.
-    uint64_t currTimeNS = Timer::getCurrentTimeNS();
-    double tickProgress = (double)(currTimeNS-lastTickTimeNS)/MainLoopDriver::getTargetNSPT();
-    Vec3f pos = lPos+vel*(float)tickProgress+offset+getPerspectiveWorldOffset();
+    Vec3f pos = lPos+vel*(float)getTickProgress()+offset+getPerspectiveWorldOffset();
     Vec3f effRot = (rotVec*perspectiveDir+extraRotVec).normalized();
     return buildViewProj(pos, effRot);
 }
@@ -173,9 +170,10 @@ Vec3f Camera3D::getInterpolDelta() const {
     //Interpolated local offset between two ticks
     //Uses local position, tick progress, and current velocity.
     //Does not include regPos, avoiding large-coordinate precision issues.
-    uint64_t currTimeNS = Timer::getCurrentTimeNS();
-    double tickProgress = (double)(currTimeNS-lastTickTimeNS)/MainLoopDriver::getTargetNSPT();
-    return vel*(float)tickProgress;
+    return vel*(float)getTickProgress();
+}
+void Camera3D::beginFrame() {
+    frameTimeNS = Timer::getCurrentTimeNS();
 }
 Vec3f Camera3D::getEstInterpolPos() const {
     return lPos+getInterpolDelta()+regPos.toFloat()*32;
@@ -470,6 +468,19 @@ void Camera3D::updateRegAndSubPos() const
 
     //Get 'subPos' from truncated 'lPos'
     subPos = lPos;
+}
+double Camera3D::getTickProgress() const
+{
+    //A stamp older than this camera's last tick belongs to a frame that is over (or beginFrame isn't
+    //being called at all), so fall back on the clock.
+    uint64_t timeNS = (frameTimeNS>=lastTickTimeNS) ? frameTimeNS : Timer::getCurrentTimeNS();
+    if(timeNS<lastTickTimeNS) return 0.0;
+    //No MainLoopDriver running (a one-shot offscreen render): no ticks to interpolate between. Dividing anyway is
+    //0/0 when nothing has stamped a time either, and a NaN here turns every matrix built from it into NaN.
+    uint64_t nspt = MainLoopDriver::getTargetNSPT();
+    if(nspt==0) return 0.0;
+    double tickProgress = (double)(timeNS-lastTickTimeNS)/nspt;
+    return tickProgress>1.0 ? 1.0 : tickProgress;
 }
 void Camera3D::subtickRotation()
 {

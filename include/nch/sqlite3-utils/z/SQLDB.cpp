@@ -3,8 +3,8 @@
 
 using namespace nch;
 
-SQLDB::SQLDB(const std::string& dbPath)
-: db(SQLite::open(dbPath)) {}
+SQLDB::SQLDB(const std::string& dbPath, Access access)
+: db(access==READ_ONLY ? SQLite::openReadOnly(dbPath) : SQLite::open(dbPath)) {}
 SQLDB::~SQLDB()
 {
     SQLite::close(db);
